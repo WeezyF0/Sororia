@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "194337833110",
+    "project_id": "rural-complaints-app",
+    "storage_bucket": "rural-complaints-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:194337833110:android:496d3f0c95ea0a2bbd42b7",
+        "android_client_info": {
+          "package_name": "com.complaints.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAcXvwvrMoxVBHPOAOWAUOKD10QeU-J7zk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
