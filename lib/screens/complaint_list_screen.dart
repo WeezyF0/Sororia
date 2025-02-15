@@ -1,14 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class ComplaintListScreen extends StatefulWidget {
+class ComplaintListScreen extends StatelessWidget {
   const ComplaintListScreen({super.key});
-
-  @override
-  _ComplaintListScreenState createState() => _ComplaintListScreenState();
-}
-
-class _ComplaintListScreenState extends State<ComplaintListScreen> {
-  List<String> complaints = []; // Stores complaints
 
   @override
   Widget build(BuildContext context) {
@@ -17,29 +11,35 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
         title: Text("Complaints List"),
         actions: [
           IconButton(
-            icon: Icon(Icons.gavel),  // Gavel icon for petitions
+            icon: Icon(Icons.gavel), // Navigate to petitions
             onPressed: () {
-              Navigator.pushNamed(context, '/petitions');  // Navigate to PetitionListScreen
+              Navigator.pushNamed(context, '/petitions');
             },
           ),
         ],
       ),
-      body: complaints.isEmpty
-          ? Center(child: Text("No complaints available."))
-          : ListView.builder(
-              itemCount: complaints.length,
-              itemBuilder: (context, index) => ListTile(
-                title: Text(complaints[index]),
-              ),
-            ),
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance.collection('complaints').orderBy('timestamp', descending: true).snapshots(),
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text("No complaints available."));
+          }
+          return ListView(
+            children: snapshot.data!.docs.map((doc) {
+              return ListTile(
+                title: Text(doc['text']),
+                subtitle: Text(doc['timestamp'].toDate().toString()), // Show timestamp
+              );
+            }).toList(),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final newComplaint = await Navigator.pushNamed(context, '/add_complaint');
-          if (newComplaint != null) {
-            setState(() {
-              complaints.add(newComplaint as String);
-            });
-          }
+          await Navigator.pushNamed(context, '/add_complaint'); // Navigate to add complaint
         },
         child: Icon(Icons.add),
       ),

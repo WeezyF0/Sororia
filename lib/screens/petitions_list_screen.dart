@@ -1,43 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class Petition {
-  final String title;
-  final String description;
-
-  Petition({required this.title, required this.description});
-}
-
-class PetitionListScreen extends StatefulWidget {
+class PetitionListScreen extends StatelessWidget {
   const PetitionListScreen({super.key});
-
-  @override
-  _PetitionListScreenState createState() => _PetitionListScreenState();
-}
-
-class _PetitionListScreenState extends State<PetitionListScreen> {
-  List<Petition> petitions = []; // Stores petitions with title & description
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text("Active Petitions")),
-      body: petitions.isEmpty
-          ? Center(child: Text("No active petitions."))
-          : ListView.builder(
-              itemCount: petitions.length,
-              itemBuilder: (context, index) => ListTile(
-                title: Text(petitions[index].title, style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: Text(petitions[index].description),
-              ),
-            ),
+      body: StreamBuilder(
+        stream: FirebaseFirestore.instance.collection('petitions').orderBy('timestamp', descending: true).snapshots(),
+        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          }
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(child: Text("No active petitions."));
+          }
+          return ListView(
+            children: snapshot.data!.docs.map((doc) {
+              return ListTile(
+                title: Text(doc['title'], style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(doc['description']),
+              );
+            }).toList(),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
-          final newPetition = await Navigator.pushNamed(context, '/add_petition');
-          if (newPetition != null && newPetition is Petition) {
-            setState(() {
-              petitions.add(newPetition);
-            });
-          }
+          await Navigator.pushNamed(context, '/add_petition');
         },
         child: Icon(Icons.add),
       ),
