@@ -6,23 +6,30 @@ class AuthService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Future<User?> signUp(String email, String password) async {
-    try {
-      UserCredential result = await _auth.createUserWithEmailAndPassword(email: email, password: password);
-      User? user = result.user;
+  try {
+    UserCredential result = await _auth.createUserWithEmailAndPassword(
+      email: email, password: password);
+    User? user = result.user;
 
-      if (user != null) {
-        await _db.collection("users").doc(user.uid).set({
-          "email": email,
-          "createdAt": FieldValue.serverTimestamp(),
-        });
-      }
-
-      return user;
-    } catch (e) {
-      print("Signup Error: $e");
-      return null;
+    if (user != null) {
+      print("User created: ${user.uid}");
+      await _db.collection("users").doc(user.uid).set({
+        "email": email,
+        "createdAt": FieldValue.serverTimestamp(),
+      }).then((_) {
+        print("User successfully saved in Firestore.");
+      }).catchError((error) {
+        print("Firestore Save Error: $error");
+      });
     }
+
+    return user;
+  } catch (e) {
+    print("Signup Error: $e");
+    return null;
   }
+}
+
 
   Future<User?> login(String email, String password) async {
     try {
@@ -41,4 +48,6 @@ class AuthService {
   User? getCurrentUser() {
     return _auth.currentUser;
   }
+
+  
 }
