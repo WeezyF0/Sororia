@@ -50,19 +50,19 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAEOO9zHZoFSjnW597F3ggFJhpAvNHrar4',
-    appId: '1:317680525655:android:10b492a08276b020fe9e12',
-    messagingSenderId: '317680525655',
-    projectId: 'complaints-gdg-app',
-    storageBucket: 'complaints-gdg-app.firebasestorage.app',
+    apiKey: 'AIzaSyDkf767G3k1HclMuJGzWdYn554qVbobolw',
+    appId: '1:892563764785:android:cb91708dee1ea116a50710',
+    messagingSenderId: '892563764785',
+    projectId: 'complaints-petition-app-final',
+    storageBucket: 'complaints-petition-app-final.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBQ28jFUmHmtvPARaPf0UgR0aRETxooq0s',
-    appId: '1:317680525655:ios:3697853228f2852bfe9e12',
-    messagingSenderId: '317680525655',
-    projectId: 'complaints-gdg-app',
-    storageBucket: 'complaints-gdg-app.firebasestorage.app',
+    apiKey: 'AIzaSyDDBR0AtPMPxdZamUtF5M9NV2ax4ivlGdU',
+    appId: '1:892563764785:ios:56c0e6e026305c32a50710',
+    messagingSenderId: '892563764785',
+    projectId: 'complaints-petition-app-final',
+    storageBucket: 'complaints-petition-app-final.firebasestorage.app',
     iosBundleId: 'com.example.complaintsApp',
   );
 }

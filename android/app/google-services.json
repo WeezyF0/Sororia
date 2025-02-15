@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "317680525655",
-    "project_id": "complaints-gdg-app",
-    "storage_bucket": "complaints-gdg-app.firebasestorage.app"
+    "project_number": "892563764785",
+    "project_id": "complaints-petition-app-final",
+    "storage_bucket": "complaints-petition-app-final.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:317680525655:android:10b492a08276b020fe9e12",
+        "mobilesdk_app_id": "1:892563764785:android:cb91708dee1ea116a50710",
         "android_client_info": {
           "package_name": "com.complaints.app"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAEOO9zHZoFSjnW597F3ggFJhpAvNHrar4"
+          "current_key": "AIzaSyDkf767G3k1HclMuJGzWdYn554qVbobolw"
         }
       ],
       "services": {
