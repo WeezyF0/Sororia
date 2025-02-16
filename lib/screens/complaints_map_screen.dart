@@ -65,7 +65,7 @@ class ComplaintMapScreen extends StatelessWidget {
               initialCenter: markers.isNotEmpty
                   ? markers.first.point
                   : const LatLng(20.5937, 78.9629), // Default to India if no markers
-              initialZoom: 5,
+              initialZoom: 10,
             ),
             children: [
               TileLayer(
