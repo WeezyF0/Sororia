@@ -16,6 +16,12 @@ class ComplaintListScreen extends StatelessWidget {
               Navigator.pushNamed(context, '/petitions');
             },
           ),
+          IconButton(
+            icon: Icon(Icons.search), // Navigate to complaints map
+            onPressed: () {
+              Navigator.pushNamed(context, '/complaints_map');
+            },
+          ),
         ],
       ),
       body: StreamBuilder(
@@ -31,7 +37,11 @@ class ComplaintListScreen extends StatelessWidget {
             children: snapshot.data!.docs.map((doc) {
               return ListTile(
                 title: Text(doc['text']),
-                subtitle: Text(doc['timestamp'].toDate().toString()), // Show timestamp
+                subtitle: Text(
+                    doc['timestamp'] != null
+                        ? doc['timestamp'].toDate().toString()
+                        : "No timestamp available",
+                  ),
               );
             }).toList(),
           );

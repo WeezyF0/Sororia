@@ -1,45 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class AddComplaintScreen extends StatelessWidget {
+class AddComplaintScreen extends StatefulWidget {
+  const AddComplaintScreen({super.key});
+
+  @override
+  _AddComplaintScreenState createState() => _AddComplaintScreenState();
+}
+
+class _AddComplaintScreenState extends State<AddComplaintScreen> {
   final TextEditingController _controller = TextEditingController();
+  bool _isLoading = false;
 
-  AddComplaintScreen({super.key});
+  Future<void> _checkLocationPermission() async {
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        throw Exception("Location permission denied");
+      }
+    }
 
-  void _submitComplaint(BuildContext context) {
+    if (permission == LocationPermission.deniedForever) {
+      throw Exception("Location permissions are permanently denied. Enable them in settings.");
+    }
+  }
+
+  Future<void> _submitComplaint(BuildContext context) async {
     String complaintText = _controller.text.trim();
-    if (complaintText.isNotEmpty) {
-      // Store complaint in Firestore
-      FirebaseFirestore.instance.collection('complaints').add({
+    if (complaintText.isEmpty) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await _checkLocationPermission(); // Check and request permission
+
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      await FirebaseFirestore.instance.collection('complaints').add({
         'text': complaintText,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
         'timestamp': FieldValue.serverTimestamp(),
-      }).then((_) {
+      });
+
+      if (mounted) {
         Navigator.pop(context); // Close screen after submission
-      }).catchError((error) {
+      }
+    } catch (error) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Error adding complaint: $error")),
         );
-      });
+      }
     }
+
+    setState(() => _isLoading = false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Complaint")),
+      appBar: AppBar(title: const Text("Add Complaint")),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _controller,
-              decoration: InputDecoration(labelText: "Enter your complaint"),
+              decoration: const InputDecoration(labelText: "Enter your complaint"),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => _submitComplaint(context),
-              child: Text("Submit"),
-            ),
+            const SizedBox(height: 20),
+            _isLoading
+                ? const CircularProgressIndicator()
+                : ElevatedButton(
+                    onPressed: () => _submitComplaint(context),
+                    child: const Text("Submit"),
+                  ),
           ],
         ),
       ),

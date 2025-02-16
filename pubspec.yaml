@@ -36,6 +36,10 @@ dependencies:
   google_sign_in: any
   cupertino_icons: ^1.0.8
   google_maps_flutter: any
+  flutter_map: ^8.0.0
+  latlong2: ^0.9.1
+  flutter_map_cancellable_tile_provider: ^3.1.0
+  geolocator: ^13.0.2
 
   
 

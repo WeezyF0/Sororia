@@ -1,3 +1,4 @@
+import 'package:complaints_app/screens/complaints_map_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/add_complaint': (context) => AddComplaintScreen(),
         '/add_petition': (context) => AddPetitionScreen(),
         '/petitions': (context) => PetitionListScreen(),
+        '/complaints_map': (context) => ComplaintMapScreen(),
       },
     );
   }
