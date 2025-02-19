@@ -41,6 +41,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       );
 
       await FirebaseFirestore.instance.collection('complaints').add({
+        
         'text': complaintText,
         'latitude': position.latitude,
         'longitude': position.longitude,

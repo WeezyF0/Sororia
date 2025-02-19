@@ -8,23 +8,27 @@ class AddPetitionScreen extends StatelessWidget {
   AddPetitionScreen({super.key});
 
   void _submitPetition(BuildContext context) {
-    String title = _titleController.text.trim();
-    String description = _descriptionController.text.trim();
+  String title = _titleController.text.trim();
+  String description = _descriptionController.text.trim();
 
-    if (title.isNotEmpty && description.isNotEmpty) {
-      FirebaseFirestore.instance.collection('petitions').add({
-        'title': title,
-        'description': description,
-        'timestamp': FieldValue.serverTimestamp(),
-      }).then((_) {
-        Navigator.pop(context); // Close screen after submission
-      }).catchError((error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error adding petition: $error")),
-        );
-      });
-    }
+  if (title.isNotEmpty && description.isNotEmpty) {
+    DocumentReference docRef = FirebaseFirestore.instance.collection('petitions').doc();
+
+    docRef.set({
+      'petition_id': docRef.id,  // Firestore auto-generated unique ID
+      'title': title,
+      'description': description,
+      'timestamp': FieldValue.serverTimestamp(),
+    }).then((_) {
+      Navigator.pop(context);
+    }).catchError((error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error adding petition: $error")),
+      );
+    });
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
