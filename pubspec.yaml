@@ -42,6 +42,8 @@ dependencies:
   geolocator: ^13.0.2
   http: any
   flutter_dotenv: ^5.2.1
+  google_generative_ai: ^0.4.6
+  geocoding: ^2.1.1
 
   
 

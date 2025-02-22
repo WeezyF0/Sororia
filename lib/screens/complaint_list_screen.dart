@@ -8,9 +8,9 @@ class ComplaintListScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0), // Custom AppBar height
+        preferredSize: Size.fromHeight(80.0),
         child: AppBar(
-          backgroundColor: Colors.transparent, // Transparent to show background image
+          backgroundColor: Colors.transparent,
           elevation: 0,
           flexibleSpace: Container(
             decoration: BoxDecoration(
@@ -22,17 +22,15 @@ class ComplaintListScreen extends StatelessWidget {
             child: SafeArea(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0), // Horizontal padding for spacing
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween, // Distribute space between children
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Left-aligned title text
                       Text(
                         "COMPLAINTS LIST",
                         style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                      // Right-aligned icons grouped in a Row
                       Row(
                         children: [
                           IconButton(
@@ -64,7 +62,6 @@ class ComplaintListScreen extends StatelessWidget {
         ),
       ),
 
-
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('complaints')
@@ -78,20 +75,19 @@ class ComplaintListScreen extends StatelessWidget {
             return Center(child: Text("No complaints available."));
           }
           return ListView(
-            padding: EdgeInsets.all(16.0), // Overall padding for the list
+            padding: EdgeInsets.all(16.0),
             children: snapshot.data!.docs.map((doc) {
               return Card(
-                color: Colors.grey[200], // Light grey background for each complaint card
-                margin: EdgeInsets.only(bottom: 12.0), // Spacing between cards
+                color: Colors.grey[200],
+                margin: EdgeInsets.only(bottom: 12.0),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0), // Rounded corners
+                  borderRadius: BorderRadius.circular(8.0),
                 ),
                 child: Padding(
-                  padding: EdgeInsets.all(16.0), // Padding inside each card
+                  padding: EdgeInsets.all(16.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Complaint text
                       Text(
                         doc['text'],
                         style: TextStyle(
@@ -100,15 +96,21 @@ class ComplaintListScreen extends StatelessWidget {
                         ),
                       ),
                       SizedBox(height: 8.0),
-                      // Timestamp
-                      Text(
-                        doc['timestamp'] != null
-                            ? doc['timestamp'].toDate().toString()
-                            : "No timestamp available",
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.black54,
-                        ),
+                      // Location instead of timestamp
+                      Row(
+                        children: [
+                          Icon(Icons.location_on, size: 16, color: Colors.black54),
+                          SizedBox(width: 4),
+                          Text(
+                            (doc.data() as Map<String, dynamic>?)?.containsKey('location') == true
+                                ? doc['location']
+                                : "Location not available",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -119,13 +121,12 @@ class ComplaintListScreen extends StatelessWidget {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey[900], // Grey FAB to match theme
+        backgroundColor: Colors.grey[900],
         onPressed: () async {
           await Navigator.pushNamed(context, '/add_complaint');
         },
         child: Icon(Icons.add, color: Colors.white),
       ),
-
     );
   }
 }
