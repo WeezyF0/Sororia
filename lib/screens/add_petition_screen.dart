@@ -33,7 +33,51 @@ class AddPetitionScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Add Petition")),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          // Remove default leading/back button to avoid misalignment
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/appBar_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            // SafeArea prevents overlap with status bar
+            child: SafeArea(
+              // Center horizontally & vertically
+              child: Center(
+                // Row sized to its children, so they remain together in the center
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start, // Distribute space between children
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Custom back arrow (white)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    // Title
+                    const Text(
+                      "Add Petition",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
         child: Column(
