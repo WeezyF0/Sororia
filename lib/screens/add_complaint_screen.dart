@@ -96,25 +96,21 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       systemInstruction: Content.system('You will be given a complaint about a specific issue in a particular place formalize it, into the format having location, time stamp, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration'),
     );
 
-    // Start a fresh chat without the example in history
     final chat = model.startChat();
-    
-    // Send your complaint as a multi-part message like in the example
     final response = await chat.sendMessage(Content.multi([
-        TextPart(complaintText),
+      TextPart(complaintText),
     ]));
 
-    print("Raw response: ${response.text}"); // Debug print
+    print("Raw response: ${response.text}");
 
     if (response.text == null) {
       return null;
     }
 
     try {
-      // Clean up the response text by removing 'json' prefix if present
       String cleanJson = response.text!.replaceAll('json\n', '');
       final result = jsonDecode(cleanJson);
-      print("Parsed result: $result"); // Debug print
+      print("Parsed result: $result");
       return result;
     } catch (e) {
       print("Error parsing Gemini response: $e");
@@ -122,7 +118,6 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       return null;
     }
   }
-
 
   Future<void> _submitComplaint(BuildContext context) async {
     String complaintText = _controller.text.trim();
@@ -156,7 +151,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
-        "text": structuredComplaint?["Text_description"] ?? complaintText, // Use the processed description
+        "text": structuredComplaint?["Text_description"] ?? complaintText,
         "timestamp": timestamp,
         "user_id": userId
       };
@@ -180,22 +175,59 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Submit Complaint")),
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/appBar_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            child: SafeArea(
+              child: Center(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      "Add Complaint",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _controller,
-              decoration: InputDecoration(labelText: "Enter your complaint"),
-              maxLines: 5,
+              decoration: const InputDecoration(labelText: "Enter your complaint"),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _isLoading
-                ? CircularProgressIndicator()
+                ? const CircularProgressIndicator()
                 : ElevatedButton(
                     onPressed: () => _submitComplaint(context),
-                    child: Text("Submit Complaint"),
+                    child: const Text("Submit"),
                   ),
           ],
         ),
