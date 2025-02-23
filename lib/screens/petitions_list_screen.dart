@@ -27,7 +27,7 @@ class PetitionListScreen extends StatelessWidget {
               child: Center(
                 // Row sized to its children, so they remain together in the center
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start, // Distribute space between children
+                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Custom back arrow (white)
@@ -53,39 +53,55 @@ class PetitionListScreen extends StatelessWidget {
         ),
       ),
       body: StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('petitions')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('petitions')
+                .orderBy('timestamp', descending: true)
+                .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text("No active petitions."));
+            return const Center(child: Text("No active petitions."));
           }
           return ListView(
-            padding: EdgeInsets.all(16.0),
-            children: snapshot.data!.docs.map((doc) {
-              return Card(
-                color: Colors.grey[200],
-                margin: EdgeInsets.only(bottom: 12.0),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0),),
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        doc['title'],
-                        style: TextStyle(fontWeight: FontWeight.bold),
+            padding: const EdgeInsets.all(16.0),
+            children:
+                snapshot.data!.docs.map((doc) {
+                  return Card(
+                    color: Colors.grey[200],
+                    margin: const EdgeInsets.only(bottom: 12.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8.0),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/open_petition',
+                          arguments: doc['petition_id'],
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              doc['title'],
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(doc['description']),
+                          ],
+                        ),
                       ),
-                      Text(doc['description']),
-                    ]
-                  )
-                ),
-              );
-            }).toList(),
+                    ),
+                  );
+                }).toList(),
           );
         },
       ),
@@ -94,7 +110,7 @@ class PetitionListScreen extends StatelessWidget {
         onPressed: () async {
           await Navigator.pushNamed(context, '/add_petition');
         },
-        child: Icon(Icons.add, color: Colors.white,),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
