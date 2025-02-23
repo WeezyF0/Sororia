@@ -8,6 +8,8 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AddComplaintScreen extends StatefulWidget {
+  const AddComplaintScreen({super.key});
+  
   @override
   _AddComplaintScreenState createState() => _AddComplaintScreenState();
 }
