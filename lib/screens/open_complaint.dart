@@ -274,7 +274,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Analysis Summary',
+              'Our Insights',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -606,6 +606,8 @@ class ComplaintAnalyzer {
     3. Additional recommendations.
     
     Format your response with markdown headings and bullet points for readability.
+    Don't add the text repeating the prompt like here's an analysis, start directly by the line
+    Possible Reasons for the issue and continue.
     """;
 
     final response = await model.generateContent([Content.text(prompt)]);
