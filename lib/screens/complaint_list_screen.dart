@@ -77,42 +77,54 @@ class ComplaintListScreen extends StatelessWidget {
           return ListView(
             padding: EdgeInsets.all(16.0),
             children: snapshot.data!.docs.map((doc) {
-              return Card(
-                color: Colors.grey[200],
-                margin: EdgeInsets.only(bottom: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        doc['text'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      SizedBox(height: 8.0),
-                      // Location instead of timestamp
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, size: 16, color: Colors.black54),
-                          SizedBox(width: 4),
-                          Text(
-                            (doc.data() as Map<String, dynamic>?)?.containsKey('location') == true
-                                ? doc['location']
-                                : "Location not available",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54,
-                            ),
+              return GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    '/open_complaint',
+                    arguments: {
+                      'complaintData': doc.data() as Map<String, dynamic>,
+                      'complaintId': doc.id,
+                    },
+                  );
+                },
+                child: Card(
+                  color: Colors.grey[200],
+                  margin: EdgeInsets.only(bottom: 12.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          doc['text'],
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.black87,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        SizedBox(height: 8.0),
+                        // Location instead of timestamp
+                        Row(
+                          children: [
+                            Icon(Icons.location_on, size: 16, color: Colors.black54),
+                            SizedBox(width: 4),
+                            Text(
+                              (doc.data() as Map<String, dynamic>?)?.containsKey('location') == true
+                                  ? doc['location']
+                                  : "Location not available",
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.black54,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );

@@ -1,4 +1,5 @@
 import 'package:complaints_app/screens/complaints_map_screen.dart';
+import 'package:complaints_app/screens/open_complaint.dart';
 import 'package:complaints_app/screens/open_petition.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -30,6 +31,7 @@ class MyApp extends StatelessWidget {
       title: 'Complaints App',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: AuthWrapper(),
+      initialRoute: '/',
       routes: {
         '/login': (context) => LoginScreen(),
         '/signup': (context) => SignupScreen(),
@@ -39,6 +41,22 @@ class MyApp extends StatelessWidget {
         '/petitions': (context) => PetitionListScreen(),
         '/complaints_map': (context) => ComplaintMapScreen(),
         '/open_petition': (context) => OpenPetitionScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/open_complaint') {
+          // Extract the arguments
+          final args = settings.arguments as Map<String, dynamic>;
+          final complaintData = args['complaintData'] as Map<String, dynamic>;
+          final complaintId = args['complaintId'] as String;
+          
+          return MaterialPageRoute(
+            builder: (context) => OpenComplaintScreen(
+              complaintData: complaintData,
+              complaintId: complaintId,
+            ),
+          );
+        }
+        return null; // Let the app handle other routes
       },
     );
   }
