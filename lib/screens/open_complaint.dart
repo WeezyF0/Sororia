@@ -586,6 +586,11 @@ class ComplaintAnalyzer {
     final model = GenerativeModel(
       model: 'gemini-2.0-flash',
       apiKey: _geminiApiKey!,
+      generationConfig: GenerationConfig(
+        temperature: 0.8,
+        topK: 40,
+        topP: 0.95,
+      ),
     );
 
     String newsText = newsResults
@@ -608,6 +613,7 @@ class ComplaintAnalyzer {
     Format your response with markdown headings and bullet points for readability.
     Don't add the text repeating the prompt like here's an analysis, start directly by the line
     Possible Reasons for the issue and continue.
+    DO NOT REPEAT THE COMPLAINT PROMPT IN THE RESPONSE IN ANY CONDITION.
     """;
 
     final response = await model.generateContent([Content.text(prompt)]);
