@@ -134,19 +134,21 @@ class OpenPetitionScreen extends StatelessWidget {
                                 ),
                               ),
                               // Sign Petition button
-                              ElevatedButton(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.grey[200],
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey[200],
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
-                                ),
-                                onPressed: () {
-                                  // TODO: Implement sign petition functionality
-                                },
-                                child: const Text(
-                                  "Sign Petition",
-                                  style: TextStyle(color: Colors.black),
+                                  onPressed: () {
+                                    // TODO: Implement sign petition functionality
+                                  },
+                                  child: const Text(
+                                    "Sign Petition",
+                                    style: TextStyle(color: Colors.black),
+                                  ),
                                 ),
                               ),
                             ],
