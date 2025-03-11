@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math';
+import 'navbar.dart'; // Import NavBar directly
 
 class ComplaintMapScreen extends StatelessWidget {
   const ComplaintMapScreen({super.key});
@@ -11,50 +12,48 @@ class ComplaintMapScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
+        preferredSize: Size.fromHeight(80.0),
         child: AppBar(
-          // Remove default leading/back button to avoid misalignment
-          automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
           flexibleSpace: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/appBar_bg.png'),
                 fit: BoxFit.cover,
               ),
             ),
-            // SafeArea prevents overlap with status bar
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3), 
+                  Colors.purple.withOpacity(0.3)
+                ],
+              ),
+            ),
             child: SafeArea(
-              // Center horizontally & vertically
               child: Center(
-                // Row sized to its children, so they remain together in the center
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start, // Distribute space between children
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Custom back arrow (white)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    // Title
-                    const Text(
-                      "COMPLAINTS MAP",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        "COMPLAINTS MAP",
+                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
         ),
       ),
+      drawer: NavBar(), // Use NavBar directly
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
         builder: (context, snapshot) {

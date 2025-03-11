@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'navbar.dart'; // Import the NavBar directly
 
 class ComplaintListScreen extends StatelessWidget {
   const ComplaintListScreen({super.key});
@@ -19,39 +20,27 @@ class ComplaintListScreen extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3), 
+                  Colors.purple.withOpacity(0.3)
+                ],
+              ),
+            ),
             child: SafeArea(
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         "COMPLAINTS LIST",
                         style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                      Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.gavel, color: Colors.white),
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/petitions');
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.search, color: Colors.white),
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/complaints_map');
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.account_circle, color: Colors.white),
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/login');
-                            },
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -61,7 +50,14 @@ class ComplaintListScreen extends StatelessWidget {
           ),
         ),
       ),
-
+      drawer: NavBar(), // Use the NavBar directly
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.grey[900],
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/add_complaint');
+        },
+        child: Icon(Icons.add, color: Colors.white),
+      ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance
             .collection('complaints')
@@ -107,7 +103,6 @@ class ComplaintListScreen extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 8.0),
-                        // Location instead of timestamp
                         Row(
                           children: [
                             Icon(Icons.location_on, size: 16, color: Colors.black54),
@@ -131,13 +126,6 @@ class ComplaintListScreen extends StatelessWidget {
             }).toList(),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey[900],
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/add_complaint');
-        },
-        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }

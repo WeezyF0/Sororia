@@ -97,6 +97,16 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 fit: BoxFit.cover,
               ),
             ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3), 
+                  Colors.purple.withOpacity(0.3)
+                ],
+              ),
+            ),
             child: SafeArea(
               child: Center(
                 child: Padding(

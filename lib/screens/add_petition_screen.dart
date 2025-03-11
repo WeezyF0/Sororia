@@ -72,6 +72,16 @@ class AddPetitionScreen extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3), 
+                  Colors.purple.withOpacity(0.3)
+                ],
+              ),
+            ),
             child: SafeArea(
               child: Center(
                 child: Row(

@@ -50,6 +50,16 @@ class _LoginScreenState extends State<LoginScreen> {
                 fit: BoxFit.cover,
               ),
             ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3), 
+                  Colors.purple.withOpacity(0.3)
+                ],
+              ),
+            ),
             // SafeArea prevents overlap with status bar
             child: SafeArea(
               // Center horizontally & vertically
@@ -60,10 +70,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Custom back arrow (white)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
+                    
                     const SizedBox(width: 8),
                     // Title
                     const Text(
