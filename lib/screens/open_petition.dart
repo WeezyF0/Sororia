@@ -10,10 +10,10 @@ class OpenPetitionScreen extends StatelessWidget {
     // Retrieve the petition ID from route arguments
     final String petitionId =
         ModalRoute.of(context)!.settings.arguments as String;
-    
+
     // Get current user ID
     final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-    
+
     if (currentUserId == null) {
       // Handle case where user is not logged in
       return const Scaffold(
@@ -25,7 +25,6 @@ class OpenPetitionScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          // Remove default leading/back button to avoid misalignment
           automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -44,13 +43,11 @@ class OpenPetitionScreen extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Custom back arrow (white)
                       IconButton(
                         icon: const Icon(Icons.arrow_back, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
                       const SizedBox(width: 8),
-                      // Title text
                       const Text(
                         "Review Petition",
                         style: TextStyle(
@@ -77,21 +74,23 @@ class OpenPetitionScreen extends StatelessWidget {
           if (petitionSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (!petitionSnapshot.hasData || !petitionSnapshot.data!.exists) {
             return const Center(child: Text("No petition data available."));
           }
-          
+
           // Extract petition data
-          final petitionData = petitionSnapshot.data!.data() as Map<String, dynamic>;
+          final petitionData =
+              petitionSnapshot.data!.data() as Map<String, dynamic>;
           final String id = petitionData['petition_id'] ?? petitionId;
           final String title = petitionData['title'] ?? 'No Title';
-          final String description = petitionData['description'] ?? 'No Description';
-          
+          final String description =
+              petitionData['description'] ?? 'No Description';
+
           // Get signatures (initialize to empty list if not available)
           final List<dynamic> signatures = petitionData['signatures'] ?? [];
           final int signatureCount = signatures.length;
-          
+
           // Check if current user has already signed
           final bool hasUserSigned = signatures.contains(currentUserId);
 
@@ -157,46 +156,80 @@ class OpenPetitionScreen extends StatelessWidget {
                               Expanded(
                                 child: ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: hasUserSigned ? Colors.grey[600] : Colors.grey[200],
+                                    backgroundColor:
+                                        hasUserSigned
+                                            ? Colors.grey[600]
+                                            : Colors.grey[200],
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(15),
                                     ),
                                   ),
-                                  onPressed: hasUserSigned 
-                                    ? null // Disable button if already signed
-                                    : () async {
-                                        try {
-                                          // Reference to the petition document
-                                          final petitionRef = FirebaseFirestore.instance
-                                              .collection('petitions')
-                                              .doc(petitionId);
-                                          
-                                          // Add the current user's ID to the signatures array
-                                          await petitionRef.update({
-                                            'signatures': FieldValue.arrayUnion([currentUserId])
-                                          });
-                                          
-                                          // Show success message
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(
-                                              content: Text('Petition signed successfully!'),
-                                              backgroundColor: Colors.green,
-                                            ),
-                                          );
-                                        } catch (e) {
-                                          // Show error message
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            SnackBar(
-                                              content: Text('Error signing petition: $e'),
-                                              backgroundColor: Colors.red,
-                                            ),
-                                          );
-                                        }
-                                      },
+                                  onPressed:
+                                      hasUserSigned
+                                          ? null // Disable button if already signed
+                                          : () async {
+                                            try {
+                                              // 1. Update the petition's signatures array
+                                              final petitionRef =
+                                                  FirebaseFirestore.instance
+                                                      .collection('petitions')
+                                                      .doc(petitionId);
+
+                                              await petitionRef.update({
+                                                'signatures':
+                                                    FieldValue.arrayUnion([
+                                                      currentUserId,
+                                                    ]),
+                                              });
+
+                                              // 2. Update the user's "signed_p" array
+                                              final userRef = FirebaseFirestore
+                                                  .instance
+                                                  .collection('users')
+                                                  .doc(currentUserId);
+
+                                              // If "signed_p" doesn't exist, create or merge it
+                                              await userRef.set({
+                                                'signed_p':
+                                                    FieldValue.arrayUnion([
+                                                      petitionId,
+                                                    ]),
+                                              }, SetOptions(merge: true));
+
+                                              // Show success message
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Petition signed successfully!',
+                                                  ),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            } catch (e) {
+                                              // Show error message
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text(
+                                                    'Error signing petition: $e',
+                                                  ),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                          },
                                   child: Text(
-                                    hasUserSigned ? "You've Signed" : "Sign Petition",
+                                    hasUserSigned
+                                        ? "You've Signed"
+                                        : "Sign Petition",
                                     style: TextStyle(
-                                      color: hasUserSigned ? Colors.white70 : Colors.black,
+                                      color:
+                                          hasUserSigned
+                                              ? Colors.white70
+                                              : Colors.black,
                                     ),
                                   ),
                                 ),

@@ -35,6 +35,12 @@ class PetitionListScreen extends StatelessWidget {
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
+
+                    IconButton(
+                      icon: const Icon(Icons.gavel, color: Colors.white),
+                      onPressed:
+                          () => Navigator.pushNamed(context, '/my_petitions'),
+                    ),
                     const SizedBox(width: 8),
                     // Title
                     const Text(

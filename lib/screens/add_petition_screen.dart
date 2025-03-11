@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AddPetitionScreen extends StatelessWidget {
   final TextEditingController _titleController = TextEditingController();
@@ -7,28 +8,53 @@ class AddPetitionScreen extends StatelessWidget {
 
   AddPetitionScreen({super.key});
 
-  void _submitPetition(BuildContext context) {
-  String title = _titleController.text.trim();
-  String description = _descriptionController.text.trim();
+  Future<void> _submitPetition(BuildContext context) async {
+    // Retrieve the current user's ID
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUserId == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("User not logged in")));
+      return;
+    }
 
-  if (title.isNotEmpty && description.isNotEmpty) {
-    DocumentReference docRef = FirebaseFirestore.instance.collection('petitions').doc();
+    String title = _titleController.text.trim();
+    String description = _descriptionController.text.trim();
 
-    docRef.set({
-      'petition_id': docRef.id,  // Firestore auto-generated unique ID
-      'title': title,
-      'description': description,
-      'timestamp': FieldValue.serverTimestamp(),
-    }).then((_) {
-      Navigator.pop(context);
-    }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error adding petition: $error")),
-      );
-    });
+    if (title.isNotEmpty && description.isNotEmpty) {
+      try {
+        // Create a new petition document reference with an auto-generated ID
+        DocumentReference docRef =
+            FirebaseFirestore.instance.collection('petitions').doc();
+
+        // Set petition data with additional fields: owner and signatures
+        await docRef.set({
+          'petition_id': docRef.id,
+          'title': title,
+          'description': description,
+          'timestamp': FieldValue.serverTimestamp(),
+          'owner': currentUserId, // New field: owner
+          'signatures': [
+            currentUserId,
+          ], // Initialize signatures with current user's ID
+        });
+
+        // Update the user's document to add this petition's ID to the signed_p array
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(currentUserId)
+            .set({
+              'signed_p': FieldValue.arrayUnion([docRef.id]),
+            }, SetOptions(merge: true));
+
+        Navigator.pop(context);
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error adding petition: $error")),
+        );
+      }
+    }
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +62,6 @@ class AddPetitionScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          // Remove default leading/back button to avoid misalignment
           automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -47,22 +72,17 @@ class AddPetitionScreen extends StatelessWidget {
                 fit: BoxFit.cover,
               ),
             ),
-            // SafeArea prevents overlap with status bar
             child: SafeArea(
-              // Center horizontally & vertically
               child: Center(
-                // Row sized to its children, so they remain together in the center
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start, // Distribute space between children
+                  mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Custom back arrow (white)
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
                       onPressed: () => Navigator.pop(context),
                     ),
                     const SizedBox(width: 8),
-                    // Title
                     const Text(
                       "Add Petition",
                       style: TextStyle(
@@ -79,22 +99,24 @@ class AddPetitionScreen extends StatelessWidget {
         ),
       ),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _titleController,
-              decoration: InputDecoration(labelText: "Petition Title"),
+              decoration: const InputDecoration(labelText: "Petition Title"),
             ),
             TextField(
               controller: _descriptionController,
-              decoration: InputDecoration(labelText: "Petition Description"),
+              decoration: const InputDecoration(
+                labelText: "Petition Description",
+              ),
               maxLines: 3,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => _submitPetition(context),
-              child: Text("Submit"),
+              child: const Text("Submit"),
             ),
           ],
         ),
