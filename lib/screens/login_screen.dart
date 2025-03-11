@@ -1,3 +1,4 @@
+import 'package:complaints_app/screens/phone_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:complaints_app/services/auth_service.dart';
 import 'signup_screen.dart';
@@ -66,7 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(width: 8),
                     // Title
                     const Text(
-                      "Login",
+                      "LOGIN",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -131,17 +132,33 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text("Login", style: TextStyle(fontSize: 20, color: Colors.black)),
                   ),
                   SizedBox(height: 16.0),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => SignupScreen()),
-                      );
-                    },
-                    child: Text(
-                      "Don't have an account? Sign up",
-                      style: TextStyle(color: Colors.white70),
-                    ),
+                  Column(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => SignupScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Don't have an account? Sign up",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => PhoneAuthScreen()),
+                          );
+                        },
+                        child: Text(
+                          "Login with Phone Number",
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

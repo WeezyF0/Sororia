@@ -38,7 +38,7 @@ class PetitionListScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     // Title
                     const Text(
-                      "Active Petitions",
+                      "ACTIVE PETITIONS",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,

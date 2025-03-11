@@ -10,6 +10,7 @@ import 'screens/add_complaint_screen.dart';
 import 'screens/add_petition_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
+import 'screens/phone_auth.dart';
 import 'screens/petitions_list_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
       routes: {
         '/login': (context) => LoginScreen(),
         '/signup': (context) => SignupScreen(),
+        '/phone': (context) => PhoneAuthScreen(),
         '/complaints': (context) => ComplaintListScreen(),
         '/add_complaint': (context) => AddComplaintScreen(),
         '/add_petition': (context) => AddPetitionScreen(),

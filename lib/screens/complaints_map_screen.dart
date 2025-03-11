@@ -41,7 +41,7 @@ class ComplaintMapScreen extends StatelessWidget {
                     const SizedBox(width: 8),
                     // Title
                     const Text(
-                      "Complaints Map",
+                      "COMPLAINTS MAP",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,

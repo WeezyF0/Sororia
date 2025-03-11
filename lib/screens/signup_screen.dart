@@ -61,7 +61,7 @@ class _SignupScreenState extends State<SignupScreen> {
                     const SizedBox(width: 8),
                     // Title
                     const Text(
-                      "Sign Up",
+                      "SIGN UP",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
