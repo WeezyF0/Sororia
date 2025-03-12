@@ -3,22 +3,27 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math';
-import 'navbar.dart'; // Import NavBar directly
+import 'navbar.dart';
 
-class ComplaintMapScreen extends StatelessWidget {
+class ComplaintMapScreen extends StatefulWidget {
   const ComplaintMapScreen({super.key});
 
+  @override
+  State<ComplaintMapScreen> createState() => _ComplaintMapScreenState();
+}
+
+class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           flexibleSpace: Container(
             decoration: BoxDecoration(
-              image: DecorationImage(
+              image: const DecorationImage(
                 image: AssetImage('assets/images/appBar_bg.png'),
                 fit: BoxFit.cover,
               ),
@@ -28,24 +33,22 @@ class ComplaintMapScreen extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue.withOpacity(0.3), 
-                  Colors.purple.withOpacity(0.3)
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
                 ],
               ),
             ),
-            child: SafeArea(
+            child: const SafeArea(
               child: Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        "COMPLAINTS MAP",
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ],
+                  padding: EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Text(
+                    "COMPLAINTS MAP",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -53,7 +56,7 @@ class ComplaintMapScreen extends StatelessWidget {
           ),
         ),
       ),
-      drawer: NavBar(), // Use NavBar directly
+      drawer: NavBar(),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
         builder: (context, snapshot) {
@@ -66,7 +69,7 @@ class ComplaintMapScreen extends StatelessWidget {
           }
 
           final random = Random();
-          Set<String> uniqueCoordinates = {}; // Track unique lat/lon
+          Set<String> uniqueCoordinates = {};
           List<Marker> markers = [];
 
           for (var doc in snapshot.data!.docs) {
@@ -79,7 +82,6 @@ class ComplaintMapScreen extends StatelessWidget {
               continue;
             }
 
-            // Ensure unique locations to prevent overlap
             double newLat = lat;
             double newLon = lon;
             String coordKey = "$newLat,$newLon";
@@ -96,7 +98,11 @@ class ComplaintMapScreen extends StatelessWidget {
                 point: LatLng(newLat, newLon),
                 width: 40,
                 height: 40,
-                child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                child: const Icon(
+                  Icons.place_rounded,
+                  color: Colors.red,
+                  size: 36,
+                ),
               ),
             );
           }
@@ -105,7 +111,7 @@ class ComplaintMapScreen extends StatelessWidget {
             options: MapOptions(
               initialCenter: markers.isNotEmpty
                   ? markers.first.point
-                  : const LatLng(20.5937, 78.9629), // Default to India if no markers
+                  : const LatLng(20.5937, 78.9629),
               initialZoom: 10,
             ),
             children: [

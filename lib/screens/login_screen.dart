@@ -66,7 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Center(
                 // Row sized to its children, so they remain together in the center
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start, // Distribute space between children
+                  mainAxisAlignment: MainAxisAlignment.center, // Distribute space between children
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // Custom back arrow (white)
@@ -88,86 +88,94 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         ),
       ),
-      body: Center(
-        child: SingleChildScrollView(
-          child: Card(
-            elevation: 8.0, // Adds a shadow for the card look
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0), // Rounded corners
-            ),
-            margin: EdgeInsets.symmetric(horizontal: 24.0),
-            color: Colors.grey[900], // Dark card background color
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                mainAxisSize: MainAxisSize.min, // Shrink to fit its children
-                children: [
-                  TextField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      labelText: "Email",
-                      labelStyle: TextStyle(color: Colors.white),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white54),
-                      ),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                  ),
-                  SizedBox(height: 16.0),
-                  TextField(
-                    controller: passwordController,
-                    decoration: InputDecoration(
-                      labelText: "Password",
-                      labelStyle: TextStyle(color: Colors.white),
-                      enabledBorder: UnderlineInputBorder(
-                        borderSide: BorderSide(color: Colors.white54),
-                      ),
-                    ),
-                    style: TextStyle(color: Colors.white),
-                    obscureText: true,
-                  ),
-                  SizedBox(height: 24.0),
-                  ElevatedButton(
-                    onPressed: _login,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.grey[300], // Button background color
-                      padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8.0),
-                      ),
-                    ),
-                    child: Text("Login", style: TextStyle(fontSize: 20, color: Colors.black)),
-                  ),
-                  SizedBox(height: 16.0),
-                  Column(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => SignupScreen()),
-                          );
-                        },
-                        child: Text(
-                          "Don't have an account? Sign up",
-                          style: TextStyle(color: Colors.white70),
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg.jpg'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Card(
+              elevation: 8.0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16.0),
+              ),
+              margin: EdgeInsets.symmetric(horizontal: 24.0),
+              color: Colors.grey[900]?.withOpacity(0.9),
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: emailController,
+                      decoration: InputDecoration(
+                        labelText: "Email",
+                        labelStyle: TextStyle(color: Colors.white),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white54),
                         ),
                       ),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => PhoneAuthScreen()),
-                          );
-                        },
-                        child: Text(
-                          "Login with Phone Number",
-                          style: TextStyle(color: Colors.white70),
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      controller: passwordController,
+                      decoration: InputDecoration(
+                        labelText: "Password",
+                        labelStyle: TextStyle(color: Colors.white),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white54),
                         ),
                       ),
-                    ],
-                  ),
-                ],
+                      style: TextStyle(color: Colors.white),
+                      obscureText: true,
+                    ),
+                    SizedBox(height: 24.0),
+                    ElevatedButton(
+                      onPressed: _login,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey[300],
+                        padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
+                        ),
+                      ),
+                      child: Text("Login", style: TextStyle(fontSize: 20, color: Colors.black)),
+                    ),
+                    SizedBox(height: 16.0),
+                    Column(
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => SignupScreen()),
+                            );
+                          },
+                          child: Text(
+                            "Don't have an account? Sign up",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => PhoneAuthScreen()),
+                            );
+                          },
+                          child: Text(
+                            "Login with Phone Number",
+                            style: TextStyle(color: Colors.white70),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

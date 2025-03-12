@@ -29,6 +29,8 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
   Map<String, dynamic> _analysisResult = {};
+  // Add a flag to track if any async operations are in progress
+  bool _isAnalyzing = false;
 
   @override
   void initState() {
@@ -36,12 +38,26 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     _analyzeComplaint();
   }
 
+  @override
+  void dispose() {
+    // Set flag to prevent any pending setState calls
+    _isAnalyzing = false;
+    super.dispose();
+  }
+
   Future<void> _analyzeComplaint() async {
+    // If we're already analyzing or the widget is disposed, don't proceed
+    if (_isAnalyzing || !mounted) return;
+    
     try {
-      setState(() {
-        _isLoading = true;
-        _errorMessage = '';
-      });
+      _isAnalyzing = true;
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _errorMessage = '';
+        });
+      }
 
       // Extract coordinates if available
       double? latitude;
@@ -60,15 +76,23 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         longitude: longitude
       );
 
-      setState(() {
-        _analysisResult = result;
-        _isLoading = false;
-      });
+      // Check if the widget is still mounted before calling setState
+      if (mounted) {
+        setState(() {
+          _analysisResult = result;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Failed to analyze complaint: ${e.toString()}';
-      });
+      // Only update state if the widget is still mounted
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to analyze complaint: ${e.toString()}';
+        });
+      }
+    } finally {
+      _isAnalyzing = false;
     }
   }
 
@@ -664,5 +688,4 @@ class ComplaintAnalyzer {
                     {"latitude": latitude, "longitude": longitude} : null
     };
   }
-
 }

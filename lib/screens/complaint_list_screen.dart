@@ -52,11 +52,23 @@ class ComplaintListScreen extends StatelessWidget {
       ),
       drawer: NavBar(), // Use the NavBar directly
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey[900],
         onPressed: () async {
           await Navigator.pushNamed(context, '/add_complaint');
         },
-        child: Icon(Icons.add, color: Colors.white),
+        backgroundColor: Theme.of(context).primaryColor,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+          child: Icon(
+            Icons.add_circle_outline,
+            key: ValueKey(Icons.add_circle_outline),
+            color: Colors.white,
+          ),
+        ),
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance

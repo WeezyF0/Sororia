@@ -49,6 +49,9 @@ dependencies:
   url_launcher: ^6.2.4
   intl: ^0.18.1
   pinput: ^3.0.1
+  google_fonts: ^5.1.0
+  flutter_svg: ^2.0.17
+  provider: ^6.1.2
 
 dev_dependencies:
   flutter_test:
@@ -73,6 +76,7 @@ flutter:
   assets:
     - .env
     - assets/images/appBar_bg.png
+    - assets\images\bg.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

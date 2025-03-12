@@ -52,11 +52,23 @@ class PetitionListScreen extends StatelessWidget {
       ),
       drawer: NavBar(), // Use the NavBar directly
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey[900],
         onPressed: () async {
           await Navigator.pushNamed(context, '/add_petition');
         },
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Theme.of(context).cardColor,
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: Icon(
+            Icons.add_circle_outline,
+            key: const ValueKey('add_petition'),
+            color: Theme.of(context).primaryColor,
+            size: 30,
+          ),
+        ),
       ),
       body: StreamBuilder(
         stream: FirebaseFirestore.instance

@@ -5,6 +5,7 @@ import 'package:complaints_app/screens/open_petition.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_fonts/google_fonts.dart'; 
 import 'firebase_options.dart';
 import 'screens/complaint_list_screen.dart';
 import 'screens/add_complaint_screen.dart';
@@ -14,13 +15,21 @@ import 'screens/signup_screen.dart';
 import 'screens/phone_auth.dart';
 import 'screens/petitions_list_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'theme/theme_provider.dart';
+import 'package:provider/provider.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: ".env");
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(MyApp());
+  
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => ThemeProvider(),
+      child: MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -28,10 +37,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Complaints App',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      themeMode: themeProvider.themeMode,
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        textTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).textTheme,
+        ),
+        primaryTextTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).primaryTextTheme,
+        ),
+      ),
+      darkTheme: ThemeData.dark(),
       home: AuthWrapper(),
       initialRoute: '/',
       routes: {
@@ -48,26 +69,23 @@ class MyApp extends StatelessWidget {
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {
-          // Extract the arguments
           final args = settings.arguments as Map<String, dynamic>;
           final complaintData = args['complaintData'] as Map<String, dynamic>;
           final complaintId = args['complaintId'] as String;
 
           return MaterialPageRoute(
-            builder:
-                (context) => OpenComplaintScreen(
-                  complaintData: complaintData,
-                  complaintId: complaintId,
-                ),
+            builder: (context) => OpenComplaintScreen(
+              complaintData: complaintData,
+              complaintId: complaintId,
+            ),
           );
         }
-        return null; // Let the app handle other routes
+        return null;
       },
     );
   }
 }
 
-// Automatically redirects based on authentication status
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
@@ -80,9 +98,9 @@ class AuthWrapper extends StatelessWidget {
           return Scaffold(body: Center(child: CircularProgressIndicator()));
         }
         if (snapshot.hasData) {
-          return ComplaintListScreen(); // User is logged in
+          return ComplaintListScreen();
         }
-        return LoginScreen(); // No user logged in, show login screen
+        return LoginScreen();
       },
     );
   }
