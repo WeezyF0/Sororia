@@ -160,13 +160,6 @@ class MyPetitionScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey[900],
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/add_petition');
-        },
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 }
