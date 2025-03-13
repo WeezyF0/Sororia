@@ -3,6 +3,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class NavBar extends StatelessWidget {
+  const NavBar({super.key});
+
   // Helper function to create Poppins text style to avoid repetition
   TextStyle _poppinsStyle({
     required Color color,
