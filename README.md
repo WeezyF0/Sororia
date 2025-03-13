@@ -1,16 +1,16 @@
-# complaints_app
+🌿 GramSewa
 
-A new Flutter project.
+GramSewa is a Flutter-based mobile application designed to help rural people and farmers lodge complaints, gain insights, access related news, start & sign petitions, and visualize complaints on a map using latitude and longitude.
 
-## Getting Started
+🚀 Features
+✅ Lodge Complaints – Users can register and submit complaints related to rural issues.
+📰 Related News & Insights – Get real-time news and relevant information regarding lodged complaints.
+📜 Petitions – Start and sign petitions to gather support for major issues.
+🗺 Complaint Mapping – Visualize reported issues on an interactive map with GPS coordinates.
 
-This project is a starting point for a Flutter application.
+🤝 Contributing
+Contributions are welcome! Feel free to fork the repository and submit a PR.
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+📥 Try the App!
+🔗 [Download the APK](https://drive.google.com/file/d/1smVyfZLwuMEh5iH53MYeLJk6H0Yz134P/view?usp=drive_link)
+ and test GramSewa on your Android device. (iOS under progress)
