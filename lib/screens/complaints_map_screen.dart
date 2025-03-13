@@ -4,6 +4,8 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:math';
 import 'navbar.dart';
+import 'package:complaints_app/screens/open_complaint.dart';
+
 
 class ComplaintMapScreen extends StatefulWidget {
   const ComplaintMapScreen({super.key});
@@ -76,6 +78,8 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
             var data = doc.data() as Map<String, dynamic>;
             double? lat = data['latitude'] as double?;
             double? lon = data['longitude'] as double?;
+            String title = data['issue_type'] ?? 'No issue type';
+            String description = data['text'] ?? 'No description';
 
             if (lat == null || lon == null) {
               print("Skipping document ${doc.id} - invalid coordinates");
@@ -98,10 +102,19 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
                 point: LatLng(newLat, newLon),
                 width: 40,
                 height: 40,
-                child: const Icon(
-                  Icons.place_rounded,
-                  color: Colors.red,
-                  size: 36,
+                child: GestureDetector(
+                  onTap: () => showComplaintDetails(
+                    context, 
+                    title, 
+                    description,
+                    data,
+                    doc.id,
+                  ),
+                  child: const Icon(
+                    Icons.place_rounded,
+                    color: Colors.red,
+                    size: 36,
+                  ),
                 ),
               ),
             );
@@ -123,6 +136,53 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  void showComplaintDetails(
+    BuildContext context, 
+    String title, 
+    String description, 
+    Map<String, dynamic> complaintData,
+    String complaintId,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(description),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); 
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OpenComplaintScreen(
+                      complaintData: complaintData,
+                      complaintId: complaintId,
+                    ),
+                  ),
+                );
+              },
+              child: const Text("View Details"),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Close"),
+            ),
+          ],
+        ),
       ),
     );
   }
