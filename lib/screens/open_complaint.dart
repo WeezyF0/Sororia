@@ -271,23 +271,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                   ),
                 ],
               ),
-            if (widget.complaintData['latitude'] != null && widget.complaintData['longitude'] != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Row(
-                  children: [
-                    Icon(Icons.my_location, size: 16, color: Colors.black54),
-                    SizedBox(width: 4),
-                    Text(
-                      '${widget.complaintData['latitude']}, ${widget.complaintData['longitude']}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.black54,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+            
           ],
         ),
       ),

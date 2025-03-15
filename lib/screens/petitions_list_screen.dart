@@ -51,22 +51,30 @@ class PetitionListScreen extends StatelessWidget {
         ),
       ),
       drawer: NavBar(), // Use the NavBar directly
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.pushNamed(context, '/add_petition');
-        },
-        backgroundColor: Theme.of(context).cardColor,
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 300),
-          child: Icon(
+      floatingActionButton: Container(
+        height: 56,
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        child: FloatingActionButton.extended(
+          onPressed: () async {
+            await Navigator.pushNamed(context, '/add_petition');
+          },
+          backgroundColor: Theme.of(context).primaryColor,
+          elevation: 4,
+          icon: Icon(
             Icons.add_circle_outline,
-            key: const ValueKey('add_petition'),
-            color: Theme.of(context).primaryColor,
-            size: 30,
+            color: Colors.white,
+            size: 24,
+          ),
+          label: Text(
+            'Start a Petition',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
       ),

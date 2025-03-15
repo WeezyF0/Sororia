@@ -91,8 +91,8 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
             String coordKey = "$newLat,$newLon";
 
             while (uniqueCoordinates.contains(coordKey)) {
-              newLat += (random.nextDouble() - 0.5) * 0.0005;
-              newLon += (random.nextDouble() - 0.5) * 0.0005;
+              newLat += (random.nextDouble() - 0.5) * 0.001;
+              newLon += (random.nextDouble() - 0.5) * 0.001;
               coordKey = "$newLat,$newLon";
             }
             uniqueCoordinates.add(coordKey);
