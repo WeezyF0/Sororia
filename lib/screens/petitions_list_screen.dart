@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'navbar.dart'; // Import NavBar directly
+import 'navbar.dart';
 
 class PetitionListScreen extends StatelessWidget {
   const PetitionListScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80.0),
@@ -50,31 +54,22 @@ class PetitionListScreen extends StatelessWidget {
           ),
         ),
       ),
-      drawer: NavBar(), // Use the NavBar directly
-      floatingActionButton: Container(
-        height: 56,
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        child: FloatingActionButton.extended(
-          onPressed: () async {
-            await Navigator.pushNamed(context, '/add_petition');
-          },
-          backgroundColor: Theme.of(context).primaryColor,
-          elevation: 4,
-          icon: Icon(
-            Icons.add_circle_outline,
-            color: Colors.white,
-            size: 24,
-          ),
-          label: Text(
-            'Start a Petition',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+      drawer: NavBar(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/add_petition');
+        },
+        backgroundColor: colorScheme.secondary,
+        elevation: 4,
+        icon: Icon(
+          Icons.add_circle_outline,
+          color: colorScheme.onSecondary,
+          size: 24,
+        ),
+        label: Text(
+          'Start a Petition',
+          style: textTheme.labelMedium?.copyWith(
+            color: colorScheme.onSecondary,
           ),
         ),
       ),
@@ -85,20 +80,23 @@ class PetitionListScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(
+              color: colorScheme.primary,
+            ));
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No active petitions."));
+            return Center(child: Text(
+              "No active petitions.",
+              style: textTheme.bodyLarge,
+            ));
           }
           return ListView(
             padding: const EdgeInsets.all(16.0),
             children: snapshot.data!.docs.map((doc) {
               return Card(
-                color: Colors.grey[200],
                 margin: const EdgeInsets.only(bottom: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
+                elevation: theme.cardTheme.elevation,
+                shape: theme.cardTheme.shape,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(8.0),
                   onTap: () {
@@ -115,11 +113,13 @@ class PetitionListScreen extends StatelessWidget {
                       children: [
                         Text(
                           doc['title'],
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: textTheme.titleMedium,
                         ),
-                        Text(doc['description']),
+                        const SizedBox(height: 4),
+                        Text(
+                          doc['description'],
+                          style: textTheme.bodyMedium,
+                        ),
                       ],
                     ),
                   ),

@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:math' show sin, cos, sqrt, atan2, pi;
+import 'package:complaints_app/theme/theme_provider.dart';
 
 class OpenComplaintScreen extends StatefulWidget {
   final Map<String, dynamic> complaintData;
@@ -29,7 +30,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   bool _isLoading = true;
   String _errorMessage = '';
   Map<String, dynamic> _analysisResult = {};
-  // Add a flag to track if any async operations are in progress
   bool _isAnalyzing = false;
 
   @override
@@ -40,18 +40,15 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   @override
   void dispose() {
-    // Set flag to prevent any pending setState calls
     _isAnalyzing = false;
     super.dispose();
   }
 
   Future<void> _analyzeComplaint() async {
-    // If we're already analyzing or the widget is disposed, don't proceed
     if (_isAnalyzing || !mounted) return;
-    
+
     try {
       _isAnalyzing = true;
-      
       if (mounted) {
         setState(() {
           _isLoading = true;
@@ -59,10 +56,8 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         });
       }
 
-      // Extract coordinates if available
       double? latitude;
       double? longitude;
-      
       if (widget.complaintData.containsKey('latitude') && 
           widget.complaintData.containsKey('longitude')) {
         latitude = (widget.complaintData['latitude'] as num).toDouble();
@@ -76,7 +71,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         longitude: longitude
       );
 
-      // Check if the widget is still mounted before calling setState
       if (mounted) {
         setState(() {
           _analysisResult = result;
@@ -84,7 +78,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         });
       }
     } catch (e) {
-      // Only update state if the widget is still mounted
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -98,7 +91,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   String _formatTimestamp(String timestamp) {
     try {
-      // Parse the timestamp format "2025-02-23T01:58:45.177679"
       DateTime dateTime = DateTime.parse(timestamp);
       return DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
     } catch (e) {
@@ -108,10 +100,13 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
+          automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
           flexibleSpace: Container(
@@ -137,10 +132,12 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       IconButton(
-                        icon: Icon(Icons.arrow_back, color: Colors.white),
+                        icon: Icon(
+                          Icons.arrow_back,
+                          color: theme.appBarTheme.iconTheme?.color ?? Colors.white,
+                        ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
@@ -148,7 +145,10 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
                       ),
                       IconButton(
-                        icon: Icon(Icons.refresh, color: Colors.white),
+                        icon: Icon(
+                          Icons.refresh,
+                          color: theme.appBarTheme.iconTheme?.color ?? Colors.white,
+                        ),
                         onPressed: _analyzeComplaint,
                       ),
                     ],
@@ -168,18 +168,19 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   }
 
   Widget _buildErrorView() {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            Icon(Icons.error_outline, size: 48, color: theme.colorScheme.error),
             const SizedBox(height: 16),
             Text(
               _errorMessage,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16),
+              style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -211,8 +212,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   }
 
   Widget _buildComplaintCard() {
+    final theme = Theme.of(context);
     return Card(
-      color: Colors.grey[200],
+      // Remove explicit color so the theme's cardTheme is used.
       elevation: 2,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8.0),
@@ -224,34 +226,36 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           children: [
             if (widget.complaintData['issue_type'] != null)
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.grey[400],
+                  color: Theme.of(context).colorScheme.primaryContainer,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   widget.complaintData['issue_type'],
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
               ),
+
             const SizedBox(height: 12),
             Text(
               widget.complaintData['text'] ?? 'No complaint text',
-              style: TextStyle(fontSize: 16),
+              style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
             ),
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.location_on, size: 16, color: Colors.black54),
-                SizedBox(width: 4),
+                Icon(Icons.location_on,
+                    size: 16,
+                    color: theme.iconTheme.color ?? Colors.black54),
+                const SizedBox(width: 4),
                 Text(
                   widget.complaintData['location'] ?? 'Unknown location',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.black54,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
                   ),
                 ),
               ],
@@ -260,18 +264,18 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
             if (widget.complaintData['timestamp'] != null)
               Row(
                 children: [
-                  Icon(Icons.access_time, size: 16, color: Colors.black54),
-                  SizedBox(width: 4),
+                  Icon(Icons.access_time,
+                      size: 16,
+                      color: theme.iconTheme.color ?? Colors.black54),
+                  const SizedBox(width: 4),
                   Text(
                     _formatTimestamp(widget.complaintData['timestamp']),
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.black54,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
                     ),
                   ),
                 ],
               ),
-            
           ],
         ),
       ),
@@ -279,8 +283,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   }
 
   Widget _buildSummarySection() {
+    final theme = Theme.of(context);
     final summary = _analysisResult['summary'] as String? ?? 'No summary available';
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -291,23 +296,20 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Our Insights',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Divider(),
+            const Divider(),
             const SizedBox(height: 8),
             MarkdownBody(
               data: summary,
               styleSheet: MarkdownStyleSheet(
-                p: const TextStyle(fontSize: 16),
-                h1: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                h2: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                listBullet: const TextStyle(fontSize: 16),
+                p: theme.textTheme.bodyMedium?.copyWith(fontSize: 16) ?? const TextStyle(fontSize: 16),
+                h1: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold) ?? const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                h2: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold) ?? const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                listBullet: theme.textTheme.bodyMedium?.copyWith(fontSize: 16) ?? const TextStyle(fontSize: 16),
               ),
               onTapLink: (text, href, title) {
                 if (href != null) {
@@ -322,8 +324,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   }
 
   Widget _buildSimilarComplaintsSection() {
+    final theme = Theme.of(context);
     final matchedComplaints = _analysisResult['matched_complaints'] as List<dynamic>? ?? [];
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -334,22 +337,22 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Similar Complaints',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Divider(),
+            const Divider(),
             const SizedBox(height: 8),
             if (matchedComplaints.isEmpty)
-              const Text('No similar complaints found in the database.'),
+              Text(
+                'No similar complaints found in the database.',
+                style: theme.textTheme.bodyMedium,
+              ),
             for (var complaint in matchedComplaints)
               Card(
-                color: Colors.grey[100],
-                margin: EdgeInsets.only(bottom: 8.0),
+                // Let the theme control the card color
+                margin: const EdgeInsets.only(bottom: 8.0),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
@@ -357,23 +360,22 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                     children: [
                       Text(
                         complaint['text'] ?? '',
-                        style: TextStyle(fontSize: 14),
+                        style: theme.textTheme.bodySmall,
                       ),
-                      SizedBox(height: 8),
+                      const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                             decoration: BoxDecoration(
-                              color: Colors.blue,
+                              color: theme.primaryColor,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
                               '${complaint['similarity']?.toStringAsFixed(1) ?? 0}% match',
-                              style: TextStyle(
+                              style: theme.textTheme.bodySmall?.copyWith(
                                 color: Colors.white,
-                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -391,8 +393,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   }
 
   Widget _buildNewsSection() {
+    final theme = Theme.of(context);
     final newsResults = _analysisResult['news_results'] as List<dynamic>? ?? [];
-    
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -403,22 +406,21 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Related News',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            Divider(),
+            const Divider(),
             const SizedBox(height: 8),
             if (newsResults.isEmpty)
-              const Text('No related news found.'),
+              Text(
+                'No related news found.',
+                style: theme.textTheme.bodyMedium,
+              ),
             for (var news in newsResults)
               Card(
-                color: Colors.grey[100],
-                margin: EdgeInsets.only(bottom: 8.0),
+                margin: const EdgeInsets.only(bottom: 8.0),
                 child: Padding(
                   padding: const EdgeInsets.all(12.0),
                   child: Column(
@@ -433,17 +435,16 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         },
                         child: Text(
                           news['title'] ?? 'No Title',
-                          style: const TextStyle(
-                            fontSize: 16,
+                          style: theme.textTheme.bodyLarge?.copyWith(
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue,
+                            color: theme.primaryColor,
                           ),
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         news['snippet'] ?? 'No snippet available.',
-                        style: TextStyle(fontSize: 14),
+                        style: theme.textTheme.bodyMedium,
                       ),
                       const SizedBox(height: 4),
                       Align(
@@ -455,7 +456,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                               launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
                             }
                           },
-                          child: Text('Read More'),
+                          child: const Text('Read More'),
                         ),
                       ),
                     ],
@@ -478,7 +479,6 @@ class ComplaintAnalyzer {
     _serperApiKey = dotenv.env['serper-api'];
     _geminiApiKey = dotenv.env['gemini-api'];
     
-    
     if (_geminiApiKey == null || _serperApiKey == null) {
       throw Exception('Missing API Keys: Ensure gemini-api and serper-api keys are present.');
     }
@@ -491,7 +491,7 @@ class ComplaintAnalyzer {
   }
 
   double _calculateSimilarity(String text1, String text2) {
-    return text1.similarityTo(text2) * 100; // Converts to percentage
+    return text1.similarityTo(text2) * 100;
   }
 
   double _degreesToRadians(double degrees) {
@@ -499,10 +499,7 @@ class ComplaintAnalyzer {
   }
 
   double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-    // Haversine formula to calculate distance between two coordinates in kilometers
-    const double earthRadius = 6371; // Earth's radius in kilometers
-
-    // Convert degrees to radians
+    const double earthRadius = 6371;
     final double latDelta = _degreesToRadians(lat2 - lat1);
     final double lonDelta = _degreesToRadians(lon2 - lon1);
 
@@ -533,14 +530,10 @@ class ComplaintAnalyzer {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
       String complaintText = data["text"] ?? "";
       
-      // Calculate text similarity
       double textSimilarity = _calculateSimilarity(complaintText, problem);
-      
-      // Determine if this complaint is within our radius (if coordinates provided)
       bool isInRadius = true;
       double distance = double.infinity;
       
-      // Only do distance calculation if we have both sets of coordinates
       if (latitude != null && longitude != null && 
           data.containsKey("latitude") && data.containsKey("longitude")) {
         
@@ -551,12 +544,10 @@ class ComplaintAnalyzer {
         isInRadius = distance <= radiusInKm;
       }
       
-      // If we have coordinates and complaint is not in radius, skip it
       if (!isInRadius && latitude != null && longitude != null) {
         continue;
       }
       
-      // Check if text similarity meets threshold
       if (textSimilarity >= threshold) {
         matchedComplaints.add({
           "text": complaintText,
@@ -568,7 +559,6 @@ class ComplaintAnalyzer {
       }
     }
 
-    // Sort by similarity (highest first)
     matchedComplaints.sort((a, b) {
       final aValue = a["similarity"] as double;
       final bValue = b["similarity"] as double;
@@ -656,7 +646,7 @@ class ComplaintAnalyzer {
       problem, 
       latitude: latitude, 
       longitude: longitude,
-      radiusInKm: 5.0 // 5km radius
+      radiusInKm: 5.0
     );
     
     List<Map<String, dynamic>> newsResults = await _searchOnline(location, problem);

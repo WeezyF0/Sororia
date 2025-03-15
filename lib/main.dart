@@ -17,11 +17,21 @@ import 'screens/petitions_list_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/theme_provider.dart';
 import 'package:provider/provider.dart';
-
+import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Set preferred orientations
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  
+  // Load environment variables
   await dotenv.load(fileName: ".env");
+  
+  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
   runApp(
@@ -34,25 +44,17 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-
+    
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Complaints App',
+      title: 'GramSewa',
       themeMode: themeProvider.themeMode,
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
-        ),
-        primaryTextTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).primaryTextTheme,
-        ),
-      ),
-      darkTheme: ThemeData.dark(),
+      theme: themeProvider.lightTheme,
+      darkTheme: themeProvider.darkTheme,
       home: AuthWrapper(),
       initialRoute: '/',
       routes: {
@@ -72,7 +74,6 @@ class MyApp extends StatelessWidget {
           final args = settings.arguments as Map<String, dynamic>;
           final complaintData = args['complaintData'] as Map<String, dynamic>;
           final complaintId = args['complaintId'] as String;
-
           return MaterialPageRoute(
             builder: (context) => OpenComplaintScreen(
               complaintData: complaintData,
@@ -88,20 +89,74 @@ class MyApp extends StatelessWidget {
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
-
+  
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(body: Center(child: CircularProgressIndicator()));
+          return _buildLoadingScreen();
         }
         if (snapshot.hasData) {
           return ComplaintListScreen();
         }
         return LoginScreen();
       },
+    );
+  }
+  
+  Widget _buildLoadingScreen() {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              ColorPalette.primaryLight,
+              ColorPalette.primaryLight.withOpacity(0.8),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/images/logo.png',
+                height: 120,
+              ),
+              SizedBox(height: 24),
+              Text(
+                'GramSewa',
+                style: GoogleFonts.poppins(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Village Services Portal',
+                style: GoogleFonts.poppins(
+                  fontSize: 16,
+                  color: Colors.white.withOpacity(0.9),
+                ),
+              ),
+              SizedBox(height: 48),
+              SizedBox(
+                width: 36,
+                height: 36,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

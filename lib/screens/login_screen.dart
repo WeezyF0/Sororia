@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:complaints_app/services/auth_service.dart';
 import 'signup_screen.dart';
 import 'complaint_list_screen.dart';
+import 'package:complaints_app/theme/theme_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,18 +29,25 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed")),
+        SnackBar(
+          content: Text("Login failed"),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+    final theme = Theme.of(context);
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          // Remove default leading/back button to avoid misalignment
           automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -60,19 +68,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-            // SafeArea prevents overlap with status bar
             child: SafeArea(
-              // Center horizontally & vertically
               child: Center(
-                // Row sized to its children, so they remain together in the center
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center, // Distribute space between children
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Custom back arrow (white)
-                    
                     const SizedBox(width: 8),
-                    // Title
                     const Text(
                       "LOGIN",
                       style: TextStyle(
@@ -103,7 +105,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 borderRadius: BorderRadius.circular(16.0),
               ),
               margin: EdgeInsets.symmetric(horizontal: 24.0),
-              color: Colors.grey[900]?.withOpacity(0.9),
+              color: isDarkMode 
+                ? Colors.grey[900]?.withOpacity(0.9) 
+                : Colors.white.withOpacity(0.9),
               child: Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: Column(
@@ -113,37 +117,67 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: emailController,
                       decoration: InputDecoration(
                         labelText: "Email",
-                        labelStyle: TextStyle(color: Colors.white),
+                        labelStyle: TextStyle(
+                          color: isDarkMode ? Colors.white70 : Colors.black87,
+                        ),
                         enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white54),
+                          borderSide: BorderSide(
+                            color: isDarkMode ? Colors.white54 : Colors.black54,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: primaryColor,
+                            width: 2,
+                          ),
                         ),
                       ),
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
                     ),
                     SizedBox(height: 16.0),
                     TextField(
                       controller: passwordController,
                       decoration: InputDecoration(
                         labelText: "Password",
-                        labelStyle: TextStyle(color: Colors.white),
+                        labelStyle: TextStyle(
+                          color: isDarkMode ? Colors.white70 : Colors.black87,
+                        ),
                         enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: Colors.white54),
+                          borderSide: BorderSide(
+                            color: isDarkMode ? Colors.white54 : Colors.black54,
+                          ),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: primaryColor,
+                            width: 2,
+                          ),
                         ),
                       ),
-                      style: TextStyle(color: Colors.white),
+                      style: TextStyle(
+                        color: isDarkMode ? Colors.white : Colors.black87,
+                      ),
                       obscureText: true,
                     ),
                     SizedBox(height: 24.0),
                     ElevatedButton(
                       onPressed: _login,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
+                        backgroundColor: primaryColor,
+                        foregroundColor: Colors.white,
                         padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8.0),
                         ),
                       ),
-                      child: Text("Login", style: TextStyle(fontSize: 20, color: Colors.black)),
+                      child: Text("Login", 
+                        style: TextStyle(
+                          fontSize: 20, 
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                     SizedBox(height: 16.0),
                     Column(
@@ -157,7 +191,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             "Don't have an account? Sign up",
-                            style: TextStyle(color: Colors.white70),
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white70 : primaryColor,
+                            ),
                           ),
                         ),
                         TextButton(
@@ -169,7 +205,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             "Login with Phone Number",
-                            style: TextStyle(color: Colors.white70),
+                            style: TextStyle(
+                              color: isDarkMode ? Colors.white70 : primaryColor,
+                            ),
                           ),
                         ),
                       ],

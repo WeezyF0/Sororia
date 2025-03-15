@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'navbar.dart';
+import 'package:complaints_app/theme/theme_provider.dart';
 
 class ComplaintListScreen extends StatelessWidget {
   const ComplaintListScreen({super.key});
@@ -37,6 +38,13 @@ class ComplaintListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = theme.primaryColor;
+    final surfaceColor = theme.colorScheme.surface;
+    final textPrimary = theme.colorScheme.onSurface;
+    final textSecondary = theme.colorScheme.onSurface.withOpacity(0.6);
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80.0),
@@ -88,19 +96,17 @@ class ComplaintListScreen extends StatelessWidget {
           onPressed: () async {
             await Navigator.pushNamed(context, '/add_complaint');
           },
-          backgroundColor: Theme.of(context).primaryColor,
+          backgroundColor: theme.primaryColor,
           elevation: 4,
           icon: Icon(
             Icons.add_circle_outline,
-            color: Colors.white,
+            color: theme.colorScheme.onPrimary,
             size: 24,
           ),
           label: Text(
             'Add a complaint',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onPrimary,
             ),
           ),
           shape: RoundedRectangleBorder(
@@ -115,7 +121,7 @@ class ComplaintListScreen extends StatelessWidget {
             .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: theme.primaryColor));
           }
           
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
@@ -126,24 +132,17 @@ class ComplaintListScreen extends StatelessWidget {
                   Icon(
                     Icons.warning_amber_rounded,
                     size: 64,
-                    color: Theme.of(context).primaryColor.withOpacity(0.5),
+                    color: theme.primaryColor.withOpacity(0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'No complaints found',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black54,
-                    ),
+                    style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Add a new complaint to get started',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black38,
-                    ),
+                    style: theme.textTheme.bodyMedium,
                   ),
                 ],
               ),
@@ -179,16 +178,24 @@ class ComplaintListScreen extends StatelessWidget {
               // Assign colors based on status
               switch(status.toLowerCase()) {
                 case 'resolved':
-                  statusColor = Colors.green;
+                  statusColor = theme.colorScheme.brightness == Brightness.dark 
+                      ? ColorPalette.success.withOpacity(0.8) 
+                      : ColorPalette.success;
                   break;
                 case 'in progress':
-                  statusColor = Colors.orange;
+                  statusColor = theme.colorScheme.brightness == Brightness.dark
+                      ? ColorPalette.warning.withOpacity(0.8)
+                      : ColorPalette.warning;
                   break;
                 case 'rejected':
-                  statusColor = Colors.red;
+                  statusColor = theme.colorScheme.brightness == Brightness.dark
+                      ? ColorPalette.error.withOpacity(0.8)
+                      : ColorPalette.error;
                   break;
                 default:
-                  statusColor = Colors.blue;
+                  statusColor = theme.colorScheme.brightness == Brightness.dark
+                      ? ColorPalette.info.withOpacity(0.8)
+                      : ColorPalette.info;
                   break;
               }
               
@@ -198,9 +205,9 @@ class ComplaintListScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 10,
-                      spreadRadius: 0,
+                      color: isDark ? Colors.black.withOpacity(0.3) : Colors.black.withOpacity(0.1),
+                      blurRadius: 12,
+                      spreadRadius: 1,
                       offset: Offset(0, 4),
                     ),
                   ],
@@ -208,7 +215,7 @@ class ComplaintListScreen extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Material(
-                    color: Colors.white,
+                    color: surfaceColor,
                     child: InkWell(
                       onTap: () {
                         Navigator.pushNamed(
@@ -223,11 +230,18 @@ class ComplaintListScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Status indicator bar at top
+                          // Enhanced status indicator bar at top
                           Container(
-                            height: 5,
+                            height: 6,
                             width: double.infinity,
-                            color: statusColor,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [statusColor.withOpacity(0.7), statusColor],
+                              ),
+                            ),
                           ),
                           Padding(
                             padding: EdgeInsets.all(16.0),
@@ -239,39 +253,38 @@ class ComplaintListScreen extends StatelessWidget {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: Theme.of(context).primaryColor.withOpacity(0.08),
+                                        color: primaryColor.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
-                                          color: Theme.of(context).primaryColor.withOpacity(0.2),
+                                          color: primaryColor.withOpacity(0.25),
                                           width: 1,
                                         ),
                                       ),
                                       child: Text(
                                         data['issue_type'] ?? 'General',
-                                        style: TextStyle(
-                                          fontSize: 12,
+                                        style: theme.textTheme.labelSmall?.copyWith(
                                           fontWeight: FontWeight.w600,
-                                          color: Theme.of(context).primaryColor,
+                                          color: primaryColor,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: Colors.grey.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(6),
+                                        color: textSecondary.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Row(
                                         children: [
-                                          Icon(Icons.access_time, size: 12, color: Colors.grey[700]),
-                                          SizedBox(width: 4),
+                                          Icon(Icons.access_time_rounded, size: 14, color: textSecondary),
+                                          SizedBox(width: 6),
                                           Text(
                                             timeAgoText,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[700],
+                                            style: theme.textTheme.labelSmall?.copyWith(
+                                              color: textSecondary,
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
@@ -280,52 +293,52 @@ class ComplaintListScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 14),
+                                SizedBox(height: 16),
                                 
-                                // Complaint text
+                                // Complaint text with better styling
                                 Text(
                                   data['text'] ?? 'No details available',
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 15,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w500,
-                                    color: Colors.black.withOpacity(0.8),
                                     height: 1.4,
                                     letterSpacing: 0.2,
                                   ),
                                 ),
-                                SizedBox(height: 16),
+                                SizedBox(height: 18),
                                 
                                 // Footer with location and status
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Location
+                                    // Location with enhanced styling
                                     Expanded(
                                       child: Container(
-                                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.withOpacity(0.05),
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: textSecondary.withOpacity(0.08),
+                                          borderRadius: BorderRadius.circular(10),
+                                          border: Border.all(
+                                            color: textSecondary.withOpacity(0.15),
+                                            width: 1,
+                                          ),
                                         ),
                                         child: Row(
                                           children: [
                                             Icon(
-                                              Icons.location_on, 
-                                              size: 14, 
-                                              color: Colors.grey[700]
+                                              Icons.location_on_rounded, 
+                                              size: 16, 
+                                              color: textSecondary
                                             ),
-                                            SizedBox(width: 4),
+                                            SizedBox(width: 6),
                                             Expanded(
                                               child: Text(
                                                 data['location'] ?? 'Unknown location',
                                                 maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: TextStyle(
-                                                  fontSize: 12,
+                                                style: theme.textTheme.labelMedium?.copyWith(
                                                   fontWeight: FontWeight.w500,
-                                                  color: Colors.grey[700],
                                                 ),
                                               ),
                                             ),
@@ -335,23 +348,31 @@ class ComplaintListScreen extends StatelessWidget {
                                     ),
                                     SizedBox(width: 12),
                                     
-                                    // Status chip
+                                    // Status chip with improved styling
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                       decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(8),
+                                        color: statusColor.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(10),
                                         border: Border.all(
                                           color: statusColor.withOpacity(0.3),
                                           width: 1,
                                         ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: statusColor.withOpacity(0.1),
+                                            blurRadius: 4,
+                                            spreadRadius: 0,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
                                       child: Text(
                                         status,
-                                        style: TextStyle(
-                                          fontSize: 12,
+                                        style: theme.textTheme.labelMedium?.copyWith(
                                           fontWeight: FontWeight.w600,
                                           color: statusColor,
+                                          letterSpacing: 0.3,
                                         ),
                                       ),
                                     ),
