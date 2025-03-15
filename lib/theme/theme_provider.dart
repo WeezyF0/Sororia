@@ -59,13 +59,11 @@ class ThemeProvider extends ChangeNotifier {
         brightness: brightness,
         primary: primaryColor,
         secondary: secondaryColor,
-        background: backgroundColor,
         surface: surfaceColor,
         error: ColorPalette.error,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimary,
-        onBackground: textPrimary,
         onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(

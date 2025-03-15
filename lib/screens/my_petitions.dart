@@ -4,7 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
 
 class MyPetitionScreen extends StatelessWidget {
-  const MyPetitionScreen({Key? key}) : super(key: key);
+  const MyPetitionScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
