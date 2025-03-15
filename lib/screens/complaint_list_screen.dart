@@ -42,7 +42,6 @@ class ComplaintListScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.primaryColor;
     final surfaceColor = theme.colorScheme.surface;
-    final textPrimary = theme.colorScheme.onSurface;
     final textSecondary = theme.colorScheme.onSurface.withOpacity(0.6);
     
     return Scaffold(

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:complaints_app/services/auth_service.dart';
 import 'signup_screen.dart';
 import 'complaint_list_screen.dart';
-import 'package:complaints_app/theme/theme_provider.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -42,7 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
-    final theme = Theme.of(context);
+    
     
     return Scaffold(
       appBar: PreferredSize(
