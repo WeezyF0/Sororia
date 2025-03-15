@@ -68,7 +68,7 @@ dev_dependencies:
 
 flutter_native_splash:
   color: "#ffffff" # Background color for the splash screen
-  image: assets/images/logo.png
+  image: assets/images/logo2.png
   android: true
   ios: true
   fullscreen: true
@@ -77,8 +77,9 @@ flutter_native_splash:
 flutter_launcher_icons:
   android: true
   ios: true
+  image_path: assets/images/logo2.png
   adaptive_icon_background: "#ffffff" # Use a color or an image
-  adaptive_icon_foreground: assets/images/logo.png
+  adaptive_icon_foreground: assets/images/logo2.png
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -94,6 +95,7 @@ flutter:
     - assets/images/appBar_bg.png
     - assets/images/bg.jpg
     - assets/images/logo.png
+    - assets/images/logo2.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

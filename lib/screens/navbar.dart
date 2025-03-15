@@ -216,7 +216,7 @@ class NavBar extends StatelessWidget {
           Row(
             children: [
               Image.asset(
-                'assets/images/logo.png',
+                'assets/images/logo2.png',
                 height: 24,
                 width: 24,
               ),
