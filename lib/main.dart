@@ -1,4 +1,5 @@
 import 'package:complaints_app/screens/complaints_map_screen.dart';
+import 'package:complaints_app/screens/home.dart';
 import 'package:complaints_app/screens/my_petitions.dart';
 import 'package:complaints_app/screens/open_complaint.dart';
 import 'package:complaints_app/screens/open_petition.dart';
@@ -28,10 +29,8 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
   
-  // Load environment variables
   await dotenv.load(fileName: ".env");
   
-  // Initialize Firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
   runApp(
@@ -56,8 +55,9 @@ class MyApp extends StatelessWidget {
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,
       home: AuthWrapper(),
-      initialRoute: '/',
+      initialRoute: '/home',
       routes: {
+        '/home': (context) => HomePage(),
         '/login': (context) => LoginScreen(),
         '/signup': (context) => SignupScreen(),
         '/phone': (context) => PhoneAuthScreen(),

@@ -67,6 +67,17 @@ class NavBar extends StatelessWidget {
                   padding: EdgeInsets.only(top: 8),
                   physics: BouncingScrollPhysics(),
                   children: [
+                    //Home Page
+                    _buildSectionTitle('HOME', isDarkMode),
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.home,
+                      iconColor: ColorPalette.info,
+                      title: "Home Page",
+                      route: "/home",
+                      isDarkMode: isDarkMode,
+                    ),
+                    _buildDivider(isDarkMode),
                     // Complaints section
                     _buildSectionTitle('COMPLAINTS', isDarkMode),
                     _buildNavigationTile(
@@ -141,7 +152,6 @@ class NavBar extends StatelessWidget {
     );
   }
   
-  // ---- Widget builder methods ----
   
   Widget _buildDrawerHeader(BuildContext context, String userInitial, String userEmail, bool isDarkMode) {
     return Container(
@@ -213,23 +223,30 @@ class NavBar extends StatelessWidget {
           SizedBox(height: 4),
           
           // App name
-          Row(
-            children: [
-              Image.asset(
-                'assets/images/logo2.png',
-                height: 24,
-                width: 24,
+          InkWell(
+            onTap: () => Navigator.pushReplacementNamed(context, '/home'),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
+              child: Row(
+                children: [
+                  Image.asset(
+                    'assets/images/logo2.png',
+                    height: 24,
+                    width: 24,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    "GramSewa",
+                    style: _poppinsStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: 8),
-              Text(
-                "GramSewa",
-                style: _poppinsStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),

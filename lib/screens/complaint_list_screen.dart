@@ -186,11 +186,6 @@ class ComplaintListScreen extends StatelessWidget {
                       ? ColorPalette.warning.withOpacity(0.8)
                       : ColorPalette.warning;
                   break;
-                case 'rejected':
-                  statusColor = theme.colorScheme.brightness == Brightness.dark
-                      ? ColorPalette.error.withOpacity(0.8)
-                      : ColorPalette.error;
-                  break;
                 default:
                   statusColor = theme.colorScheme.brightness == Brightness.dark
                       ? ColorPalette.info.withOpacity(0.8)
