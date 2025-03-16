@@ -92,6 +92,7 @@ class PetitionListScreen extends StatelessWidget {
           }
           return ListView(
             padding: const EdgeInsets.all(16.0),
+            physics: const BouncingScrollPhysics(),
             children: snapshot.data!.docs.map((doc) {
               return Card(
                 margin: const EdgeInsets.only(bottom: 12.0),
