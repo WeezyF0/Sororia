@@ -10,13 +10,12 @@ import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:math' show sin, cos, sqrt, atan2, pi;
 
-
 class OpenComplaintScreen extends StatefulWidget {
   final Map<String, dynamic> complaintData;
   final String complaintId;
 
   const OpenComplaintScreen({
-    super.key, 
+    super.key,
     required this.complaintData,
     required this.complaintId,
   });
@@ -58,7 +57,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
       double? latitude;
       double? longitude;
-      if (widget.complaintData.containsKey('latitude') && 
+      if (widget.complaintData.containsKey('latitude') &&
           widget.complaintData.containsKey('longitude')) {
         latitude = (widget.complaintData['latitude'] as num).toDouble();
         longitude = (widget.complaintData['longitude'] as num).toDouble();
@@ -68,7 +67,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         widget.complaintData['location'] ?? 'Unknown location',
         widget.complaintData['text'] ?? 'No complaint text',
         latitude: latitude,
-        longitude: longitude
+        longitude: longitude,
       );
 
       if (mounted) {
@@ -98,10 +97,77 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     }
   }
 
+  //updates
+  final TextEditingController _updateController = TextEditingController();
+
+  // Add this widget method
+  Widget _buildAddUpdateButton() {
+    return FloatingActionButton(
+      mini: true,
+      backgroundColor: Theme.of(context).primaryColor,
+      onPressed: _showAddUpdateDialog,
+      child: const Icon(Icons.add, color: Colors.white),
+    );
+  }
+
+  Future<void> _showAddUpdateDialog() async {
+    return showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Add New Update'),
+            content: TextField(
+              controller: _updateController,
+              decoration: const InputDecoration(
+                hintText: 'Enter update details...',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  if (_updateController.text.isEmpty) return;
+                  await _addUpdateToFirestore(_updateController.text);
+                  Navigator.pop(context);
+                  _updateController.clear();
+                },
+                child: const Text('Add Update'),
+              ),
+            ],
+          ),
+    );
+  }
+
+  Future<void> _addUpdateToFirestore(String updateText) async {
+    try {
+      final updateData = {
+        'context': updateText,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.complaintId)
+          .update({
+            'Updates': FieldValue.arrayUnion([updateData]),
+            'update_count': FieldValue.increment(1),
+          });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add update: ${e.toString()}')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
@@ -121,8 +187,8 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue.withOpacity(0.3), 
-                  Colors.purple.withOpacity(0.3)
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
                 ],
               ),
             ),
@@ -136,18 +202,26 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                       IconButton(
                         icon: Icon(
                           Icons.arrow_back,
-                          color: theme.appBarTheme.iconTheme?.color ?? Colors.white,
+                          color:
+                              theme.appBarTheme.iconTheme?.color ??
+                              Colors.white,
                         ),
                         onPressed: () => Navigator.pop(context),
                       ),
                       Text(
                         "COMPLAINT DETAILS",
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       IconButton(
                         icon: Icon(
                           Icons.refresh,
-                          color: theme.appBarTheme.iconTheme?.color ?? Colors.white,
+                          color:
+                              theme.appBarTheme.iconTheme?.color ??
+                              Colors.white,
                         ),
                         onPressed: _analyzeComplaint,
                       ),
@@ -159,9 +233,10 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           ),
         ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage.isNotEmpty
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _errorMessage.isNotEmpty
               ? _buildErrorView()
               : _buildAnalysisView(),
     );
@@ -201,6 +276,8 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         children: [
           _buildComplaintCard(),
           const SizedBox(height: 16),
+          _buildUpdatesCard(),
+          const SizedBox(height: 16),
           _buildSummarySection(),
           const SizedBox(height: 16),
           _buildSimilarComplaintsSection(),
@@ -216,9 +293,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     return Card(
       // Remove explicit color so the theme's cardTheme is used.
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -248,9 +323,11 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Icon(Icons.location_on,
-                    size: 16,
-                    color: theme.iconTheme.color ?? Colors.black54),
+                Icon(
+                  Icons.location_on,
+                  size: 16,
+                  color: theme.iconTheme.color ?? Colors.black54,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   widget.complaintData['location'] ?? 'Unknown location',
@@ -264,9 +341,11 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
             if (widget.complaintData['timestamp'] != null)
               Row(
                 children: [
-                  Icon(Icons.access_time,
-                      size: 16,
-                      color: theme.iconTheme.color ?? Colors.black54),
+                  Icon(
+                    Icons.access_time,
+                    size: 16,
+                    color: theme.iconTheme.color ?? Colors.black54,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     _formatTimestamp(widget.complaintData['timestamp']),
@@ -282,15 +361,136 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     );
   }
 
+  Widget _buildUpdatesCard() {
+    final theme = Theme.of(context);
+    return StreamBuilder<DocumentSnapshot>(
+      stream:
+          FirebaseFirestore.instance
+              .collection('complaints')
+              .doc(widget.complaintId)
+              .snapshots(),
+      builder: (context, snapshot) {
+        // Error handling
+        if (snapshot.hasError) {
+          return Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Error loading updates: ${snapshot.error}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Card(
+            elevation: 2,
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        }
+
+        // Data handling
+        final docData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final updates = docData['Updates'] as List<dynamic>? ?? [];
+        final updateCount = docData['update_count'] as int? ?? 0;
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(8.0),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Updates ($updateCount)',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Row(children: [_buildAddUpdateButton()]),
+                  ],
+                ),
+                const Divider(),
+                const SizedBox(height: 8),
+
+                if (updates.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No updates available yet',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ),
+
+                ...updates.map((update) {
+                  final data = update as Map<String, dynamic>;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.update,
+                              size: 16,
+                              color: theme.colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _formatTimestamp(data['timestamp'] ?? ''),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(0.6),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          data['context'] ?? 'No context provided',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSummarySection() {
     final theme = Theme.of(context);
-    final summary = _analysisResult['summary'] as String? ?? 'No summary available';
+    final summary =
+        _analysisResult['summary'] as String? ?? 'No summary available';
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -298,7 +498,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           children: [
             Text(
               'Our Insights',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Divider(),
@@ -306,10 +508,22 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
             MarkdownBody(
               data: summary,
               styleSheet: MarkdownStyleSheet(
-                p: theme.textTheme.bodyMedium?.copyWith(fontSize: 16) ?? const TextStyle(fontSize: 16),
-                h1: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold) ?? const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                h2: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold) ?? const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                listBullet: theme.textTheme.bodyMedium?.copyWith(fontSize: 16) ?? const TextStyle(fontSize: 16),
+                p:
+                    theme.textTheme.bodyMedium?.copyWith(fontSize: 16) ??
+                    const TextStyle(fontSize: 16),
+                h1:
+                    theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ) ??
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                h2:
+                    theme.textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ) ??
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                listBullet:
+                    theme.textTheme.bodyMedium?.copyWith(fontSize: 16) ??
+                    const TextStyle(fontSize: 16),
               ),
               onTapLink: (text, href, title) {
                 if (href != null) {
@@ -325,13 +539,12 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   Widget _buildSimilarComplaintsSection() {
     final theme = Theme.of(context);
-    final matchedComplaints = _analysisResult['matched_complaints'] as List<dynamic>? ?? [];
+    final matchedComplaints =
+        _analysisResult['matched_complaints'] as List<dynamic>? ?? [];
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -339,7 +552,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           children: [
             Text(
               'Similar Complaints',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Divider(),
@@ -367,7 +582,10 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: theme.primaryColor,
                               borderRadius: BorderRadius.circular(12),
@@ -398,9 +616,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
     return Card(
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -408,16 +624,15 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           children: [
             Text(
               'Related News',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
             const Divider(),
             const SizedBox(height: 8),
             if (newsResults.isEmpty)
-              Text(
-                'No related news found.',
-                style: theme.textTheme.bodyMedium,
-              ),
+              Text('No related news found.', style: theme.textTheme.bodyMedium),
             for (var news in newsResults)
               Card(
                 margin: const EdgeInsets.only(bottom: 8.0),
@@ -430,7 +645,10 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         onTap: () {
                           final url = news['link'];
                           if (url != null) {
-                            launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                            launchUrl(
+                              Uri.parse(url),
+                              mode: LaunchMode.externalApplication,
+                            );
                           }
                         },
                         child: Text(
@@ -453,7 +671,10 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                           onPressed: () {
                             final url = news['link'];
                             if (url != null) {
-                              launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                              launchUrl(
+                                Uri.parse(url),
+                                mode: LaunchMode.externalApplication,
+                              );
                             }
                           },
                           child: const Text('Read More'),
@@ -474,19 +695,23 @@ class ComplaintAnalyzer {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late final String? _serperApiKey;
   late final String? _geminiApiKey;
-  
+
   ComplaintAnalyzer() {
     _serperApiKey = dotenv.env['serper-api'];
     _geminiApiKey = dotenv.env['gemini-api'];
-    
+
     if (_geminiApiKey == null || _serperApiKey == null) {
-      throw Exception('Missing API Keys: Ensure gemini-api and serper-api keys are present.');
+      throw Exception(
+        'Missing API Keys: Ensure gemini-api and serper-api keys are present.',
+      );
     }
   }
-  
+
   ComplaintAnalyzer.withKeys(this._serperApiKey, this._geminiApiKey) {
     if (_geminiApiKey == null || _serperApiKey == null) {
-      throw Exception('Missing API Keys: Both Serper and Gemini API keys must be provided.');
+      throw Exception(
+        'Missing API Keys: Both Serper and Gemini API keys must be provided.',
+      );
     }
   }
 
@@ -498,63 +723,70 @@ class ComplaintAnalyzer {
     return degrees * (pi / 180);
   }
 
-  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateDistance(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
     const double earthRadius = 6371;
     final double latDelta = _degreesToRadians(lat2 - lat1);
     final double lonDelta = _degreesToRadians(lon2 - lon1);
 
-    final double a = sin(latDelta / 2) * sin(latDelta / 2) +
-        cos(_degreesToRadians(lat1)) * cos(_degreesToRadians(lat2)) *
-        sin(lonDelta / 2) * sin(lonDelta / 2);
+    final double a =
+        sin(latDelta / 2) * sin(latDelta / 2) +
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(lonDelta / 2) *
+            sin(lonDelta / 2);
     final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-    
+
     return earthRadius * c;
   }
 
   Future<List<Map<String, dynamic>>> _searchFirebase(
-    String location, 
-    String problem, 
-    {double threshold = 70.0, 
-    double? latitude, 
-    double? longitude, 
-    double radiusInKm = 5.0}
-  ) async {
-    
-    QuerySnapshot complaintsSnapshot = await _firestore
-        .collection("complaints")
-        .get();
+    String location,
+    String problem, {
+    double threshold = 70.0,
+    double? latitude,
+    double? longitude,
+    double radiusInKm = 5.0,
+  }) async {
+    QuerySnapshot complaintsSnapshot =
+        await _firestore.collection("complaints").get();
 
     List<Map<String, dynamic>> matchedComplaints = [];
-    
+
     for (var doc in complaintsSnapshot.docs) {
       Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
       String complaintText = data["text"] ?? "";
-      
+
       double textSimilarity = _calculateSimilarity(complaintText, problem);
       bool isInRadius = true;
       double distance = double.infinity;
-      
-      if (latitude != null && longitude != null && 
-          data.containsKey("latitude") && data.containsKey("longitude")) {
-        
+
+      if (latitude != null &&
+          longitude != null &&
+          data.containsKey("latitude") &&
+          data.containsKey("longitude")) {
         double docLat = (data["latitude"] as num).toDouble();
         double docLong = (data["longitude"] as num).toDouble();
-        
+
         distance = _calculateDistance(latitude, longitude, docLat, docLong);
         isInRadius = distance <= radiusInKm;
       }
-      
+
       if (!isInRadius && latitude != null && longitude != null) {
         continue;
       }
-      
+
       if (textSimilarity >= threshold) {
         matchedComplaints.add({
           "text": complaintText,
           "similarity": textSimilarity,
           "location": data["location"] ?? "Unknown",
           "distance_km": distance != double.infinity ? distance : null,
-          "id": doc.id
+          "id": doc.id,
         });
       }
     }
@@ -564,33 +796,45 @@ class ComplaintAnalyzer {
       final bValue = b["similarity"] as double;
       return bValue.compareTo(aValue);
     });
-    
+
     return matchedComplaints;
   }
 
-  Future<List<Map<String, dynamic>>> _searchOnline(String location, String problem) async {
+  Future<List<Map<String, dynamic>>> _searchOnline(
+    String location,
+    String problem,
+  ) async {
     final response = await http.post(
       Uri.parse("https://google.serper.dev/search"),
-      headers: {"X-API-KEY": _serperApiKey!, "Content-Type": "application/json"},
+      headers: {
+        "X-API-KEY": _serperApiKey!,
+        "Content-Type": "application/json",
+      },
       body: jsonEncode({"q": "$problem in $location", "num": 5}),
     );
 
     if (response.statusCode == 200) {
       List<dynamic> results = jsonDecode(response.body)["organic"] ?? [];
       return results
-          .map((r) => {
-                "title": r["title"] ?? "No Title",
-                "link": r["link"] ?? "#",
-                "snippet": r["snippet"] ?? "No snippet available."
-              })
+          .map(
+            (r) => {
+              "title": r["title"] ?? "No Title",
+              "link": r["link"] ?? "#",
+              "snippet": r["snippet"] ?? "No snippet available.",
+            },
+          )
           .toList();
     }
 
     return [];
   }
 
-  Future<String> _generateSummary(String location, String problem,
-      List<Map<String, dynamic>> complaints, List<Map<String, dynamic>> newsResults) async {
+  Future<String> _generateSummary(
+    String location,
+    String problem,
+    List<Map<String, dynamic>> complaints,
+    List<Map<String, dynamic>> newsResults,
+  ) async {
     final model = GenerativeModel(
       model: 'gemini-2.0-flash',
       apiKey: _geminiApiKey!,
@@ -602,7 +846,10 @@ class ComplaintAnalyzer {
     );
 
     String newsText = newsResults
-        .map((news) => "- *${news["title"]}*: ${news["snippet"]} ([Source](${news["link"]}))")
+        .map(
+          (news) =>
+              "- *${news["title"]}*: ${news["snippet"]} ([Source](${news["link"]}))",
+        )
         .join("\n");
 
     final prompt = """
@@ -629,11 +876,11 @@ class ComplaintAnalyzer {
   }
 
   Future<Map<String, dynamic>> analyzeComplaint(
-    String location, 
-    String problem, 
-    {double? latitude, 
-    double? longitude}
-  ) async {
+    String location,
+    String problem, {
+    double? latitude,
+    double? longitude,
+  }) async {
     location = location.trim();
     problem = problem.trim();
 
@@ -642,15 +889,23 @@ class ComplaintAnalyzer {
     }
 
     List<Map<String, dynamic>> complaints = await _searchFirebase(
-      location, 
-      problem, 
-      latitude: latitude, 
+      location,
+      problem,
+      latitude: latitude,
       longitude: longitude,
-      radiusInKm: 5.0
+      radiusInKm: 5.0,
     );
-    
-    List<Map<String, dynamic>> newsResults = await _searchOnline(location, problem);
-    String summary = await _generateSummary(location, problem, complaints, newsResults);
+
+    List<Map<String, dynamic>> newsResults = await _searchOnline(
+      location,
+      problem,
+    );
+    String summary = await _generateSummary(
+      location,
+      problem,
+      complaints,
+      newsResults,
+    );
 
     return {
       "location": location,
@@ -658,8 +913,10 @@ class ComplaintAnalyzer {
       "matched_complaints": complaints,
       "news_results": newsResults,
       "summary": summary,
-      "coordinates": latitude != null && longitude != null ? 
-                    {"latitude": latitude, "longitude": longitude} : null
+      "coordinates":
+          latitude != null && longitude != null
+              ? {"latitude": latitude, "longitude": longitude}
+              : null,
     };
   }
 }
