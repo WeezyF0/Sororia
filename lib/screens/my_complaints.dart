@@ -4,13 +4,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'navbar.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
 
-class ComplaintListScreen extends StatelessWidget {
-  const ComplaintListScreen({super.key});
+class MyComplaintScreen extends StatelessWidget {
+  const MyComplaintScreen({super.key});
 
-  // Function to format timestamp as "time ago"
   String timeAgo(DateTime dateTime) {
     final difference = DateTime.now().difference(dateTime);
-
     if (difference.inDays > 365) {
       return "${(difference.inDays / 365).floor()} ${(difference.inDays / 365).floor() == 1 ? 'year' : 'years'} ago";
     } else if (difference.inDays > 30) {
@@ -26,10 +24,8 @@ class ComplaintListScreen extends StatelessWidget {
     }
   }
 
-  // Parse the timestamp string to DateTime
   DateTime? parseTimestamp(String timestamp) {
     try {
-      // The timestamp format is "2025-03-14T15:43:09.441437"
       return DateTime.parse(timestamp);
     } catch (e) {
       print("Error parsing timestamp: $e");
@@ -45,14 +41,27 @@ class ComplaintListScreen extends StatelessWidget {
     final surfaceColor = theme.colorScheme.surface;
     final textSecondary = theme.colorScheme.onSurface.withOpacity(0.6);
 
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+
+    if (userId == null) {
+      return Scaffold(
+        body: Center(
+          child: Text(
+            "Please log in to view your complaints.",
+            style: theme.textTheme.bodyLarge,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
           flexibleSpace: Container(
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/appBar_bg.png'),
                 fit: BoxFit.cover,
@@ -74,10 +83,9 @@ class ComplaintListScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        "COMPLAINTS LIST",
+                        "MY COMPLAINTS",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -92,10 +100,10 @@ class ComplaintListScreen extends StatelessWidget {
           ),
         ),
       ),
-      drawer: NavBar(),
+      drawer: const NavBar(),
       floatingActionButton: Container(
         height: 56,
-        padding: EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: FloatingActionButton.extended(
           onPressed: () async {
             await Navigator.pushNamed(context, '/add_complaint');
@@ -118,58 +126,149 @@ class ComplaintListScreen extends StatelessWidget {
           ),
         ),
       ),
-      body: StreamBuilder(
+      body: StreamBuilder<DocumentSnapshot>(
         stream:
             FirebaseFirestore.instance
-                .collection('complaints')
-                .orderBy('timestamp', descending: true)
+                .collection('users')
+                .doc(userId)
                 .snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: theme.primaryColor),
-            );
+        builder: (context, userSnapshot) {
+          if (userSnapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
             return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 64,
-                    color: theme.primaryColor.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No complaints found',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Add a new complaint to get started',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
+              child: Text(
+                "No user data available.",
+                style: theme.textTheme.bodyLarge,
               ),
             );
           }
 
-          return ListView.builder(
-            padding: EdgeInsets.all(16.0),
-            physics: const BouncingScrollPhysics(),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var doc = snapshot.data!.docs[index];
-              final Map<String, dynamic> data =
-                  doc.data() as Map<String, dynamic>;
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+          final List<dynamic> savedComplaints = userData['saved_c'] ?? [];
+          final List<dynamic> myComplaints = userData['my_c'] ?? [];
 
-              // Format the timestamp as "time ago"
+          if (savedComplaints.isEmpty && myComplaints.isEmpty) {
+            return Center(
+              child: Text(
+                "You haven't saved or created any complaints yet.",
+                style: theme.textTheme.bodyLarge,
+              ),
+            );
+          }
+
+          return StreamBuilder<QuerySnapshot>(
+            stream:
+                FirebaseFirestore.instance
+                    .collection('complaints')
+                    .orderBy('timestamp', descending: true)
+                    .snapshots(),
+            builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return Center(
+                  child: CircularProgressIndicator(color: theme.primaryColor),
+                );
+              }
+
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.warning_amber_rounded,
+                        size: 64,
+                        color: theme.primaryColor.withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No complaints found',
+                        style: theme.textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              final allComplaints = snapshot.data!.docs;
+
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildSection(
+                      context: context,
+                      title: "Saved Complaints",
+                      complaintIds: savedComplaints,
+                      docs: allComplaints,
+                      theme: theme,
+                      isDark: isDark,
+                      surfaceColor: surfaceColor,
+                      primaryColor: primaryColor,
+                      textSecondary: textSecondary,
+                    ),
+                    _buildSection(
+                      context: context,
+                      title: "My Complaints",
+                      complaintIds: myComplaints,
+                      docs: allComplaints,
+                      theme: theme,
+                      isDark: isDark,
+                      surfaceColor: surfaceColor,
+                      primaryColor: primaryColor,
+                      textSecondary: textSecondary,
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required BuildContext context,
+    required String title,
+    required List<dynamic> complaintIds,
+    required List<QueryDocumentSnapshot<Object?>> docs,
+    required ThemeData theme,
+    required bool isDark,
+    required Color surfaceColor,
+    required Color primaryColor,
+    required Color textSecondary,
+  }) {
+    final filteredComplaints =
+        docs.where((doc) => complaintIds.contains(doc.id)).toList();
+    if (filteredComplaints.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12.0, top: 16.0),
+            child: Text(
+              title,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurface.withOpacity(0.8),
+              ),
+            ),
+          ),
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: filteredComplaints.length,
+            itemBuilder: (context, index) {
+              final doc = filteredComplaints[index];
+              final data = doc.data() as Map<String, dynamic>;
               String timeAgoText = "Unknown date";
+
               if (data.containsKey('timestamp') && data['timestamp'] != null) {
                 try {
-                  // Parse the timestamp string
                   DateTime? dateTime = parseTimestamp(data['timestamp']);
                   if (dateTime != null) {
                     timeAgoText = timeAgo(dateTime);
@@ -179,34 +278,11 @@ class ComplaintListScreen extends StatelessWidget {
                 }
               }
 
-              // Get complaint status or default to 'Pending'
               String status = data['status'] ?? 'Pending';
-              Color statusColor;
-
-              // Assign colors based on status
-              switch (status.toLowerCase()) {
-                case 'resolved':
-                  statusColor =
-                      theme.colorScheme.brightness == Brightness.dark
-                          ? ColorPalette.success.withOpacity(0.8)
-                          : ColorPalette.success;
-                  break;
-                case 'in progress':
-                  statusColor =
-                      theme.colorScheme.brightness == Brightness.dark
-                          ? ColorPalette.warning.withOpacity(0.8)
-                          : ColorPalette.warning;
-                  break;
-                default:
-                  statusColor =
-                      theme.colorScheme.brightness == Brightness.dark
-                          ? ColorPalette.info.withOpacity(0.8)
-                          : ColorPalette.info;
-                  break;
-              }
+              Color statusColor = _getStatusColor(theme, status);
 
               return Container(
-                margin: EdgeInsets.only(bottom: 16.0),
+                margin: const EdgeInsets.only(bottom: 16.0),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
@@ -217,7 +293,7 @@ class ComplaintListScreen extends StatelessWidget {
                               : Colors.black.withOpacity(0.1),
                       blurRadius: 12,
                       spreadRadius: 1,
-                      offset: Offset(0, 4),
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),
@@ -239,10 +315,8 @@ class ComplaintListScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Enhanced status indicator bar at top
                           Container(
                             height: 6,
-                            width: double.infinity,
                             decoration: BoxDecoration(
                               color: statusColor,
                               gradient: LinearGradient(
@@ -256,15 +330,15 @@ class ComplaintListScreen extends StatelessWidget {
                             ),
                           ),
                           Padding(
-                            padding: EdgeInsets.all(16.0),
+                            padding: const EdgeInsets.all(16.0),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Header row with issue type and date
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
+                                    // Issue Type Container
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 12,
@@ -361,30 +435,23 @@ class ComplaintListScreen extends StatelessWidget {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 16),
-
-                                // Complaint text with better styling
+                                const SizedBox(height: 16),
                                 Text(
                                   data['text'] ?? 'No details available',
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w500,
-                                    height: 1.4,
-                                    letterSpacing: 0.2,
                                   ),
                                 ),
-                                SizedBox(height: 18),
-
-                                // Footer with location and status
+                                const SizedBox(height: 18),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Location with enhanced styling
                                     Expanded(
                                       child: Container(
-                                        padding: EdgeInsets.symmetric(
+                                        padding: const EdgeInsets.symmetric(
                                           horizontal: 10,
                                           vertical: 8,
                                         ),
@@ -409,29 +476,21 @@ class ComplaintListScreen extends StatelessWidget {
                                               size: 16,
                                               color: textSecondary,
                                             ),
-                                            SizedBox(width: 6),
+                                            const SizedBox(width: 6),
                                             Expanded(
                                               child: Text(
                                                 data['location'] ??
                                                     'Unknown location',
-                                                maxLines: 1,
                                                 overflow: TextOverflow.ellipsis,
-                                                style: theme
-                                                    .textTheme
-                                                    .labelMedium
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
+                                                style:
+                                                    theme.textTheme.labelMedium,
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
                                     ),
-                                    SizedBox(width: 12),
-
-                                    // Status chip with improved styling
+                                    const SizedBox(width: 12),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
                                         horizontal: 14,
@@ -444,14 +503,6 @@ class ComplaintListScreen extends StatelessWidget {
                                           color: statusColor.withOpacity(0.3),
                                           width: 1,
                                         ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: statusColor.withOpacity(0.1),
-                                            blurRadius: 4,
-                                            spreadRadius: 0,
-                                            offset: Offset(0, 2),
-                                          ),
-                                        ],
                                       ),
                                       child: Text(
                                         status,
@@ -459,7 +510,6 @@ class ComplaintListScreen extends StatelessWidget {
                                             ?.copyWith(
                                               fontWeight: FontWeight.w600,
                                               color: statusColor,
-                                              letterSpacing: 0.3,
                                             ),
                                       ),
                                     ),
@@ -475,13 +525,31 @@ class ComplaintListScreen extends StatelessWidget {
                 ),
               );
             },
-          );
-        },
+          ),
+        ],
       ),
     );
   }
+
+  Color _getStatusColor(ThemeData theme, String status) {
+    switch (status.toLowerCase()) {
+      case 'resolved':
+        return theme.colorScheme.brightness == Brightness.dark
+            ? ColorPalette.success.withOpacity(0.8)
+            : ColorPalette.success;
+      case 'in progress':
+        return theme.colorScheme.brightness == Brightness.dark
+            ? ColorPalette.warning.withOpacity(0.8)
+            : ColorPalette.warning;
+      default:
+        return theme.colorScheme.brightness == Brightness.dark
+            ? ColorPalette.info.withOpacity(0.8)
+            : ColorPalette.info;
+    }
+  }
 }
 
+// Ensure the SaveButton class is properly placed OUTSIDE the MyComplaintScreen class
 class SaveButton extends StatelessWidget {
   final String complaintId;
 

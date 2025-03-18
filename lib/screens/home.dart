@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:complaints_app/screens/navbar.dart';
 
-
 class HomePage extends StatelessWidget {
   const HomePage({Key? key}) : super(key: key);
 
@@ -9,7 +8,7 @@ class HomePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80.0),
@@ -28,8 +27,8 @@ class HomePage extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue.withOpacity(0.3), 
-                  Colors.purple.withOpacity(0.3)
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
                 ],
               ),
             ),
@@ -43,7 +42,11 @@ class HomePage extends StatelessWidget {
                     children: [
                       Text(
                         "GramSewa",
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -59,9 +62,9 @@ class HomePage extends StatelessWidget {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage(
-              isDark 
-                ? 'assets/images/home_bg_night.jpeg'
-                : 'assets/images/home_bg_day.jpeg'
+              isDark
+                  ? 'assets/images/home_bg_night.jpeg'
+                  : 'assets/images/home_bg_day.jpeg',
             ),
             fit: BoxFit.cover,
           ),
@@ -99,7 +102,11 @@ class HomePage extends StatelessWidget {
                               title: "Issues Map",
                               icon: Icons.map_outlined,
                               color: Colors.blue,
-                              onTap: () => Navigator.pushNamed(context, '/complaints_map'),
+                              onTap:
+                                  () => Navigator.pushNamed(
+                                    context,
+                                    '/complaints_map',
+                                  ),
                               description: "View complaints in your area",
                             );
                           case 1:
@@ -108,7 +115,11 @@ class HomePage extends StatelessWidget {
                               title: "Start a Petition",
                               icon: Icons.assignment_outlined,
                               color: Colors.green,
-                              onTap: () => Navigator.pushNamed(context, '/add_petition'),
+                              onTap:
+                                  () => Navigator.pushNamed(
+                                    context,
+                                    '/add_petition',
+                                  ),
                               description: "Create a new petition",
                             );
                           case 2:
@@ -117,7 +128,11 @@ class HomePage extends StatelessWidget {
                               title: "Add Complaint",
                               icon: Icons.add_comment_outlined,
                               color: Colors.orange,
-                              onTap: () => Navigator.pushNamed(context, '/add_complaint'),
+                              onTap:
+                                  () => Navigator.pushNamed(
+                                    context,
+                                    '/add_complaint',
+                                  ),
                               description: "File a new complaint",
                             );
                           case 3:
@@ -142,7 +157,7 @@ class HomePage extends StatelessWidget {
                         }
                       },
                     );
-                  }
+                  },
                 ),
               ),
             ],
@@ -151,7 +166,7 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildCard(
     BuildContext context, {
     required String title,
@@ -163,12 +178,10 @@ class HomePage extends StatelessWidget {
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
@@ -211,11 +224,7 @@ class HomePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      icon,
-                      size: 32,
-                      color: Colors.white,
-                    ),
+                    Icon(icon, size: 32, color: Colors.white),
                     Spacer(),
                     Text(
                       title,

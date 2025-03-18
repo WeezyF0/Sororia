@@ -22,17 +22,18 @@ class NavBar extends StatelessWidget {
       letterSpacing: letterSpacing,
     );
   }
-  
+
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final themeProvider = Provider.of<ThemeProvider>(context);
-    
+
     // Get current user details if available
     final user = FirebaseAuth.instance.currentUser;
     final String userEmail = user?.email ?? 'Guest User';
-    final String userInitial = userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'G';
-    
+    final String userInitial =
+        userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'G';
+
     return Drawer(
       elevation: 0,
       backgroundColor: Colors.transparent,
@@ -41,15 +42,14 @@ class NavBar extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: isDarkMode 
-              ? [ColorPalette.backgroundDark, ColorPalette.surfaceDark]
-              : [ColorPalette.backgroundLight, ColorPalette.surfaceLight],
+            colors:
+                isDarkMode
+                    ? [ColorPalette.backgroundDark, ColorPalette.surfaceDark]
+                    : [ColorPalette.backgroundLight, ColorPalette.surfaceLight],
           ),
           boxShadow: [
             BoxShadow(
-              color: isDarkMode 
-                ? Colors.black26
-                : Colors.black12,
+              color: isDarkMode ? Colors.black26 : Colors.black12,
               blurRadius: 8,
               offset: Offset(2, 0),
             ),
@@ -60,7 +60,7 @@ class NavBar extends StatelessWidget {
             children: [
               // Header section
               _buildDrawerHeader(context, userInitial, userEmail, isDarkMode),
-              
+
               // Options list
               Expanded(
                 child: ListView(
@@ -90,15 +90,23 @@ class NavBar extends StatelessWidget {
                     ),
                     _buildNavigationTile(
                       context: context,
+                      icon: CupertinoIcons.doc_text_search,
+                      iconColor: ColorPalette.info,
+                      title: "My Complaints",
+                      route: "/my_complaints",
+                      isDarkMode: isDarkMode,
+                    ),
+                    _buildNavigationTile(
+                      context: context,
                       icon: CupertinoIcons.map_fill,
                       iconColor: ColorPalette.success,
                       title: "Map View",
                       route: "/complaints_map",
                       isDarkMode: isDarkMode,
                     ),
-                    
+
                     _buildDivider(isDarkMode),
-                    
+
                     // Petitions section
                     _buildSectionTitle('PETITIONS', isDarkMode),
                     _buildNavigationTile(
@@ -111,21 +119,23 @@ class NavBar extends StatelessWidget {
                     ),
                     _buildNavigationTile(
                       context: context,
-                      icon: CupertinoIcons.person_crop_circle_fill_badge_checkmark,
+                      icon:
+                          CupertinoIcons
+                              .person_crop_circle_fill_badge_checkmark,
                       iconColor: Color(0xFF9575CD),
                       title: "My Petitions",
                       route: "/my_petitions",
                       isDarkMode: isDarkMode,
                     ),
-                    
+
                     _buildDivider(isDarkMode),
-                    
+
                     // Settings section
                     _buildSectionTitle('SETTINGS', isDarkMode),
                     _buildThemeSwitchTile(isDarkMode, themeProvider),
-                    
+
                     _buildDivider(isDarkMode),
-                    
+
                     // Account section
                     _buildNavigationTile(
                       context: context,
@@ -142,7 +152,7 @@ class NavBar extends StatelessWidget {
                   ],
                 ),
               ),
-              
+
               // App version footer
               _buildAppVersionFooter(isDarkMode),
             ],
@@ -151,9 +161,13 @@ class NavBar extends StatelessWidget {
       ),
     );
   }
-  
-  
-  Widget _buildDrawerHeader(BuildContext context, String userInitial, String userEmail, bool isDarkMode) {
+
+  Widget _buildDrawerHeader(
+    BuildContext context,
+    String userInitial,
+    String userEmail,
+    bool isDarkMode,
+  ) {
     return Container(
       padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
@@ -185,9 +199,9 @@ class NavBar extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               Spacer(),
-              
+
               // Close button
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -197,17 +211,14 @@ class NavBar extends StatelessWidget {
                     color: Colors.black26,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    Icons.close_rounded,
-                    color: Colors.white,
-                  ),
+                  child: Icon(Icons.close_rounded, color: Colors.white),
                 ),
               ),
             ],
           ),
-          
+
           SizedBox(height: 16),
-          
+
           // User email
           Text(
             userEmail,
@@ -219,9 +230,9 @@ class NavBar extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          
+
           SizedBox(height: 4),
-          
+
           // App name
           InkWell(
             onTap: () => Navigator.pushReplacementNamed(context, '/home'),
@@ -230,11 +241,7 @@ class NavBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: Row(
                 children: [
-                  Image.asset(
-                    'assets/images/logo2.png',
-                    height: 24,
-                    width: 24,
-                  ),
+                  Image.asset('assets/images/logo2.png', height: 24, width: 24),
                   SizedBox(width: 8),
                   Text(
                     "GramSewa",
@@ -252,16 +259,17 @@ class NavBar extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildSectionTitle(String title, bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.only(left: 16.0, top: 16.0, bottom: 8.0),
       child: Text(
         title,
         style: _poppinsStyle(
-          color: isDarkMode
-            ? ColorPalette.textLightSecondary
-            : ColorPalette.textDarkSecondary,
+          color:
+              isDarkMode
+                  ? ColorPalette.textLightSecondary
+                  : ColorPalette.textDarkSecondary,
           fontSize: 12,
           fontWeight: FontWeight.w600,
           letterSpacing: 1.2,
@@ -269,7 +277,7 @@ class NavBar extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildNavigationTile({
     required BuildContext context,
     required IconData icon,
@@ -282,48 +290,47 @@ class NavBar extends StatelessWidget {
   }) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         dense: true,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: iconColor.withOpacity(0.15),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: iconColor,
-          ),
+          child: Icon(icon, size: 18, color: iconColor),
         ),
         title: Text(
           title,
           style: _poppinsStyle(
-            color: isDarkMode 
-              ? ColorPalette.textLightPrimary.withOpacity(0.9)
-              : ColorPalette.textDarkPrimary,
+            color:
+                isDarkMode
+                    ? ColorPalette.textLightPrimary.withOpacity(0.9)
+                    : ColorPalette.textDarkPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
         ),
-        trailing: showTrailing
-          ? Icon(
-              CupertinoIcons.chevron_right,
-              size: 16,
-              color: isDarkMode 
-                ? ColorPalette.textLightSecondary.withOpacity(0.6)
-                : ColorPalette.textDarkSecondary.withOpacity(0.6),
-            )
-          : null,
-        onTap: onTap ?? (route != null ? () {
-          Navigator.pushNamed(context, route);
-        } : null),
+        trailing:
+            showTrailing
+                ? Icon(
+                  CupertinoIcons.chevron_right,
+                  size: 16,
+                  color:
+                      isDarkMode
+                          ? ColorPalette.textLightSecondary.withOpacity(0.6)
+                          : ColorPalette.textDarkSecondary.withOpacity(0.6),
+                )
+                : null,
+        onTap:
+            onTap ??
+            (route != null
+                ? () {
+                  Navigator.pushNamed(context, route);
+                }
+                : null),
       ),
     );
   }
@@ -331,14 +338,10 @@ class NavBar extends StatelessWidget {
   Widget _buildThemeSwitchTile(bool isDarkMode, ThemeProvider themeProvider) {
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         dense: true,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         leading: Container(
           padding: EdgeInsets.all(8),
           decoration: BoxDecoration(
@@ -346,7 +349,9 @@ class NavBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
-            isDarkMode ? CupertinoIcons.sun_max_fill : CupertinoIcons.moon_stars_fill,
+            isDarkMode
+                ? CupertinoIcons.sun_max_fill
+                : CupertinoIcons.moon_stars_fill,
             size: 18,
             color: Colors.purple,
           ),
@@ -354,9 +359,10 @@ class NavBar extends StatelessWidget {
         title: Text(
           isDarkMode ? "Light Theme" : "Dark Theme",
           style: _poppinsStyle(
-            color: isDarkMode 
-              ? ColorPalette.textLightPrimary.withOpacity(0.9)
-              : ColorPalette.textDarkPrimary,
+            color:
+                isDarkMode
+                    ? ColorPalette.textLightPrimary.withOpacity(0.9)
+                    : ColorPalette.textDarkPrimary,
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -374,19 +380,20 @@ class NavBar extends StatelessWidget {
       ),
     );
   }
-  
+
   Widget _buildDivider(bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Divider(
-        color: isDarkMode 
-          ? Colors.white.withOpacity(0.1)
-          : Colors.black.withOpacity(0.1),
+        color:
+            isDarkMode
+                ? Colors.white.withOpacity(0.1)
+                : Colors.black.withOpacity(0.1),
         thickness: 1,
       ),
     );
   }
-  
+
   Widget _buildAppVersionFooter(bool isDarkMode) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -395,30 +402,33 @@ class NavBar extends StatelessWidget {
           Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              color: isDarkMode
-                ? Colors.white.withOpacity(0.05)
-                : Colors.black.withOpacity(0.05),
+              color:
+                  isDarkMode
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.05),
               borderRadius: BorderRadius.circular(30),
             ),
             child: Text(
               "Version 1.0.1",
               style: _poppinsStyle(
-                color: isDarkMode
-                  ? Colors.white.withOpacity(0.5)
-                  : Colors.black.withOpacity(0.5),
+                color:
+                    isDarkMode
+                        ? Colors.white.withOpacity(0.5)
+                        : Colors.black.withOpacity(0.5),
                 fontSize: 12,
               ),
             ),
           ),
-          
+
           SizedBox(height: 8),
-          
+
           Text(
             "© 2025 GramSewa",
             style: _poppinsStyle(
-              color: isDarkMode
-                ? Colors.white.withOpacity(0.3)
-                : Colors.black.withOpacity(0.3),
+              color:
+                  isDarkMode
+                      ? Colors.white.withOpacity(0.3)
+                      : Colors.black.withOpacity(0.3),
               fontSize: 10,
             ),
           ),
