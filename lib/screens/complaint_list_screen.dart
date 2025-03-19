@@ -288,76 +288,55 @@ class ComplaintListScreen extends StatelessWidget {
                                       ),
                                     ),
 
-                                    // Spacer to push remaining elements to the right
-                                    const Spacer(),
-
-                                    // Save Button and Time Container Row
-                                    Row(
-                                      children: [
-                                        // Save Button Container
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: primaryColor.withOpacity(
-                                              0.12,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: primaryColor.withOpacity(
-                                                0.25,
-                                              ),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: SaveButton(
+                                    // Modified layout for responsive UI
+                                    Expanded(
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          // Save Button - Now a simple icon with minimal container
+                                          SaveButton(
                                             complaintId: doc.id,
+                                            theme: theme,
                                           ),
-                                        ),
-                                        const SizedBox(
-                                          width: 8,
-                                        ), // Space between save button and time
-                                        // Time Container
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: textSecondary.withOpacity(
-                                              0.12,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.access_time_rounded,
-                                                size: 14,
-                                                color: textSecondary,
+                                          const SizedBox(width: 8),
+                                          
+                                          // Time display - Now with more flexible layout
+                                          Flexible(
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 8,
+                                                vertical: 6,
                                               ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                timeAgoText,
-                                                style: theme
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
-                                                      color: textSecondary,
-                                                      fontWeight:
-                                                          FontWeight.w500,
+                                              decoration: BoxDecoration(
+                                                color: textSecondary.withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time_rounded,
+                                                    size: 12,
+                                                    color: textSecondary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(
+                                                      timeAgoText,
+                                                      style: theme.textTheme.labelSmall?.copyWith(
+                                                        color: textSecondary,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                      maxLines: 1,
+                                                      overflow: TextOverflow.ellipsis,
                                                     ),
+                                                  ),
+                                                ],
                                               ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -484,8 +463,13 @@ class ComplaintListScreen extends StatelessWidget {
 
 class SaveButton extends StatelessWidget {
   final String complaintId;
+  final ThemeData theme;
 
-  const SaveButton({super.key, required this.complaintId});
+  const SaveButton({
+    super.key, 
+    required this.complaintId,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +487,7 @@ class SaveButton extends StatelessWidget {
             (snapshot.data?.data() as Map<String, dynamic>?)?['saved_c'] ?? [];
         final isSaved = savedList.contains(complaintId);
 
-        return GestureDetector(
+        return InkWell(
           onTap: () async {
             final userDoc = FirebaseFirestore.instance
                 .collection('users')
@@ -519,16 +503,19 @@ class SaveButton extends StatelessWidget {
               });
             }
           },
-          child: Icon(
-            isSaved ? Icons.bookmark : Icons.bookmark_border,
-            size: 14, // Match the icon size of the time container
-            color:
-                isSaved
-                    ? Theme.of(context)
-                        .primaryColor // Filled color
-                    : Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.6), // Outline color
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: theme.primaryColor.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isSaved ? Icons.bookmark : Icons.bookmark_border,
+              size: 16,
+              color: isSaved 
+                  ? theme.primaryColor
+                  : theme.colorScheme.onSurface.withOpacity(0.6),
+            ),
           ),
         );
       },

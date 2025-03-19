@@ -20,6 +20,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
+import 'screens/chat_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,7 +57,6 @@ class MyApp extends StatelessWidget {
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,
       home: AuthWrapper(),
-      initialRoute: '/home',
       routes: {
         '/home': (context) => HomePage(),
         '/login': (context) => LoginScreen(),
@@ -70,6 +70,7 @@ class MyApp extends StatelessWidget {
         '/open_petition': (context) => OpenPetitionScreen(),
         '/my_petitions': (context) => MyPetitionScreen(),
         '/my_complaints': (context) => MyComplaintScreen(),
+        '/chatbot': (context) => ChatScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {
@@ -102,7 +103,7 @@ class AuthWrapper extends StatelessWidget {
           return _buildLoadingScreen();
         }
         if (snapshot.hasData) {
-          return ComplaintListScreen();
+          return HomePage(); // Changed to HomePage instead of ComplaintListScreen
         }
         return LoginScreen();
       },

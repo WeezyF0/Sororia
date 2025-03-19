@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ColorPalette {
   // Primary colors
@@ -31,10 +32,40 @@ class ColorPalette {
 
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light;
+  static const String _themePreferenceKey = 'theme_preference';
+  
+  ThemeProvider() {
+    _loadThemePreference();
+  }
+
   ThemeMode get themeMode => _themeMode;
 
+  // Load
+  Future<void> _loadThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedThemeMode = prefs.getString(_themePreferenceKey);
+    
+    if (savedThemeMode == 'dark') {
+      _themeMode = ThemeMode.dark;
+    } else {
+      _themeMode = ThemeMode.light;
+    }
+    
+    notifyListeners();
+  }
+
+  // Save
+  Future<void> _saveThemePreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    final themeValue = _themeMode == ThemeMode.dark ? 'dark' : 'light';
+    
+    await prefs.setString(_themePreferenceKey, themeValue);
+  }
+
+  // Toggle
   void toggleTheme() {
     _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _saveThemePreference();
     notifyListeners();
   }
   
@@ -60,10 +91,12 @@ class ThemeProvider extends ChangeNotifier {
         primary: primaryColor,
         secondary: secondaryColor,
         surface: surfaceColor,
+        background: backgroundColor,
         error: ColorPalette.error,
         onPrimary: Colors.white,
         onSecondary: Colors.white,
         onSurface: textPrimary,
+        onBackground: textPrimary,
         onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(
