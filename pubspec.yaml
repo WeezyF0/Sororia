@@ -46,13 +46,13 @@ dependencies:
   geocoding: ^2.1.1
   string_similarity: ^2.0.0
   flutter_markdown: ^0.6.18
-  url_launcher: ^6.2.4
   intl: ^0.18.1
   pinput: ^3.0.1
   google_fonts: ^5.1.0
   flutter_svg: ^2.0.17
   provider: ^6.1.2
   shared_preferences: ^2.2.0
+  url_launcher: ^6.2.5
 
 dev_dependencies:
   flutter_native_splash: ^2.3.4

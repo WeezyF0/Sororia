@@ -6,15 +6,18 @@ class GeminiService {
   late final GenerativeModel _model;
   late final ChatSession _chatSession; 
 
-  // System prompt text for GramSewa application
+  // System prompt
   final String _systemPromptText = """
-Hello you are helpful complaint bot you must help people with their complaints, you must ask more questions and try to get as much information as possible from the user regarding the complaint,
+You are helpful complaint bot you must help people with their complaints, you must ask more questions and try to get as much information as possible from the user regarding the complaint,
 Be extremely helpful and polite and find ways to help them in any and all manners. 
 also you might want the user to see the local news for the complaint for that turn the news flag on. 
 You must simultaneously build the complaint description describing the complaint of the user in some detail, 
-some of your users might not know english, respond in the exact dialect and script the user enters their complaint in, 
-for example: Roman alphabets get roman outputs, devnagri get devanagri and so on for all the different languages and dialects,
-the complaint may be in any indian language or dialect.
+some of your users might not know english, respond in the way they type
+So
+How are you -> I am fine
+Tum kaise ho -> mein theek hun
+आप कैसे हैं -> मैं ठीक हूँ
+And so on
 """;
 
   GeminiService() {
