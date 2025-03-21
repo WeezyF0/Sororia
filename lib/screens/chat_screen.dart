@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:complaints_app/services/chat_service.dart';
+import 'chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
   @override
@@ -10,6 +11,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final ChatService _chatService = ChatService();
   final TextEditingController _controller = TextEditingController();
   List<Map<String, dynamic>> chatMessages = [];
+  bool isLoading = false; // Track Gemini's response state
 
   void sendMessage() async {
     String userMessage = _controller.text.trim();
@@ -17,6 +19,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       chatMessages.add({"text": userMessage, "isUser": true});
+      isLoading = true; // Show "..." animation
       _controller.clear();
     });
 
@@ -24,6 +27,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       chatMessages.add({"text": botResponse, "isUser": false});
+      isLoading = false; // Remove animation after response
     });
   }
 
@@ -35,26 +39,13 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: ListView.builder(
-              itemCount: chatMessages.length,
+              itemCount: chatMessages.length + (isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == chatMessages.length && isLoading) {
+                  return ChatBubble(text: "", isUser: false, isLoading: true); // Show "..." animation
+                }
                 final message = chatMessages[index];
-                return Align(
-                  alignment: message["isUser"] ? Alignment.centerRight : Alignment.centerLeft,
-                  child: Container(
-                    margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    padding: EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: message["isUser"] ? Colors.blue : Colors.grey[300],
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      message["text"],
-                      style: TextStyle(
-                        color: message["isUser"] ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                );
+                return ChatBubble(text: message["text"], isUser: message["isUser"]);
               },
             ),
           ),

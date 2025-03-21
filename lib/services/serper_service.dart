@@ -40,7 +40,7 @@ class SerperService {
         }
       }
 
-      return "⚠️ No search results found. Try again later.";
+      return "No search results found. Try again later.";
     } catch (e) {
       return "Network Error: $e";
     }

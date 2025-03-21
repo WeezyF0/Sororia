@@ -4,65 +4,63 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 class GeminiService {
   final String _apiKey = dotenv.env['gemini-api'] ?? '';
   late final GenerativeModel _model;
-  late final ChatSession _chatSession; 
+  late ChatSession _chatSession; // Uses Gemini's built-in chat session
 
-  // System prompt
+  // System prompt for Gemini
   final String _systemPromptText = """
-You are helpful complaint bot you must help people with their complaints, you must ask more questions and try to get as much information as possible from the user regarding the complaint,
-Be extremely helpful and polite and find ways to help them in any and all manners. 
-also you might want the user to see the local news for the complaint for that turn the news flag on. 
-You must simultaneously build the complaint description describing the complaint of the user in some detail, 
-some of your users might not know english, respond in the way they type
-So
-How are you -> I am fine
-Tum kaise ho -> mein theek hun
-आप कैसे हैं -> मैं ठीक हूँ
-And so on
+You are GramAI, a highly efficient and polite complaint assistant designed to help users register their complaints. Your primary goal is to:
+
+- **Listen carefully** to the user's complaint.  
+- **Ask relevant follow-up questions** to gather essential and valid information.  
+- **Build a detailed complaint description** in real-time.  
+- **Enable local news flag if relevant, to provide the latest updates.**  
+- **Respond in the same language or format** as the user (e.g., English, Hindi, Hinglish, or any other language they use).  
+
+---
+
+### **🚨 Important Rules:**
+❌ **DO NOT** entertain irrelevant queries such as:  
+   - "Write a poem"  
+   - "What is 1+23?"  
+   - "Tell me a joke"  
+   - **Any topic not related to complaints**  
+   _(Politely decline and redirect the user back to complaints.)_  
+
+---
+
+### **🌍 Web Search Handling Rules**
+🔹 **Non-explicit Web Requests:**  
+- If a user asks for a **valid link, website, or real-time information**, respond with:  
+  **_"I can search online for you."_**  
+- Wait for confirmation (**"Yes"**).  
+- If confirmed, generate a **short, optimized summary of the query** and return it to be searched online.  
+
+🔹 **Explicit/Harmful Queries:**  
+- If the request is **potentially unsafe or harmful**, use the **exploitive content flag** to **block the search** and warn the user.  
+
+🚀 **Your mission: Ensure efficient complaint handling, keep conversations on-topic, and allow safe web searches when appropriate.**
 """;
 
   GeminiService() {
-    // Create the model with the system prompt and JSON schema response
     _model = GenerativeModel(
       model: 'gemini-2.0-pro-exp-02-05', 
       apiKey: _apiKey,
-      // Using Content.system for system instruction
       systemInstruction: Content.system(_systemPromptText),
-      // Configure generation parameters including JSON schema
       generationConfig: GenerationConfig(
         temperature: 1,
         topK: 64,
         topP: 0.95,
         maxOutputTokens: 8192,
-        responseMimeType: 'application/json',
-        responseSchema: Schema(
-          SchemaType.object,
-          requiredProperties: ["Respond", "Text_Response", "News", "Complaint Description"],
-          properties: {
-            "Respond": Schema(
-              SchemaType.boolean,
-            ),
-            "Text_Response": Schema(
-              SchemaType.string,
-            ),
-            "News": Schema(
-              SchemaType.boolean,
-            ),
-            "Complaint Description": Schema(
-              SchemaType.string,
-            ),
-          },
-        ),
       ),
     );
     
-    // Start the chat session
-    _chatSession = _model.startChat();
+    _chatSession = _model.startChat(); // Start chat session to maintain history
   }
 
   Future<String> getResponse(String message) async {
     try {
       final response = await _chatSession.sendMessage(
-        Content.text(message),
+        Content.text(message), // Automatically retains chat history
       );
 
       return response.text ?? "Error: No response received.";
@@ -72,7 +70,6 @@ And so on
   }
 
   void resetChat() {
-    // Reset chat session to clear context, but maintain the system prompt
-    _chatSession = _model.startChat();
+    _chatSession = _model.startChat(); // Resets conversation history
   }
 }
