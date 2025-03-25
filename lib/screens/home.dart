@@ -36,19 +36,13 @@ class HomePage extends StatelessWidget {
               child: Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        "GramSewa",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    "GramSewa",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -57,7 +51,6 @@ class HomePage extends StatelessWidget {
         ),
       ),
       drawer: NavBar(),
-
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
@@ -102,11 +95,10 @@ class HomePage extends StatelessWidget {
                               title: "Issues Map",
                               icon: Icons.map_outlined,
                               color: Colors.blue,
-                              onTap:
-                                  () => Navigator.pushNamed(
-                                    context,
-                                    '/complaints_map',
-                                  ),
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/complaints_map',
+                              ),
                               description: "View complaints in your area",
                             );
                           case 1:
@@ -115,11 +107,10 @@ class HomePage extends StatelessWidget {
                               title: "Start a Petition",
                               icon: Icons.assignment_outlined,
                               color: Colors.green,
-                              onTap:
-                                  () => Navigator.pushNamed(
-                                    context,
-                                    '/add_petition',
-                                  ),
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/add_petition',
+                              ),
                               description: "Create a new petition",
                             );
                           case 2:
@@ -128,11 +119,10 @@ class HomePage extends StatelessWidget {
                               title: "Add Complaint",
                               icon: Icons.add_comment_outlined,
                               color: Colors.orange,
-                              onTap:
-                                  () => Navigator.pushNamed(
-                                    context,
-                                    '/add_complaint',
-                                  ),
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/add_complaint',
+                              ),
                               description: "File a new complaint",
                             );
                           case 3:
@@ -141,16 +131,11 @@ class HomePage extends StatelessWidget {
                               title: "Local News",
                               icon: Icons.newspaper_outlined,
                               color: Colors.purple,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text("Coming soon!"),
-                                    behavior: SnackBarBehavior.floating,
-                                  ),
-                                );
-                              },
-                              description: "Under development",
-                              comingSoon: true,
+                              onTap: () => Navigator.pushNamed(
+                                context,
+                                '/news',
+                              ),
+                              description: "Check the latest local news",
                             );
                           default:
                             return SizedBox();
@@ -174,7 +159,6 @@ class HomePage extends StatelessWidget {
     required Color color,
     required VoidCallback onTap,
     required String description,
-    bool comingSoon = false,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -196,60 +180,36 @@ class HomePage extends StatelessWidget {
               ],
             ),
           ),
-          child: Stack(
-            children: [
-              if (comingSoon)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      "SOON",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 32, color: Colors.white),
+                Spacer(),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(icon, size: 32, color: Colors.white),
-                    Spacer(),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.8),
-                        fontSize: 11,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                SizedBox(height: 4),
+                Text(
+                  description,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 11,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
