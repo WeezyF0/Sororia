@@ -26,8 +26,8 @@ class _NewsScreenState extends State<NewsScreen> {
   @override
   void initState() {
     super.initState();
-    final geminiApiKey = dotenv.env['GEMINI_API_KEY'] ?? "";
-    final serperApiKey = dotenv.env['SERPER_API_KEY'] ?? "";
+    final geminiApiKey = dotenv.env['gemini-api'] ?? "";
+    final serperApiKey = dotenv.env['serper-api'] ?? "";
 
     geminiNewsService = GeminiNewsService(geminiApiKey);
     serperService = SerperService(serperApiKey);
