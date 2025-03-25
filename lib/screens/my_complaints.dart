@@ -33,6 +33,23 @@ class MyComplaintScreen extends StatelessWidget {
     }
   }
 
+  Color _getStatusColor(ThemeData theme, String status) {
+    switch (status.toLowerCase()) {
+      case 'resolved':
+        return theme.brightness == Brightness.dark
+            ? Colors.greenAccent.withOpacity(0.8)
+            : Colors.green;
+      case 'in progress':
+        return theme.brightness == Brightness.dark
+            ? Colors.orangeAccent.withOpacity(0.8)
+            : Colors.orange;
+      default:
+        return theme.brightness == Brightness.dark
+            ? Colors.lightBlueAccent.withOpacity(0.8)
+            : Colors.lightBlue;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -83,7 +100,7 @@ class MyComplaintScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
+                    children: const [
                       Text(
                         "MY COMPLAINTS",
                         style: TextStyle(
@@ -240,7 +257,17 @@ class MyComplaintScreen extends StatelessWidget {
     required Color textSecondary,
   }) {
     final filteredComplaints =
-        docs.where((doc) => complaintIds.contains(doc.id)).toList();
+        docs.where((doc) {
+          return complaintIds.any((entry) {
+            if (entry is Map<String, dynamic>) {
+              return entry['complaintId'] == doc.id;
+            } else if (entry is String) {
+              return entry == doc.id;
+            }
+            return false;
+          });
+        }).toList();
+
     if (filteredComplaints.isEmpty) return const SizedBox.shrink();
 
     return Padding(
@@ -262,7 +289,6 @@ class MyComplaintScreen extends StatelessWidget {
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: filteredComplaints.length,
-            // In the _buildSection's ListView.builder itemBuilder
             itemBuilder: (context, index) {
               final doc = filteredComplaints[index];
               final data = doc.data() as Map<String, dynamic>;
@@ -270,30 +296,28 @@ class MyComplaintScreen extends StatelessWidget {
               String timeAgoText = "Unknown date";
 
               if (data.containsKey('timestamp') && data['timestamp'] != null) {
-                try {
-                  DateTime? dateTime = parseTimestamp(data['timestamp']);
-                  if (dateTime != null) {
-                    timeAgoText = timeAgo(dateTime);
-                  }
-                } catch (e) {
-                  timeAgoText = "Unknown date";
+                DateTime? dateTime = parseTimestamp(data['timestamp']);
+                if (dateTime != null) {
+                  timeAgoText = timeAgo(dateTime);
                 }
               }
 
-              // Find saved entry details
+              // Find the saved entry corresponding to this complaint
               dynamic savedEntry;
               int lastSeenCount = 0;
               try {
-                savedEntry = complaintIds.firstWhere(
-                  (entry) =>
-                      (entry is Map ? entry['complaintId'] : entry) == doc.id,
-                );
-                if (savedEntry is Map) {
+                savedEntry = complaintIds.firstWhere((entry) {
+                  if (entry is Map<String, dynamic>) {
+                    return entry['complaintId'] == doc.id;
+                  } else if (entry is String) {
+                    return entry == doc.id;
+                  }
+                  return false;
+                });
+                if (savedEntry is Map<String, dynamic>) {
                   lastSeenCount =
                       (savedEntry['last_seen_update_count'] as num?)?.toInt() ??
                       0;
-                } else if (savedEntry is String) {
-                  lastSeenCount = 0; // Legacy entries have never seen updates
                 }
               } catch (_) {}
 
@@ -301,95 +325,134 @@ class MyComplaintScreen extends StatelessWidget {
               final status = data['status'] ?? 'Pending';
               final statusColor = _getStatusColor(theme, status);
 
-              // Update saved entry after showing banner
-              if (showUpdateBanner) {
-                WidgetsBinding.instance.addPostFrameCallback((_) async {
-                  final userId = FirebaseAuth.instance.currentUser?.uid;
-                  if (userId == null) return;
-
-                  final userDoc = FirebaseFirestore.instance
-                      .collection('users')
-                      .doc(userId);
-                  final newEntry = {
-                    'complaintId': doc.id,
-                    'last_seen_update_count': currentUpdateCount,
-                  };
-
-                  // Remove old entry if exists
-                  if (savedEntry != null) {
-                    await userDoc.update({
-                      'saved_c': FieldValue.arrayRemove([savedEntry]),
-                    });
-                  }
-
-                  // Add updated entry
-                  await userDoc.update({
-                    'saved_c': FieldValue.arrayUnion([newEntry]),
-                  });
-                });
-              }
-
-              return Column(
-                children: [
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 16.0),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color:
-                              isDark
-                                  ? Colors.black.withOpacity(0.3)
-                                  : Colors.black.withOpacity(0.1),
-                          blurRadius: 12,
-                          spreadRadius: 1,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          isDark
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black.withOpacity(0.1),
+                      blurRadius: 12,
+                      spreadRadius: 1,
+                      offset: const Offset(0, 4),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(16),
-                      child: Material(
-                        color: surfaceColor,
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/open_complaint',
-                              arguments: {
-                                'complaintData': data,
-                                'complaintId': doc.id,
-                              },
-                            );
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: Material(
+                    color: surfaceColor,
+                    child: InkWell(
+                      onTap: () async {
+                        // Update last seen count when pressed
+                        final userId = FirebaseAuth.instance.currentUser?.uid;
+                        if (userId == null) return;
+
+                        final userDoc = FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(userId);
+
+                        // Check if complaint exists in saved_c
+                        final userData =
+                            (await userDoc.get()).data()
+                                as Map<String, dynamic>? ??
+                            {};
+                        final List<dynamic> savedList =
+                            userData['saved_c'] ?? [];
+
+                        dynamic existingEntry;
+                        try {
+                          existingEntry = savedList.firstWhere((entry) {
+                            if (entry is Map<String, dynamic>) {
+                              return entry['complaintId'] == doc.id;
+                            } else if (entry is String) {
+                              return entry == doc.id;
+                            }
+                            return false;
+                          });
+                        } catch (_) {}
+
+                        if (existingEntry != null) {
+                          // Remove old entry
+                          await userDoc.update({
+                            'saved_c': FieldValue.arrayRemove([existingEntry]),
+                          });
+
+                          // Add new entry with updated count
+                          final newEntry = {
+                            'complaintId': doc.id,
+                            'last_seen_update_count': currentUpdateCount,
+                          };
+                          await userDoc.update({
+                            'saved_c': FieldValue.arrayUnion([newEntry]),
+                          });
+                        }
+
+                        Navigator.pushNamed(
+                          context,
+                          '/open_complaint',
+                          arguments: {
+                            'complaintData': data,
+                            'complaintId': doc.id,
                           },
-                          child: Column(
-                            children: [
-                              // Status bar
-                              Container(
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: statusColor,
-                                  gradient: LinearGradient(
-                                    begin: Alignment.centerLeft,
-                                    end: Alignment.centerRight,
-                                    colors: [
-                                      statusColor.withOpacity(0.7),
-                                      statusColor,
-                                    ],
-                                  ),
-                                ),
+                        );
+                      },
+                      child: Column(
+                        children: [
+                          // Status bar at the top
+                          Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              gradient: LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [
+                                  statusColor.withOpacity(0.7),
+                                  statusColor,
+                                ],
                               ),
-                              // Card content
-                              Padding(
-                                padding: const EdgeInsets.all(16.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                            ),
+                          ),
+                          // Card content
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
+                                    // Issue Type
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: primaryColor.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: primaryColor.withOpacity(0.25),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        data['issue_type'] ?? 'General',
+                                        style: theme.textTheme.labelSmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: primaryColor,
+                                            ),
+                                      ),
+                                    ),
+                                    // Right side controls: Save Button & Time
                                     Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        // Issue Type
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 12,
@@ -409,213 +472,163 @@ class MyComplaintScreen extends StatelessWidget {
                                               width: 1,
                                             ),
                                           ),
-                                          child: Text(
-                                            data['issue_type'] ?? 'General',
-                                            style: theme.textTheme.labelSmall
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: primaryColor,
-                                                ),
+                                          child: SaveButton(
+                                            complaintId: doc.id,
                                           ),
                                         ),
-                                        // Right side controls
-                                        Row(
-                                          children: [
-                                            // Save Button
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 12,
-                                                    vertical: 6,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: primaryColor.withOpacity(
-                                                  0.12,
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: primaryColor
-                                                      .withOpacity(0.25),
-                                                  width: 1,
-                                                ),
-                                              ),
-                                              child: SaveButton(
-                                                complaintId: doc.id,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            // Time Container
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 10,
-                                                    vertical: 6,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: textSecondary
-                                                    .withOpacity(0.12),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.access_time_rounded,
-                                                    size: 14,
-                                                    color: textSecondary,
-                                                  ),
-                                                  const SizedBox(width: 6),
-                                                  Text(
-                                                    timeAgoText,
-                                                    style: theme
-                                                        .textTheme
-                                                        .labelSmall
-                                                        ?.copyWith(
-                                                          color: textSecondary,
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 16),
-                                    // Complaint text
-                                    Text(
-                                      data['text'] ?? 'No details available',
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 18),
-                                    // Location and status
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 8,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: textSecondary.withOpacity(
-                                                0.08,
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(10),
-                                              border: Border.all(
-                                                color: textSecondary
-                                                    .withOpacity(0.15),
-                                                width: 1,
-                                              ),
-                                            ),
-                                            child: Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.location_on_rounded,
-                                                  size: 16,
-                                                  color: textSecondary,
-                                                ),
-                                                const SizedBox(width: 6),
-                                                Expanded(
-                                                  child: Text(
-                                                    data['location'] ??
-                                                        'Unknown location',
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style:
-                                                        theme
-                                                            .textTheme
-                                                            .labelMedium,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        // Status
+                                        const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(
-                                            horizontal: 14,
-                                            vertical: 8,
+                                            horizontal: 10,
+                                            vertical: 6,
                                           ),
                                           decoration: BoxDecoration(
-                                            color: statusColor.withOpacity(
-                                              0.15,
+                                            color: textSecondary.withOpacity(
+                                              0.12,
                                             ),
                                             borderRadius: BorderRadius.circular(
-                                              10,
-                                            ),
-                                            border: Border.all(
-                                              color: statusColor.withOpacity(
-                                                0.3,
-                                              ),
-                                              width: 1,
+                                              8,
                                             ),
                                           ),
-                                          child: Text(
-                                            status,
-                                            style: theme.textTheme.labelMedium
-                                                ?.copyWith(
-                                                  fontWeight: FontWeight.w600,
-                                                  color: statusColor,
-                                                ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.access_time_rounded,
+                                                size: 14,
+                                                color: textSecondary,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                timeAgoText,
+                                                style: theme
+                                                    .textTheme
+                                                    .labelSmall
+                                                    ?.copyWith(
+                                                      color: textSecondary,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ],
                                     ),
                                   ],
                                 ),
-                              ),
-                              // Update banner
-                              if (showUpdateBanner)
-                                Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange.shade100,
-                                    borderRadius: const BorderRadius.only(
-                                      bottomLeft: Radius.circular(16),
-                                      bottomRight: Radius.circular(16),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.new_releases,
-                                        size: 16,
-                                        color: Colors.orange,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Recently Updated',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              color: Colors.orange.shade800,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                      ),
-                                    ],
+                                const SizedBox(height: 16),
+                                // Complaint text
+                                Text(
+                                  data['text'] ?? 'No details available',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: theme.textTheme.bodyLarge?.copyWith(
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                            ],
+                                const SizedBox(height: 18),
+                                // Location and status row
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 8,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: textSecondary.withOpacity(
+                                            0.08,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            10,
+                                          ),
+                                          border: Border.all(
+                                            color: textSecondary.withOpacity(
+                                              0.15,
+                                            ),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.location_on_rounded,
+                                              size: 16,
+                                              color: textSecondary,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                data['location'] ??
+                                                    'Unknown location',
+                                                overflow: TextOverflow.ellipsis,
+                                                style:
+                                                    theme.textTheme.labelMedium,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: statusColor.withOpacity(0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: statusColor.withOpacity(0.3),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        status,
+                                        style: theme.textTheme.labelMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                              color: statusColor,
+                                            ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                // Show "Updated" indicator if there are new updates
+                                if (showUpdateBanner)
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          Icons.update,
+                                          size: 16,
+                                          color: theme.primaryColor,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Updated',
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme.primaryColor,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
-                ],
+                ),
               );
             },
           ),
@@ -624,25 +637,25 @@ class MyComplaintScreen extends StatelessWidget {
     );
   }
 
-  Color _getStatusColor(ThemeData theme, String status) {
-    switch (status.toLowerCase()) {
-      case 'resolved':
-        return theme.colorScheme.brightness == Brightness.dark
-            ? ColorPalette.success.withOpacity(0.8)
-            : ColorPalette.success;
-      case 'in progress':
-        return theme.colorScheme.brightness == Brightness.dark
-            ? ColorPalette.warning.withOpacity(0.8)
-            : ColorPalette.warning;
-      default:
-        return theme.colorScheme.brightness == Brightness.dark
-            ? ColorPalette.info.withOpacity(0.8)
-            : ColorPalette.info;
-    }
+  Future<bool> _isComplaintInSavedCForCurrentUser(String complaintId) async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return false;
+
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userData = userDoc.data() as Map<String, dynamic>? ?? {};
+    final List<dynamic> savedList = userData['saved_c'] ?? [];
+    return savedList.any((entry) {
+      if (entry is Map<String, dynamic>) {
+        return entry['complaintId'] == complaintId;
+      } else if (entry is String) {
+        return entry == complaintId;
+      }
+      return false;
+    });
   }
 }
 
-// Ensure the SaveButton class is properly placed OUTSIDE the MyComplaintScreen class
 class SaveButton extends StatelessWidget {
   final String complaintId;
 
@@ -660,36 +673,47 @@ class SaveButton extends StatelessWidget {
               .doc(userId)
               .snapshots(),
       builder: (context, snapshot) {
-        final savedList =
-            (snapshot.data?.data() as Map<String, dynamic>?)?['saved_c'] ?? [];
-        final isSaved = savedList.contains(complaintId);
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final List<dynamic> savedList = userData['saved_c'] ?? [];
+
+        final existingEntry = savedList.firstWhere((entry) {
+          if (entry is Map<String, dynamic>) {
+            return entry['complaintId'] == complaintId;
+          } else if (entry is String) {
+            return entry == complaintId;
+          }
+          return false;
+        }, orElse: () => null);
+
+        final isSaved = (existingEntry != null);
 
         return GestureDetector(
           onTap: () async {
             final userDoc = FirebaseFirestore.instance
                 .collection('users')
                 .doc(userId);
-
             if (isSaved) {
               await userDoc.update({
-                'saved_c': FieldValue.arrayRemove([complaintId]),
+                'saved_c': FieldValue.arrayRemove([existingEntry]),
               });
             } else {
+              final newEntry = {
+                'complaintId': complaintId,
+                'last_seen_update_count': 0,
+              };
               await userDoc.update({
-                'saved_c': FieldValue.arrayUnion([complaintId]),
+                'saved_c': FieldValue.arrayUnion([newEntry]),
               });
             }
           },
           child: Icon(
             isSaved ? Icons.bookmark : Icons.bookmark_border,
-            size: 14, // Match the icon size of the time container
+            size: 14,
             color:
                 isSaved
-                    ? Theme.of(context)
-                        .primaryColor // Filled color
-                    : Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.6), // Outline color
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         );
       },
