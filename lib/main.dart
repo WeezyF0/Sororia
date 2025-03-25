@@ -21,6 +21,7 @@ import 'theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
 import 'screens/chat_screen.dart';
+import 'screens/news_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,6 +72,7 @@ class MyApp extends StatelessWidget {
         '/my_petitions': (context) => MyPetitionScreen(),
         '/my_complaints': (context) => MyComplaintScreen(),
         '/chatbot': (context) => ChatScreen(),
+        '/news': (context) => NewsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {

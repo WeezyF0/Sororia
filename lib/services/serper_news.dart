@@ -15,7 +15,7 @@ class SerperService {
           "X-API-KEY": apiKey,
         },
         body: json.encode({
-          "q": "$query site:agricoop.gov.in",
+          "q": "$query site:agriwelfare.gov.in",
           "location": "India", // Ensure search is location-based
           "num": 10, // Limit the number of results
         }),

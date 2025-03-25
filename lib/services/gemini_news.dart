@@ -42,7 +42,7 @@ class GeminiNewsService {
           return {
             'title': parts.isNotEmpty ? parts[0].trim() : "No Title",
             'summary': parts.length > 1 ? parts[1].trim() : "No Summary",
-            'url': "https://agricoop.gov.in/",
+            'url': "https://agriwelfare.gov.in/",
           };
         }).toList();
       } else {
