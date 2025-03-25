@@ -130,6 +130,19 @@ class NavBar extends StatelessWidget {
 
                     _buildDivider(isDarkMode),
 
+                    // news
+                    _buildSectionTitle('NEWS', isDarkMode),
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.collections,
+                      iconColor: ColorPalette.primaryLight,
+                      title: "View Government Schemes",
+                      route: "/news",
+                      isDarkMode: isDarkMode,
+                    ),
+
+                    _buildDivider(isDarkMode),
+
                     // Settings section
                     _buildSectionTitle('SETTINGS', isDarkMode),
                     _buildThemeSwitchTile(isDarkMode, themeProvider),
