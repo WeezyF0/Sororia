@@ -161,7 +161,6 @@ class MyComplaintScreen extends StatelessWidget {
               ),
             );
           }
-
           final userData = userSnapshot.data!.data() as Map<String, dynamic>;
           final List<dynamic> savedComplaints = userData['saved_c'] ?? [];
           final List<dynamic> myComplaints = userData['my_c'] ?? [];
@@ -301,7 +300,6 @@ class MyComplaintScreen extends StatelessWidget {
                   timeAgoText = timeAgo(dateTime);
                 }
               }
-
               // Find the saved entry corresponding to this complaint
               dynamic savedEntry;
               int lastSeenCount = 0;
@@ -347,7 +345,17 @@ class MyComplaintScreen extends StatelessWidget {
                     color: surfaceColor,
                     child: InkWell(
                       onTap: () async {
-                        // Update last seen count when pressed
+                        // First, navigate to the open_complaint screen regardless of update status
+                        Navigator.pushNamed(
+                          context,
+                          '/open_complaint',
+                          arguments: {
+                            'complaintData': data,
+                            'complaintId': doc.id,
+                          },
+                        );
+                        
+                        // Then, update last seen count when pressed
                         final userId = FirebaseAuth.instance.currentUser?.uid;
                         if (userId == null) return;
 
@@ -390,15 +398,6 @@ class MyComplaintScreen extends StatelessWidget {
                             'saved_c': FieldValue.arrayUnion([newEntry]),
                           });
                         }
-
-                        Navigator.pushNamed(
-                          context,
-                          '/open_complaint',
-                          arguments: {
-                            'complaintData': data,
-                            'complaintId': doc.id,
-                          },
-                        );
                       },
                       child: Column(
                         children: [
