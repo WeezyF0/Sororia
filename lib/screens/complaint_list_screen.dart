@@ -291,7 +291,8 @@ class ComplaintListScreen extends StatelessWidget {
                                     // Modified layout for responsive UI
                                     Expanded(
                                       child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
                                         children: [
                                           // Save Button - Now a simple icon with minimal container
                                           SaveButton(
@@ -299,17 +300,20 @@ class ComplaintListScreen extends StatelessWidget {
                                             theme: theme,
                                           ),
                                           const SizedBox(width: 8),
-                                          
+
                                           // Time display - Now with more flexible layout
                                           Flexible(
                                             child: Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 8,
-                                                vertical: 6,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 6,
+                                                  ),
                                               decoration: BoxDecoration(
-                                                color: textSecondary.withOpacity(0.12),
-                                                borderRadius: BorderRadius.circular(8),
+                                                color: textSecondary
+                                                    .withOpacity(0.12),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
@@ -323,12 +327,18 @@ class ComplaintListScreen extends StatelessWidget {
                                                   Flexible(
                                                     child: Text(
                                                       timeAgoText,
-                                                      style: theme.textTheme.labelSmall?.copyWith(
-                                                        color: textSecondary,
-                                                        fontWeight: FontWeight.w500,
-                                                      ),
+                                                      style: theme
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            color:
+                                                                textSecondary,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
                                                       maxLines: 1,
-                                                      overflow: TextOverflow.ellipsis,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
                                                     ),
                                                   ),
                                                 ],
@@ -465,11 +475,7 @@ class SaveButton extends StatelessWidget {
   final String complaintId;
   final ThemeData theme;
 
-  const SaveButton({
-    super.key, 
-    required this.complaintId,
-    required this.theme,
-  });
+  const SaveButton({super.key, required this.complaintId, required this.theme});
 
   @override
   Widget build(BuildContext context) {
@@ -483,9 +489,18 @@ class SaveButton extends StatelessWidget {
               .doc(userId)
               .snapshots(),
       builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+
         final savedList =
             (snapshot.data?.data() as Map<String, dynamic>?)?['saved_c'] ?? [];
-        final isSaved = savedList.contains(complaintId);
+        final isSaved = savedList.any((entry) {
+          if (entry is Map<String, dynamic>) {
+            return entry['complaintId'] == complaintId;
+          } else if (entry is String) {
+            return entry == complaintId;
+          }
+          return false;
+        });
 
         return InkWell(
           onTap: () async {
@@ -494,12 +509,28 @@ class SaveButton extends StatelessWidget {
                 .doc(userId);
 
             if (isSaved) {
+              // Remove all entries that match either map or string format
+              final entriesToRemove =
+                  savedList.where((entry) {
+                    if (entry is Map<String, dynamic>) {
+                      return entry['complaintId'] == complaintId;
+                    } else if (entry is String) {
+                      return entry == complaintId;
+                    }
+                    return false;
+                  }).toList();
+
               await userDoc.update({
-                'saved_c': FieldValue.arrayRemove([complaintId]),
+                'saved_c': FieldValue.arrayRemove(entriesToRemove),
               });
             } else {
+              // Add new map entry with initial update count
+              final newEntry = {
+                'complaintId': complaintId,
+                'last_seen_update_count': 0,
+              };
               await userDoc.update({
-                'saved_c': FieldValue.arrayUnion([complaintId]),
+                'saved_c': FieldValue.arrayUnion([newEntry]),
               });
             }
           },
@@ -512,9 +543,10 @@ class SaveButton extends StatelessWidget {
             child: Icon(
               isSaved ? Icons.bookmark : Icons.bookmark_border,
               size: 16,
-              color: isSaved 
-                  ? theme.primaryColor
-                  : theme.colorScheme.onSurface.withOpacity(0.6),
+              color:
+                  isSaved
+                      ? theme.primaryColor
+                      : theme.colorScheme.onSurface.withOpacity(0.6),
             ),
           ),
         );

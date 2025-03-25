@@ -9,7 +9,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class AddComplaintScreen extends StatefulWidget {
   const AddComplaintScreen({super.key});
-  
+
   @override
   _AddComplaintScreenState createState() => _AddComplaintScreenState();
 }
@@ -37,8 +37,13 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
   Future<String?> _getLocationName(double latitude, double longitude) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
-      return placemarks.isNotEmpty ? placemarks.first.locality ?? "Unknown Location" : "Unknown Location";
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        latitude,
+        longitude,
+      );
+      return placemarks.isNotEmpty
+          ? placemarks.first.locality ?? "Unknown Location"
+          : "Unknown Location";
     } catch (_) {
       return "Unknown Location";
     }
@@ -63,45 +68,31 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
           enumValues: [],
           requiredProperties: ["location", "Issue Type", "Text_description"],
           properties: {
-            "location": Schema(
-              SchemaType.string,
-            ),
-            "timestamp": Schema(
-              SchemaType.string,
-            ),
+            "location": Schema(SchemaType.string),
+            "timestamp": Schema(SchemaType.string),
             "Issue Type": Schema(
               SchemaType.object,
               properties: {
-                "Water": Schema(
-                  SchemaType.boolean,
-                ),
-                "Food": Schema(
-                  SchemaType.boolean,
-                ),
-                "Hygiene": Schema(
-                  SchemaType.boolean,
-                ),
-                "Social": Schema(
-                  SchemaType.boolean,
-                ),
-                "Others": Schema(
-                  SchemaType.boolean,
-                ),
+                "Water": Schema(SchemaType.boolean),
+                "Food": Schema(SchemaType.boolean),
+                "Hygiene": Schema(SchemaType.boolean),
+                "Social": Schema(SchemaType.boolean),
+                "Others": Schema(SchemaType.boolean),
               },
             ),
-            "Text_description": Schema(
-              SchemaType.string,
-            ),
+            "Text_description": Schema(SchemaType.string),
           },
         ),
       ),
-      systemInstruction: Content.system('You will be given a complaint about a specific issue in a particular place formalize it, into the format having location, time stamp, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration'),
+      systemInstruction: Content.system(
+        'You will be given a complaint about a specific issue in a particular place formalize it, into the format having location, time stamp, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration',
+      ),
     );
 
     final chat = model.startChat();
-    final response = await chat.sendMessage(Content.multi([
-      TextPart(complaintText),
-    ]));
+    final response = await chat.sendMessage(
+      Content.multi([TextPart(complaintText)]),
+    );
 
     print("Raw response: ${response.text}");
 
@@ -129,9 +120,13 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
     try {
       await _checkLocationPermission();
-      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
 
-      String locationName = await _getLocationName(position.latitude, position.longitude) ?? "Unknown";
+      String locationName =
+          await _getLocationName(position.latitude, position.longitude) ??
+          "Unknown";
       String timestamp = DateTime.now().toIso8601String();
 
       User? user = FirebaseAuth.instance.currentUser;
@@ -139,10 +134,14 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
       String userId = user.uid;
 
-      Map<String, dynamic>? structuredComplaint = await _getGeminiResponse(complaintText);
+      // Get the structured complaint using Gemini
+      Map<String, dynamic>? structuredComplaint = await _getGeminiResponse(
+        complaintText,
+      );
 
       List<String> issueTypes = [];
-      if (structuredComplaint != null && structuredComplaint.containsKey("Issue Type")) {
+      if (structuredComplaint != null &&
+          structuredComplaint.containsKey("Issue Type")) {
         structuredComplaint["Issue Type"].forEach((key, value) {
           if (value == true) issueTypes.add(key);
         });
@@ -155,19 +154,27 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "location": locationName,
         "text": structuredComplaint?["Text_description"] ?? complaintText,
         "timestamp": timestamp,
-        "user_id": userId
+        "user_id": userId,
       };
 
-      await FirebaseFirestore.instance.collection('complaints').add(formattedComplaint);
+      // Add the complaint document and then update user's my_c field with the new complaint's ID.
+      DocumentReference complaintRef = await FirebaseFirestore.instance
+          .collection('complaints')
+          .add(formattedComplaint);
+
+      // Update the user's my_c array.
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'my_c': FieldValue.arrayUnion([complaintRef.id]),
+      });
 
       if (mounted) {
         Navigator.pop(context);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${error.toString()}")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${error.toString()}")));
       }
     }
 
@@ -195,8 +202,8 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue.withOpacity(0.3), 
-                  Colors.purple.withOpacity(0.3)
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
                 ],
               ),
             ),
@@ -204,7 +211,6 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
               child: Center(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
-                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -232,15 +238,17 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
           children: [
             TextField(
               controller: _controller,
-              decoration: const InputDecoration(labelText: "Enter your complaint"),
+              decoration: const InputDecoration(
+                labelText: "Enter your complaint",
+              ),
             ),
             const SizedBox(height: 20),
             _isLoading
                 ? const CircularProgressIndicator()
                 : ElevatedButton(
-                    onPressed: () => _submitComplaint(context),
-                    child: const Text("Submit"),
-                  ),
+                  onPressed: () => _submitComplaint(context),
+                  child: const Text("Submit"),
+                ),
           ],
         ),
       ),
