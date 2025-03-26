@@ -3,12 +3,20 @@ import 'serper_service.dart';
 import 'gemini_service.dart';
 
 class ChatService {
-  final GeminiService _geminiService = GeminiService();
+  final GeminiService _geminiService;
   final SerperService _serperService = SerperService();
   final Map<String, String> _cache = {}; 
 
   bool _waitingForUserConfirmation = false;
   String _pendingQuery = "";
+
+  ChatService(String compInfo)
+      : _geminiService = GeminiService() {
+    // Update the system prompt with compInfo
+    _geminiService.updateSystemPrompt(
+      "You are assisting with the following complaint: $compInfo. Please handle the conversation accordingly."
+    );
+  }
 
   Future<String> getChatResponse(String userMessage) async {
     if (_waitingForUserConfirmation) {
@@ -27,7 +35,7 @@ class ChatService {
     if (geminiResponse.contains("I can search online for you.")) {
       _waitingForUserConfirmation = true;
       _pendingQuery = userMessage;
-      return "_I can search online for you. Would you like me to proceed? (Yes/No)_";
+      return "I can search online for you. Would you like me to proceed? (Yes/No)";
     }
 
     return geminiResponse;

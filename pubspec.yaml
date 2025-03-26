@@ -95,10 +95,9 @@ flutter:
     - .env
     - assets/images/appBar_bg.png
     - assets/images/bg.jpg
-    - assets/images/logo.png
     - assets/images/logo2.png
-    - assets/images/home_bg_day.jpeg
-    - assets/images/home_bg_night.jpeg
+    - assets/images/home_bg_day.jpg
+    - assets/images/home_bg_night.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

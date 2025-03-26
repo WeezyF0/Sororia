@@ -3,47 +3,52 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 class GeminiService {
   final String _apiKey = dotenv.env['gemini-api'] ?? '';
-  late final GenerativeModel _model;
-  late ChatSession _chatSession; // Uses Gemini's built-in chat session
+  GenerativeModel? _model; // Make the model nullable
+  ChatSession? _chatSession; // Make the chat session nullable
 
-  // System prompt for Gemini
-  final String _systemPromptText = """
-You are GramAI, a highly efficient and polite complaint assistant designed to help users register their complaints. Your primary goal is to:
+  String _systemPromptText = """
+You are SororiAI, an empathetic chatbot designed to empower women by providing a safe platform to share experiences, 
+start petitions, and raise awareness about women-centric issues. 
+Your primary goals are:
+-Listen actively to user concerns and validate their experiences.
+-Guide users in drafting petitions and sharing stories to inspire change.
+-Provide resources like helplines, safety tools, or updates on womens rights and empowerment initiatives.
+-Foster community by encouraging collaboration and resilience-building.
 
-- **Listen carefully** to the user's complaint.  
-- **Ask relevant follow-up questions** to gather essential and valid information.  
-- **Build a detailed complaint description** in real-time.  
-- **Enable local news flag if relevant, to provide the latest updates.**  
-- **Respond in the same language or format** as the user (e.g., English, Hindi, Hinglish, or any other language they use).  
+🚨 Important Rules:
+❌ DO NOT entertain irrelevant queries such as:
+"Write a poem"
+"Tell me a joke"
+Any topic unrelated to women empowerment or issues.
+(Politely decline and redirect the user to focus on empowerment topics.)
 
----
+🌍 Features:
+-Assist with complaint drafting and petition creation.
+-Share actionable resources for safety, rights, and advocacy.
+-Promote a supportive environment for storytelling and community building.
 
-### **🚨 Important Rules:**
-❌ **DO NOT** entertain irrelevant queries such as:  
-   - "Write a poem"  
-   - "What is 1+23?"  
-   - "Tell me a joke"  
-   - **Any topic not related to complaints**  
-   _(Politely decline and redirect the user back to complaints.)_  
+### *🌍 Web Search Handling Rules*
+🔹 *Non-explicit Web Requests:*  
+- If a user asks for a *valid link, website, or real-time information*, respond with:  
+  *"I can search online for you."*  
+- Wait for confirmation ("Yes").  
+- If confirmed, generate a *short, optimized summary of the query* and return it to be searched online.  
 
----
+🔹 *Explicit/Harmful Queries:*  
+- If the request is *potentially unsafe or harmful, use the **exploitive content flag* to *block the search* and warn the user.  
 
-### **🌍 Web Search Handling Rules**
-🔹 **Non-explicit Web Requests:**  
-- If a user asks for a **valid link, website, or real-time information**, respond with:  
-  **_"I can search online for you."_**  
-- Wait for confirmation (**"Yes"**).  
-- If confirmed, generate a **short, optimized summary of the query** and return it to be searched online.  
-
-🔹 **Explicit/Harmful Queries:**  
-- If the request is **potentially unsafe or harmful**, use the **exploitive content flag** to **block the search** and warn the user.  
-
-🚀 **Your mission: Ensure efficient complaint handling, keep conversations on-topic, and allow safe web searches when appropriate.**
+🚀 *Your mission: Empower women to take charge of their lives by providing them with tools, 
+resources, and a supportive community to address challenges, advocate for rights, and create meaningful change.
 """;
 
-  GeminiService() {
+  // Constructor does not initialize the model
+  GeminiService();
+
+  void _initializeModel() {
+    if (_model != null) return; // Ensure the model is initialized only once
+
     _model = GenerativeModel(
-      model: 'gemini-2.0-pro-exp-02-05', 
+      model: 'gemini-2.0-pro-exp-02-05',
       apiKey: _apiKey,
       systemInstruction: Content.system(_systemPromptText),
       generationConfig: GenerationConfig(
@@ -53,14 +58,17 @@ You are GramAI, a highly efficient and polite complaint assistant designed to he
         maxOutputTokens: 8192,
       ),
     );
-    
-    _chatSession = _model.startChat(); // Start chat session to maintain history
+    _chatSession = _model!.startChat();
   }
 
   Future<String> getResponse(String message) async {
+    if (_model == null || _chatSession == null) {
+      return "Error: Model not initialized. Please update the system prompt first.";
+    }
+
     try {
-      final response = await _chatSession.sendMessage(
-        Content.text(message), // Automatically retains chat history
+      final response = await _chatSession!.sendMessage(
+        Content.text(message),
       );
 
       return response.text ?? "Error: No response received.";
@@ -70,6 +78,14 @@ You are GramAI, a highly efficient and polite complaint assistant designed to he
   }
 
   void resetChat() {
-    _chatSession = _model.startChat(); // Resets conversation history
+    if (_chatSession != null) {
+      _chatSession = _model!.startChat();
+    }
+  }
+
+  void updateSystemPrompt(String additionalPrompt) {
+    // Append the new prompt to the existing system prompt
+    _systemPromptText += "\n\n$additionalPrompt";
+    _initializeModel(); // Initialize the model after updating the prompt
   }
 }

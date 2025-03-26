@@ -3,15 +3,26 @@ import 'package:complaints_app/services/chat_service.dart';
 import 'chat_bubble.dart';
 
 class ChatScreen extends StatefulWidget {
+  final String compInfo; // Add this field to accept the argument
+
+  const ChatScreen({super.key, required this.compInfo}); // Update constructor to require userId
+
   @override
   _ChatScreenState createState() => _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final ChatService _chatService = ChatService();
+  late final ChatService _chatService;
   final TextEditingController _controller = TextEditingController();
   List<Map<String, dynamic>> chatMessages = [];
-  bool isLoading = false; // Track Gemini's response state
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize ChatService with compInfo
+    _chatService = ChatService(widget.compInfo);
+  }
 
   void sendMessage() async {
     String userMessage = _controller.text.trim();
@@ -19,7 +30,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       chatMessages.add({"text": userMessage, "isUser": true});
-      isLoading = true; // Show "..." animation
+      isLoading = true;
       _controller.clear();
     });
 
@@ -27,14 +38,14 @@ class _ChatScreenState extends State<ChatScreen> {
 
     setState(() {
       chatMessages.add({"text": botResponse, "isUser": false});
-      isLoading = false; // Remove animation after response
+      isLoading = false;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("GramAI")),
+      appBar: AppBar(title: Text("UnioAI")),
       body: Column(
         children: [
           Expanded(
@@ -42,7 +53,7 @@ class _ChatScreenState extends State<ChatScreen> {
               itemCount: chatMessages.length + (isLoading ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index == chatMessages.length && isLoading) {
-                  return ChatBubble(text: "", isUser: false, isLoading: true); // Show "..." animation
+                  return ChatBubble(text: "", isUser: false, isLoading: true);
                 }
                 final message = chatMessages[index];
                 return ChatBubble(text: message["text"], isUser: message["isUser"]);

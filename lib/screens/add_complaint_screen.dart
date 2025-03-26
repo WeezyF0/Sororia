@@ -55,7 +55,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
     }
 
     final model = GenerativeModel(
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.0-flash',
       apiKey: apiKey!,
       generationConfig: GenerationConfig(
         temperature: 1,
@@ -65,28 +65,45 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         responseMimeType: 'application/json',
         responseSchema: Schema(
           SchemaType.object,
-          enumValues: [],
-          requiredProperties: ["location", "Issue Type", "Text_description"],
+          requiredProperties: ["Issue Type", "Text_description"],
           properties: {
-            "location": Schema(SchemaType.string),
-            "timestamp": Schema(SchemaType.string),
             "Issue Type": Schema(
               SchemaType.object,
+              requiredProperties: ["Workplace", "Family", "Safety", "Social", "Others", "Severe", "Institutional", "Discrimation"],
               properties: {
-                "Water": Schema(SchemaType.boolean),
-                "Food": Schema(SchemaType.boolean),
-                "Hygiene": Schema(SchemaType.boolean),
-                "Social": Schema(SchemaType.boolean),
-                "Others": Schema(SchemaType.boolean),
+                "Workplace": Schema(
+                  SchemaType.boolean,
+                ),
+                "Family": Schema(
+                  SchemaType.boolean,
+                ),
+                "Safety": Schema(
+                  SchemaType.boolean,
+                ),
+                "Social": Schema(
+                  SchemaType.boolean,
+                ),
+                "Others": Schema(
+                  SchemaType.boolean,
+                ),
+                "Severe": Schema(
+                  SchemaType.boolean,
+                ),
+                "Institutional": Schema(
+                  SchemaType.boolean,
+                ),
+                "Discrimation": Schema(
+                  SchemaType.boolean,
+                ),
               },
             ),
-            "Text_description": Schema(SchemaType.string),
+            "Text_description": Schema(
+              SchemaType.string,
+            ),
           },
         ),
       ),
-      systemInstruction: Content.system(
-        'You will be given a complaint about a specific issue in a particular place formalize it, into the format having location, time stamp, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration',
-      ),
+      systemInstruction: Content.system('You will be given a experience from a woman about a specific issue in a particular place formalize it, into the format having types and a description, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration, the complaint description needs to be informatve'),
     );
 
     final chat = model.startChat();
@@ -152,7 +169,8 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
-        "text": structuredComplaint?["Text_description"] ?? complaintText,
+        "original_text": complaintText, // Store the original text
+        "processed_text": structuredComplaint?["Text_description"] ?? complaintText, // Store the processed text
         "timestamp": timestamp,
         "user_id": userId,
       };
@@ -218,7 +236,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
                     ),
                     const SizedBox(width: 8),
                     const Text(
-                      "Add Complaint",
+                      "Share Experience",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -239,7 +257,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
             TextField(
               controller: _controller,
               decoration: const InputDecoration(
-                labelText: "Enter your complaint",
+                labelText: "Share your experience",
               ),
             ),
             const SizedBox(height: 20),

@@ -45,7 +45,7 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: Text(
-                    "COMPLAINTS MAP",
+                    "STORYMARKS",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -67,7 +67,7 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No complaints available"));
+            return const Center(child: Text("No experiences available"));
           }
 
           final random = Random();
@@ -79,7 +79,7 @@ class _ComplaintMapScreenState extends State<ComplaintMapScreen> {
             double? lat = data['latitude'] as double?;
             double? lon = data['longitude'] as double?;
             String title = data['issue_type'] ?? 'No issue type';
-            String description = data['text'] ?? 'No description';
+            String description = data['original_text'] ?? 'No description';
 
             if (lat == null || lon == null) {
               print("Skipping document ${doc.id} - invalid coordinates");

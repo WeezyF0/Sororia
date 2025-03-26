@@ -37,7 +37,7 @@ class HomePage extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Text(
-                    "GramSewa",
+                    "Sororia",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -56,8 +56,8 @@ class HomePage extends StatelessWidget {
           image: DecorationImage(
             image: AssetImage(
               isDark
-                  ? 'assets/images/home_bg_night.jpeg'
-                  : 'assets/images/home_bg_day.jpeg',
+                  ? 'assets/images/home_bg_night.jpg'
+                  : 'assets/images/home_bg_day.jpg',
             ),
             fit: BoxFit.cover,
           ),
@@ -99,7 +99,7 @@ class HomePage extends StatelessWidget {
                                 context,
                                 '/complaints_map',
                               ),
-                              description: "View complaints in your area",
+                              description: "View experiences in your area",
                             );
                           case 1:
                             return _buildCard(
@@ -116,14 +116,14 @@ class HomePage extends StatelessWidget {
                           case 2:
                             return _buildCard(
                               context,
-                              title: "Add Complaint",
+                              title: "Share Experience",
                               icon: Icons.add_comment_outlined,
                               color: Colors.orange,
                               onTap: () => Navigator.pushNamed(
                                 context,
                                 '/add_complaint',
                               ),
-                              description: "File a new complaint",
+                              description: "Share your experience with others",
                             );
                           case 3:
                             return _buildCard(

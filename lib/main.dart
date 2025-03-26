@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'GramSewa',
+      title: 'Sororia',
       themeMode: themeProvider.themeMode,
       theme: themeProvider.lightTheme,
       darkTheme: themeProvider.darkTheme,
@@ -71,7 +71,7 @@ class MyApp extends StatelessWidget {
         '/open_petition': (context) => OpenPetitionScreen(),
         '/my_petitions': (context) => MyPetitionScreen(),
         '/my_complaints': (context) => MyComplaintScreen(),
-        '/chatbot': (context) => ChatScreen(),
+        '/chatbot': (context) => ChatScreen(compInfo: ModalRoute.of(context)!.settings.arguments as String),
         '/news': (context) => NewsScreen(),
       },
       onGenerateRoute: (settings) {
@@ -132,7 +132,7 @@ class AuthWrapper extends StatelessWidget {
               Image.asset('assets/images/logo.png', height: 120),
               SizedBox(height: 24),
               Text(
-                'GramSewa',
+                'Sororia',
                 style: GoogleFonts.poppins(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -141,7 +141,7 @@ class AuthWrapper extends StatelessWidget {
               ),
               SizedBox(height: 8),
               Text(
-                'Village Services Portal',
+                'Women Empowerment Portal',
                 style: GoogleFonts.poppins(
                   fontSize: 16,
                   color: Colors.white.withOpacity(0.9),

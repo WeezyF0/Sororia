@@ -56,13 +56,14 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
   @override
   void dispose() {
     if (widget.isLoading) {
+      _colorTimer?.cancel();
       for (var controller in _controllers) {
         controller.dispose();
       }
-      _colorTimer?.cancel();
     }
     super.dispose();
   }
+
 
   Widget _buildWobblingDots() {
     return Row(

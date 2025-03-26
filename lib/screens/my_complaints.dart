@@ -102,7 +102,7 @@ class MyComplaintScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
                       Text(
-                        "MY COMPLAINTS",
+                        "MY EXPERIENCES",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -133,7 +133,7 @@ class MyComplaintScreen extends StatelessWidget {
             size: 24,
           ),
           label: Text(
-            'Add a complaint',
+            'Share an Experience',
             style: theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onPrimary,
             ),
@@ -168,7 +168,7 @@ class MyComplaintScreen extends StatelessWidget {
           if (savedComplaints.isEmpty && myComplaints.isEmpty) {
             return Center(
               child: Text(
-                "You haven't saved or created any complaints yet.",
+                "You haven't saved or shared any experiences yet.",
                 style: theme.textTheme.bodyLarge,
               ),
             );
@@ -199,7 +199,7 @@ class MyComplaintScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'No complaints found',
+                        'No Experiences found',
                         style: theme.textTheme.titleMedium,
                       ),
                     ],
@@ -214,7 +214,7 @@ class MyComplaintScreen extends StatelessWidget {
                   children: [
                     _buildSection(
                       context: context,
-                      title: "Saved Complaints",
+                      title: "Saved Experiences",
                       complaintIds: savedComplaints,
                       docs: allComplaints,
                       theme: theme,
@@ -225,7 +225,7 @@ class MyComplaintScreen extends StatelessWidget {
                     ),
                     _buildSection(
                       context: context,
-                      title: "My Complaints",
+                      title: "My Experiences",
                       complaintIds: myComplaints,
                       docs: allComplaints,
                       theme: theme,

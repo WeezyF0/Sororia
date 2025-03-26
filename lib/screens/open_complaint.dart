@@ -44,6 +44,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     super.dispose();
   }
 
+
   Future<void> _analyzeComplaint() async {
     if (_isAnalyzing || !mounted) return;
 
@@ -66,7 +67,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
       final result = await _analyzer.analyzeComplaint(
         widget.complaintData['location'] ?? 'Unknown location',
-        widget.complaintData['text'] ?? 'No complaint text',
+        widget.complaintData['original_text'] ?? 'No experience text',
         latitude: latitude,
         longitude: longitude,
       );
@@ -81,7 +82,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'Failed to analyze complaint: ${e.toString()}';
+          _errorMessage = 'Failed to analyze experience: ${e.toString()}';
         });
       }
     } finally {
@@ -98,16 +99,31 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     }
   }
 
-  void _navigateToChatbot() {
-    Navigator.pushNamed(
-      context,
-      '/chatbot',
-      arguments: {
-        'complaintId': widget.complaintId,
-        'complaintText': widget.complaintData['text'] ?? 'No complaint text',
-        'location': widget.complaintData['location'] ?? 'Unknown location',
-      },
-    );
+  void _navigateToChatbot() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.complaintId)
+          .get();
+
+      if (doc.exists) {
+        final complaintData = doc.data();
+        final String complaintInfo = complaintData.toString();
+        Navigator.pushNamed(
+          context,
+          '/chatbot',
+          arguments: complaintInfo, // Pass the serialized string
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Complaint not found.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch complaint: $e')),
+      );
+    }
   }
 
   /// Updated: Checks if the current user's "saved_c" list contains this complaint
@@ -142,7 +158,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     if (!isInSavedC) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You must have saved this complaint to add an update.'),
+          content: Text('You must have saved this experience to add an update.'),
         ),
       );
       return;
@@ -246,7 +262,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         onPressed: () => Navigator.pop(context),
                       ),
                       const Text(
-                        "COMPLAINT DETAILS",
+                        "EXPERIENCE DETAILS",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -279,7 +295,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToChatbot,
         icon: const Icon(Icons.chat),
-        label: const Text('Get AI Insights'),
+        label: const Text('SororiAI Assistance'),
       ),
     );
   }
@@ -355,7 +371,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
               ),
             const SizedBox(height: 12),
             Text(
-              widget.complaintData['text'] ?? 'No complaint text',
+              widget.complaintData['original_text'] ?? 'No experience text',
               style: theme.textTheme.bodyMedium?.copyWith(fontSize: 16),
             ),
             const SizedBox(height: 16),
@@ -523,7 +539,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Need Insights?',
+                    'Need Help?',
                     style: theme.textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -532,7 +548,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Get AI-powered solutions and analysis for this complaint by chatting with our assistant.',
+                'Our chatbot SororiAI is always ready to assist you!',
                 style: theme.textTheme.bodyMedium,
               ),
               const SizedBox(height: 16),
@@ -541,7 +557,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _navigateToChatbot,
                   icon: const Icon(Icons.chat),
-                  label: const Text('Open Chatbot'),
+                  label: const Text('Open SororiAI'),
                 ),
               ),
             ],
@@ -565,7 +581,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Similar Complaints',
+              'Similar Experiences',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -575,7 +591,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
             const SizedBox(height: 8),
             if (matchedComplaints.isEmpty)
               Text(
-                'No similar complaints found in the database.',
+                'No similar experiences found in the database.',
                 style: theme.textTheme.bodyMedium,
               ),
             for (var complaint in matchedComplaints)
@@ -787,7 +803,7 @@ class ComplaintAnalyzer {
 
       if (textSimilarity >= threshold) {
         matchedComplaints.add({
-          "text": complaintText,
+          "processed_text": complaintText,
           "similarity": textSimilarity,
           "location": data["location"] ?? "Unknown",
           "distance_km": distance != double.infinity ? distance : null,

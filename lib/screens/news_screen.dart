@@ -61,9 +61,9 @@ class _NewsScreenState extends State<NewsScreen> {
 
     setState(() => isLoading = true);
 
-    final centralNewsFuture = serperService.fetchSerperNews("Latest central government agriculture scheme site:.gov.in");
-    final stateNewsFuture = serperService.fetchSerperNews("Latest $state state agriculture schemes site:.gov.in");
-    final generalStateNewsFuture = serperService.fetchSerperNews("$state agriculture news site:news.google.com");
+    final centralNewsFuture = serperService.fetchSerperNews("Latest central government woman scheme site:.gov.in");
+    final stateNewsFuture = serperService.fetchSerperNews("Latest $state state woman schemes site:.gov.in");
+    final generalStateNewsFuture = serperService.fetchSerperNews("$state woman news site:news.google.com");
 
     final results = await Future.wait([centralNewsFuture, stateNewsFuture, generalStateNewsFuture]);
 
@@ -108,7 +108,7 @@ class _NewsScreenState extends State<NewsScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Text(
-                    "State & Central News",
+                    "State & Central News - $currentState",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -127,8 +127,8 @@ class _NewsScreenState extends State<NewsScreen> {
           image: DecorationImage(
             image: AssetImage(
               isDark
-                  ? 'assets/images/home_bg_night.jpeg'
-                  : 'assets/images/home_bg_day.jpeg',
+                  ? 'assets/images/home_bg_night.jpg'
+                  : 'assets/images/home_bg_day.jpg',
             ),
             fit: BoxFit.cover,
           ),
@@ -146,12 +146,12 @@ class _NewsScreenState extends State<NewsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             _buildNewsSection(
-                              "Central Government Agricultural Schemes",
+                              "Central Government Schemes",
                               centralNews,
                             ),
                             SizedBox(height: 24),
                             _buildNewsSection(
-                              "State Government Agricultural Schemes",
+                              "State Government Schemes",
                               stateNews,
                             ),
                             SizedBox(height: 24),
@@ -169,7 +169,6 @@ class _NewsScreenState extends State<NewsScreen> {
       ),
     );
   }
-
 
   Widget _buildNewsSection(String title, List<Map<String, String>> newsList) {
     return Column(

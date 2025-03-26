@@ -77,7 +77,7 @@ class ComplaintListScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
-                        "COMPLAINTS LIST",
+                        "All Experiences",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -108,7 +108,7 @@ class ComplaintListScreen extends StatelessWidget {
             size: 24,
           ),
           label: Text(
-            'Add a complaint',
+            'Share an Experience',
             style: theme.textTheme.labelMedium?.copyWith(
               color: theme.colorScheme.onPrimary,
             ),
@@ -143,12 +143,12 @@ class ComplaintListScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No complaints found',
+                    'No experiences found',
                     style: theme.textTheme.titleMedium,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Add a new complaint to get started',
+                    'Share an experience to get started',
                     style: theme.textTheme.bodyMedium,
                   ),
                 ],
@@ -354,7 +354,7 @@ class ComplaintListScreen extends StatelessWidget {
 
                                 // Complaint text with better styling
                                 Text(
-                                  data['text'] ?? 'No details available',
+                                  data['original_text'] ?? 'No details available',
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodyLarge?.copyWith(

@@ -79,12 +79,12 @@ class NavBar extends StatelessWidget {
                     ),
                     _buildDivider(isDarkMode),
                     // Complaints section
-                    _buildSectionTitle('COMPLAINTS', isDarkMode),
+                    _buildSectionTitle('EXPERIENCES', isDarkMode),
                     _buildNavigationTile(
                       context: context,
                       icon: CupertinoIcons.doc_text_search,
                       iconColor: ColorPalette.info,
-                      title: "View Complaints",
+                      title: "View Experiences",
                       route: "/complaints",
                       isDarkMode: isDarkMode,
                     ),
@@ -92,7 +92,7 @@ class NavBar extends StatelessWidget {
                       context: context,
                       icon: CupertinoIcons.doc_text_search,
                       iconColor: ColorPalette.info,
-                      title: "My Complaints",
+                      title: "My Experiences",
                       route: "/my_complaints",
                       isDarkMode: isDarkMode,
                     ),
@@ -136,7 +136,7 @@ class NavBar extends StatelessWidget {
                       context: context,
                       icon: CupertinoIcons.news_solid,
                       iconColor: ColorPalette.primaryLight,
-                      title: "View Government Schemes",
+                      title: "View News in your area",
                       route: "/news",
                       isDarkMode: isDarkMode,
                     ),
@@ -257,7 +257,7 @@ class NavBar extends StatelessWidget {
                   Image.asset('assets/images/logo2.png', height: 24, width: 24),
                   SizedBox(width: 8),
                   Text(
-                    "GramSewa",
+                    "Sororia",
                     style: _poppinsStyle(
                       color: Colors.white,
                       fontSize: 20,
