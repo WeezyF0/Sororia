@@ -188,24 +188,44 @@ class MyComplaintScreen extends StatelessWidget {
               }
 
               if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        size: 64,
-                        color: theme.primaryColor.withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No Experiences found',
+                // Check if we have access to the specific complaint data from elsewhere
+                // or fetch it directly using the complaintId
+                return FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance
+                    .collection('complaints')
+                    .doc('complaintId') // You need to get this ID from your navigation/state
+                    .get(),
+                  builder: (context, complaintSnapshot) {
+                    if (complaintSnapshot.connectionState == ConnectionState.waiting) {
+                      return Center(child: CircularProgressIndicator());
+                    }
+                    
+                    if (complaintSnapshot.hasData && complaintSnapshot.data!.exists) {
+                      final data = complaintSnapshot.data!.data() as Map<String, dynamic>;
+                      final originalText = data['original_text'] ?? 'No text available';
+                      
+                      return Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Text(
+                            originalText,
+                            style: theme.textTheme.bodyLarge,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      );
+                    }
+                    
+                    return Center(
+                      child: Text(
+                        'No experience found. Please try again later.',
                         style: theme.textTheme.titleMedium,
                       ),
-                    ],
-                  ),
+                    );
+                  }
                 );
               }
+
 
               final allComplaints = snapshot.data!.docs;
 
@@ -267,7 +287,74 @@ class MyComplaintScreen extends StatelessWidget {
           });
         }).toList();
 
-    if (filteredComplaints.isEmpty) return const SizedBox.shrink();
+    if (filteredComplaints.isEmpty) {
+      // Try to get the original complaint data if you have the ID
+      if (complaintIds.isNotEmpty) {
+        String complaintId;
+        if (complaintIds.first is Map<String, dynamic>) {
+          complaintId = complaintIds.first['complaintId'];
+        } else {
+          complaintId = complaintIds.first.toString();
+        }
+        
+        return FutureBuilder<DocumentSnapshot>(
+          future: FirebaseFirestore.instance
+            .collection('complaints')
+            .doc(complaintId)
+            .get(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            }
+            
+            if (snapshot.hasData && snapshot.data!.exists) {
+              final data = snapshot.data!.data() as Map<String, dynamic>;
+              return Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Original Text:',
+                          style: theme.textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          data['original_text'] ?? 'No text available',
+                          style: theme.textTheme.bodyLarge,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+            
+            return Center(
+              child: Text(
+                'Could not find experience details.',
+                style: theme.textTheme.bodyLarge,
+              ),
+            );
+          },
+        );
+      }
+      
+      return Center(
+        child: Text(
+          'No experiences found in this section.',
+          style: theme.textTheme.bodyLarge,
+        ),
+      );
+    }
+
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
@@ -518,13 +605,14 @@ class MyComplaintScreen extends StatelessWidget {
                                 const SizedBox(height: 16),
                                 // Complaint text
                                 Text(
-                                  data['text'] ?? 'No details available',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                  ),
+                                data['original_text'] ?? 'No details available',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.w500,
                                 ),
+                              ),
+
                                 const SizedBox(height: 18),
                                 // Location and status row
                                 Row(
