@@ -436,7 +436,7 @@ class NavBar extends StatelessWidget {
           SizedBox(height: 8),
 
           Text(
-            "© 2025 GramSewa",
+            "© 2025 Sororia",
             style: _poppinsStyle(
               color:
                   isDarkMode

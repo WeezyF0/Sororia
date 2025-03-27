@@ -261,15 +261,13 @@ class ComplaintListScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Header row with issue type and date
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                // Replace the current header row widget with the following Column widget
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // First row: Issue type tag
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: primaryColor.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
@@ -280,73 +278,52 @@ class ComplaintListScreen extends StatelessWidget {
                                       ),
                                       child: Text(
                                         data['issue_type'] ?? 'General',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: primaryColor,
-                                            ),
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: primaryColor,
+                                        ),
                                       ),
                                     ),
-
-                                    // Modified layout for responsive UI
-                                    Expanded(
-                                      child: Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.end,
-                                        children: [
-                                          // Save Button - Now a simple icon with minimal container
-                                          SaveButton(
-                                            complaintId: doc.id,
-                                            theme: theme,
+                                    const SizedBox(height: 8),
+                                    // Second row: Save button and timeago display in one row
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        SaveButton(
+                                          complaintId: doc.id,
+                                          theme: theme,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: textSecondary.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
-                                          const SizedBox(width: 8),
-
-                                          // Time display - Now with more flexible layout
-                                          Flexible(
-                                            child: Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 6,
-                                                  ),
-                                              decoration: BoxDecoration(
-                                                color: textSecondary
-                                                    .withOpacity(0.12),
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.access_time_rounded,
+                                                size: 12,
+                                                color: textSecondary,
                                               ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(
-                                                    Icons.access_time_rounded,
-                                                    size: 12,
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  timeAgoText,
+                                                  style: theme.textTheme.labelSmall?.copyWith(
                                                     color: textSecondary,
+                                                    fontWeight: FontWeight.w500,
                                                   ),
-                                                  const SizedBox(width: 4),
-                                                  Flexible(
-                                                    child: Text(
-                                                      timeAgoText,
-                                                      style: theme
-                                                          .textTheme
-                                                          .labelSmall
-                                                          ?.copyWith(
-                                                            color:
-                                                                textSecondary,
-                                                            fontWeight:
-                                                                FontWeight.w500,
-                                                          ),
-                                                      maxLines: 1,
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
-                                            ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),

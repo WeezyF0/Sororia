@@ -103,7 +103,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
           },
         ),
       ),
-      systemInstruction: Content.system('You will be given a experience from a woman about a specific issue in a particular place formalize it, into the format having types and a description, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration, the complaint description needs to be informatve'),
+      systemInstruction: Content.system('You will be given a experience from a woman about a specific issue in a particular place formalize it, into the format having types and a description, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration.'),
     );
 
     final chat = model.startChat();

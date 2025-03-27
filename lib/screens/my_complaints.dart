@@ -509,16 +509,12 @@ class MyComplaintScreen extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Issue Type
+                                    // First row: Issue type tag
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                                       decoration: BoxDecoration(
                                         color: primaryColor.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
@@ -529,71 +525,46 @@ class MyComplaintScreen extends StatelessWidget {
                                       ),
                                       child: Text(
                                         data['issue_type'] ?? 'General',
-                                        style: theme.textTheme.labelSmall
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: primaryColor,
-                                            ),
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                          color: primaryColor,
+                                        ),
                                       ),
                                     ),
-                                    // Right side controls: Save Button & Time
+                                    const SizedBox(height: 8),
+                                    // Second row: Save button and timeago display in one row
                                     Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: primaryColor.withOpacity(
-                                              0.12,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                            border: Border.all(
-                                              color: primaryColor.withOpacity(
-                                                0.25,
-                                              ),
-                                              width: 1,
-                                            ),
-                                          ),
-                                          child: SaveButton(
-                                            complaintId: doc.id,
-                                          ),
+                                        SaveButton(
+                                          complaintId: doc.id,
                                         ),
                                         const SizedBox(width: 8),
                                         Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 6,
-                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color: textSecondary.withOpacity(
-                                              0.12,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
+                                            color: textSecondary.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Row(
+                                            mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(
                                                 Icons.access_time_rounded,
-                                                size: 14,
+                                                size: 12,
                                                 color: textSecondary,
                                               ),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                timeAgoText,
-                                                style: theme
-                                                    .textTheme
-                                                    .labelSmall
-                                                    ?.copyWith(
-                                                      color: textSecondary,
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
+                                              const SizedBox(width: 4),
+                                              Flexible(
+                                                child: Text(
+                                                  timeAgoText,
+                                                  style: theme.textTheme.labelSmall?.copyWith(
+                                                    color: textSecondary,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                  maxLines: 1,
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
                                               ),
                                             ],
                                           ),
