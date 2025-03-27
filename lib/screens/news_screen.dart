@@ -145,6 +145,12 @@ class _NewsScreenState extends State<NewsScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            SizedBox(height: 24),
+                            _buildNewsSection(
+                              "General State News from $currentState",
+                              generalStateNews,
+                            ),
+
                             _buildNewsSection(
                               "Central Government Schemes",
                               centralNews,
@@ -153,11 +159,6 @@ class _NewsScreenState extends State<NewsScreen> {
                             _buildNewsSection(
                               "State Government Schemes",
                               stateNews,
-                            ),
-                            SizedBox(height: 24),
-                            _buildNewsSection(
-                              "General State News from $currentState",
-                              generalStateNews,
                             ),
                           ],
                         ),
