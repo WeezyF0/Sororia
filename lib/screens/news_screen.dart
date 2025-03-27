@@ -176,11 +176,9 @@ class _NewsScreenState extends State<NewsScreen> {
       children: [
         Text(
           title,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            color: Colors.black,
-          ),
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+          fontWeight: FontWeight.w600,
+        ),
         ),
         SizedBox(height: 12),
         if (newsList.isEmpty)
@@ -188,7 +186,7 @@ class _NewsScreenState extends State<NewsScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               "No news available",
-              style: TextStyle(color: Colors.grey),
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
         ...newsList.map((news) => _buildNewsCard(news)).toList(),
