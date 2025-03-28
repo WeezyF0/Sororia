@@ -173,6 +173,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "processed_text": structuredComplaint?["Text_description"] ?? complaintText, // Store the processed text
         "timestamp": timestamp,
         "user_id": userId,
+        "queried": false
       };
 
       // Add the complaint document and then update user's my_c field with the new complaint's ID.

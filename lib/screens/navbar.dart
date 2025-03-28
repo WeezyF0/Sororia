@@ -144,7 +144,7 @@ class NavBar extends StatelessWidget {
                       context: context,
                       icon: CupertinoIcons.lab_flask,
                       iconColor: ColorPalette.warning,
-                      title: "Test Page",
+                      title: "Search Experiences",
                       route: "/test",
                       isDarkMode: isDarkMode,
                     ),

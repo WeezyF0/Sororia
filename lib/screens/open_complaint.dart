@@ -209,6 +209,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           .update({
             'Updates': FieldValue.arrayUnion([updateData]),
             'update_count': FieldValue.increment(1),
+            'queried': false
           });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
