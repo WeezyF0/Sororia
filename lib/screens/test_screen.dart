@@ -3,6 +3,7 @@ import 'package:algolia_helper_flutter/algolia_helper_flutter.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:complaints_app/services/sync_service.dart'; // Adjust the import path
 
 
 class SearchMetadata {
@@ -241,22 +242,44 @@ void dispose() {
   super.dispose();
 }
 
+  final AlgoliaSyncService _syncService = AlgoliaSyncService(
+    algoliaAppId: dotenv.env['algolia-app-id'] ?? '',
+    algoliaApiKey: dotenv.env['algolia-write-api'] ?? '',
+    algoliaIndexName: 'Gram_Sewa',
+  );
+
+  Future<void> _syncComplaints() async {
+    final result = await _syncService.syncComplaintsToAlgolia();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(result.message)),
+    );
+
+    // Reload the screen after syncing
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (context) => const TestScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-return Scaffold(
-  key: _mainScaffoldKey,
-  appBar: AppBar(
-  title: const Text('Search'),
-  actions: [
-    IconButton(
-    onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
-    icon: const Icon(Icons.filter_list_sharp),
-    ),
-  ],
-  ),
-  endDrawer: Drawer(
-  child: _filters(context),
-  ),
+    return Scaffold(
+      key: _mainScaffoldKey,
+      appBar: AppBar(
+        title: const Text('Search'),
+        actions: [
+          IconButton(
+            onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
+            icon: const Icon(Icons.filter_list_sharp),
+          ),
+          IconButton(
+            onPressed: _syncComplaints,
+            icon: const Icon(Icons.sync),
+          ),
+        ],
+      ),
+      endDrawer: Drawer(
+        child: _filters(context),
+      ),
           body: Center(
         child: Column(
           children: <Widget>[
