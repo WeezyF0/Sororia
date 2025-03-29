@@ -3,8 +3,8 @@ import 'package:algolia_helper_flutter/algolia_helper_flutter.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:complaints_app/services/sync_service.dart'; // Adjust the import path
-
+import 'package:complaints_app/services/sync_service.dart';
+import 'navbar.dart';
 
 class SearchMetadata {
   final int nbHits;
@@ -27,7 +27,7 @@ class Product {
 
   static Product fromJson(Map<String, dynamic> json) {
     return Product(
-      json['objectID'], // Assuming ObjectId is stored as a string
+      json['objectID'],
       json['issue_type'],
       json['processed_text'],
       json['original_text'],
@@ -36,7 +36,6 @@ class Product {
     );
   }
 }
-	
 
 class HitsPage {
   const HitsPage(this.items, this.pageKey, this.nextPageKey);
@@ -52,6 +51,7 @@ class HitsPage {
     return HitsPage(items, response.page, nextPageKey);
   }
 }
+
 class TestScreen extends StatefulWidget {
   const TestScreen({super.key});
 
@@ -75,7 +75,12 @@ class _TestScreenState extends State<TestScreen> {
   Stream<HitsPage> get _searchPage =>
       _productsSearcher.responses.map(HitsPage.fromResponse);
 
-  Widget _hits(BuildContext context) => PagedListView<int, Product>(
+  Widget _hits(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+    final errorColor = Theme.of(context).colorScheme.error;
+    
+    return PagedListView<int, Product>(
         pagingController: _pagingController,
         builderDelegate: PagedChildBuilderDelegate<Product>(
           noItemsFoundIndicatorBuilder: (_) => const Center(
@@ -113,12 +118,12 @@ class _TestScreenState extends State<TestScreen> {
               padding: const EdgeInsets.all(12),
               margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withOpacity(0.1),
+                    color: isDarkMode ? Colors.black12 : Colors.grey.withOpacity(0.1),
                     blurRadius: 5,
                     spreadRadius: 2,
                     offset: const Offset(0, 3),
@@ -130,10 +135,10 @@ class _TestScreenState extends State<TestScreen> {
                 children: [
                   Text(
                     item.issueType,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: Colors.redAccent,
+                      color: errorColor,
                     ),
                   ),
                   const SizedBox(height: 5),
@@ -144,7 +149,7 @@ class _TestScreenState extends State<TestScreen> {
                   const SizedBox(height: 5),
                   Text(
                     'Original: ${item.originalText}',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
                   ),
                   const SizedBox(height: 5),
                   Row(
@@ -152,11 +157,11 @@ class _TestScreenState extends State<TestScreen> {
                     children: [
                       Text(
                         item.location,
-                        style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 12),
                       ),
                       Text(
                         '${item.timestamp.toLocal()}'.split(' ')[0],
-                        style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), fontSize: 12),
                       ),
                     ],
                   ),
@@ -166,81 +171,90 @@ class _TestScreenState extends State<TestScreen> {
           ),
         ),
       );
-final _filterState = FilterState();
-	
+  }
 
-late final _facetList = _productsSearcher.buildFacetList(
-  filterState: _filterState,
-  attribute: '_tags',
-);
-Widget _filters(BuildContext context) => Scaffold(
-  appBar: AppBar(
-    title: const Text('Filters'),
-  ),
-  body: StreamBuilder<List<SelectableItem<Facet>>>(
-      stream: _facetList.facets,
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const SizedBox.shrink();
-        }
-        final selectableFacets = snapshot.data!;
-        return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: selectableFacets.length,
-            itemBuilder: (_, index) {
-              final selectableFacet = selectableFacets[index];
-              return CheckboxListTile(
-                value: selectableFacet.isSelected,
-                title: Text(
-                    "${selectableFacet.item.value} (${selectableFacet.item.count})"),
-                onChanged: (_) {
-                  _facetList.toggle(selectableFacet.item.value);
-                },
-              );
-            });
-      }),
-);
-final GlobalKey<ScaffoldState> _mainScaffoldKey = GlobalKey();
+  final _filterState = FilterState();
 
- @override
-void initState() {
-  super.initState();
-  _searchTextController.addListener(
-    () => _productsSearcher.applyState(
-      (state) => state.copyWith(
-        query: _searchTextController.text,
-        page: 0,
+  late final _facetList = _productsSearcher.buildFacetList(
+    filterState: _filterState,
+    attribute: '_tags',
+  );
+  
+  Widget _filters(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Filters'),
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
       ),
-    ),
-  );
-  _searchPage.listen((page) {
-    if (page.pageKey == 0) {
-      _pagingController.refresh();
-    }
-    _pagingController.appendPage(page.items, page.nextPageKey);
-  }).onError((error) => _pagingController.error = error);
-  _pagingController.addPageRequestListener(
-    (pageKey) => _productsSearcher.applyState(
-        (state) => state.copyWith(
-          page: pageKey,
-        )
-    )
-  );
-  _productsSearcher.connectFilterState(_filterState);
-  _filterState.filters.listen((_) => _pagingController.refresh());
-}
-	
-	
+      body: StreamBuilder<List<SelectableItem<Facet>>>(
+          stream: _facetList.facets,
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const SizedBox.shrink();
+            }
+            final selectableFacets = snapshot.data!;
+            return ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: selectableFacets.length,
+                itemBuilder: (_, index) {
+                  final selectableFacet = selectableFacets[index];
+                  return CheckboxListTile(
+                    value: selectableFacet.isSelected,
+                    activeColor: primaryColor,
+                    title: Text(
+                        "${selectableFacet.item.value} (${selectableFacet.item.count})"),
+                    onChanged: (_) {
+                      _facetList.toggle(selectableFacet.item.value);
+                    },
+                  );
+                });
+          }),
+    );
+  }
+  
+  final GlobalKey<ScaffoldState> _mainScaffoldKey = GlobalKey();
 
-@override
-void dispose() {
-  _searchTextController.dispose();
-  _productsSearcher.dispose();
-  _pagingController.dispose();
-  _filterState.dispose();
-  _facetList.dispose();
-  super.dispose();
-}
+  @override
+  void initState() {
+    super.initState();
+    _searchTextController.addListener(
+      () => _productsSearcher.applyState(
+        (state) => state.copyWith(
+          query: _searchTextController.text,
+          page: 0,
+        ),
+      ),
+    );
+    _searchPage.listen((page) {
+      if (page.pageKey == 0) {
+        _pagingController.refresh();
+      }
+      _pagingController.appendPage(page.items, page.nextPageKey);
+    }).onError((error) => _pagingController.error = error);
+    _pagingController.addPageRequestListener(
+      (pageKey) => _productsSearcher.applyState(
+          (state) => state.copyWith(
+            page: pageKey,
+          )
+      )
+    );
+    _productsSearcher.connectFilterState(_filterState);
+    _filterState.filters.listen((_) => _pagingController.refresh());
+  }
+
+  @override
+  void dispose() {
+    _searchTextController.dispose();
+    _productsSearcher.dispose();
+    _pagingController.dispose();
+    _filterState.dispose();
+    _facetList.dispose();
+    super.dispose();
+  }
 
   final AlgoliaSyncService _syncService = AlgoliaSyncService(
     algoliaAppId: dotenv.env['algolia-app-id'] ?? '',
@@ -260,37 +274,142 @@ void dispose() {
     );
   }
 
+  Widget buildLoadingScreen() {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+    
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              primaryColor,
+              primaryColor.withOpacity(0.8),
+            ],
+          ),
+        ),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+              SizedBox(height: 20),
+              Text(
+                'Loading...',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).primaryColor;
+    final errorColor = Theme.of(context).colorScheme.error;
+    
     return Scaffold(
       key: _mainScaffoldKey,
-      appBar: AppBar(
-        title: const Text('Search'),
-        actions: [
-          IconButton(
-            onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
-            icon: const Icon(Icons.filter_list_sharp),
+      appBar: PreferredSize(
+      preferredSize: Size.fromHeight(80.0),
+      child: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/appBar_bg.png'),
+              fit: BoxFit.cover,
+            ),
           ),
-          IconButton(
-            onPressed: _syncComplaints,
-            icon: const Icon(Icons.sync),
+          foregroundDecoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blue.withOpacity(0.3),
+                Colors.purple.withOpacity(0.3),
+              ],
+            ),
           ),
-        ],
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(width: 48), 
+                    Text(
+                      "SEARCH EXPERIENCES",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
+                          icon: const Icon(Icons.filter_list_sharp, color: Colors.white),
+                        ),
+                        IconButton(
+                          onPressed: _syncComplaints,
+                          icon: const Icon(Icons.sync, color: Colors.white),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        actions: [Container()],
       ),
-      endDrawer: Drawer(
-        child: _filters(context),
-      ),
-          body: Center(
+    ),
+    drawer: NavBar(),
+    endDrawer: Drawer(
+      child: _filters(context),
+    ),
+      body: Center(
         child: Column(
           children: <Widget>[
-            SizedBox(
-              height: 44,
+            Container(
+              margin: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDarkMode ? Colors.black12 : Colors.grey.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: TextField(
                 controller: _searchTextController,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Enter a search term',
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    color: primaryColor,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
             ),
@@ -302,7 +421,12 @@ void dispose() {
                 }
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: Text('${snapshot.data!.nbHits} hits'),
+                  child: Text(
+                    '${snapshot.data!.nbHits} hits',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                    ),
+                  ),
                 );
               },
             ),

@@ -98,6 +98,14 @@ class NavBar extends StatelessWidget {
                     ),
                     _buildNavigationTile(
                       context: context,
+                      icon: CupertinoIcons.search,
+                      iconColor: ColorPalette.warning,
+                      title: "Search Experiences",
+                      route: "/test",
+                      isDarkMode: isDarkMode,
+                    ),
+                    _buildNavigationTile(
+                      context: context,
                       icon: CupertinoIcons.map_fill,
                       iconColor: ColorPalette.success,
                       title: "Map View",
@@ -140,14 +148,7 @@ class NavBar extends StatelessWidget {
                       route: "/news",
                       isDarkMode: isDarkMode,
                     ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.lab_flask,
-                      iconColor: ColorPalette.warning,
-                      title: "Search Experiences",
-                      route: "/test",
-                      isDarkMode: isDarkMode,
-                    ),
+  
                     _buildDivider(isDarkMode),
 
                     // Settings section
