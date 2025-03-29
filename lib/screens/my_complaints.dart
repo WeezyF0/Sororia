@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'navbar.dart';
-import 'package:complaints_app/theme/theme_provider.dart';
 
 class MyComplaintScreen extends StatelessWidget {
   const MyComplaintScreen({super.key});
