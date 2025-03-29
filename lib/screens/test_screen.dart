@@ -77,7 +77,6 @@ class _TestScreenState extends State<TestScreen> {
 
   Widget _hits(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).primaryColor;
     final errorColor = Theme.of(context).colorScheme.error;
     
     return PagedListView<int, Product>(
@@ -181,7 +180,6 @@ class _TestScreenState extends State<TestScreen> {
   );
   
   Widget _filters(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
     
     return Scaffold(
@@ -275,7 +273,6 @@ class _TestScreenState extends State<TestScreen> {
   }
 
   Widget buildLoadingScreen() {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
     
     return Scaffold(
@@ -317,7 +314,6 @@ class _TestScreenState extends State<TestScreen> {
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final primaryColor = Theme.of(context).primaryColor;
-    final errorColor = Theme.of(context).colorScheme.error;
     
     return Scaffold(
       key: _mainScaffoldKey,

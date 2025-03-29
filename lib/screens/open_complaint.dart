@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
-import 'package:string_similarity/string_similarity.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:math' show sin, cos, sqrt, atan2, pi;
 import 'package:firebase_auth/firebase_auth.dart';
 
 class OpenComplaintScreen extends StatefulWidget {
@@ -337,8 +335,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           const SizedBox(height: 16),
           _buildChatbotRedirectCard(),
           const SizedBox(height: 16),
-          _buildSimilarComplaintsSection(),
-          const SizedBox(height: 16),
           _buildNewsSection(),
         ],
       ),
@@ -568,77 +564,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     );
   }
 
-  Widget _buildSimilarComplaintsSection() {
-    final theme = Theme.of(context);
-    final matchedComplaints =
-        _analysisResult['matched_complaints'] as List<dynamic>? ?? [];
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Similar Experiences',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(),
-            const SizedBox(height: 8),
-            if (matchedComplaints.isEmpty)
-              Text(
-                'No similar experiences found in the database.',
-                style: theme.textTheme.bodyMedium,
-              ),
-            for (var complaint in matchedComplaints)
-              Card(
-                margin: const EdgeInsets.only(bottom: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        complaint['text'] ?? '',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${complaint['similarity']?.toStringAsFixed(1) ?? 0}% match',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildNewsSection() {
     final theme = Theme.of(context);
@@ -722,7 +647,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 }
 
 class ComplaintAnalyzer {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late final String? _serperApiKey;
 
   ComplaintAnalyzer() {
@@ -738,89 +662,6 @@ class ComplaintAnalyzer {
     }
   }
 
-  double _calculateSimilarity(String text1, String text2) {
-    return text1.similarityTo(text2) * 100;
-  }
-
-  double _degreesToRadians(double degrees) {
-    return degrees * (pi / 180);
-  }
-
-  double _calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    const double earthRadius = 6371;
-    final double latDelta = _degreesToRadians(lat2 - lat1);
-    final double lonDelta = _degreesToRadians(lon2 - lon1);
-
-    final double a =
-        sin(latDelta / 2) * sin(latDelta / 2) +
-        cos(_degreesToRadians(lat1)) *
-            cos(_degreesToRadians(lat2)) *
-            sin(lonDelta / 2) *
-            sin(lonDelta / 2);
-    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return earthRadius * c;
-  }
-
-  Future<List<Map<String, dynamic>>> _searchFirebase(
-    String location,
-    String problem, {
-    double threshold = 70.0,
-    double? latitude,
-    double? longitude,
-    double radiusInKm = 5.0,
-  }) async {
-    QuerySnapshot complaintsSnapshot =
-        await _firestore.collection("complaints").get();
-
-    List<Map<String, dynamic>> matchedComplaints = [];
-
-    for (var doc in complaintsSnapshot.docs) {
-      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-      String complaintText = data["text"] ?? "";
-
-      double textSimilarity = _calculateSimilarity(complaintText, problem);
-      bool isInRadius = true;
-      double distance = double.infinity;
-
-      if (latitude != null &&
-          longitude != null &&
-          data.containsKey("latitude") &&
-          data.containsKey("longitude")) {
-        double docLat = (data["latitude"] as num).toDouble();
-        double docLong = (data["longitude"] as num).toDouble();
-        distance = _calculateDistance(latitude, longitude, docLat, docLong);
-        isInRadius = distance <= radiusInKm;
-      }
-
-      if (!isInRadius && latitude != null && longitude != null) {
-        continue;
-      }
-
-      if (textSimilarity >= threshold) {
-        matchedComplaints.add({
-          "processed_text": complaintText,
-          "similarity": textSimilarity,
-          "location": data["location"] ?? "Unknown",
-          "distance_km": distance != double.infinity ? distance : null,
-          "id": doc.id,
-        });
-      }
-    }
-
-    matchedComplaints.sort((a, b) {
-      final aValue = a["similarity"] as double;
-      final bValue = b["similarity"] as double;
-      return bValue.compareTo(aValue);
-    });
-
-    return matchedComplaints;
-  }
 
   Future<List<Map<String, dynamic>>> _searchOnline(
     String location,
@@ -863,13 +704,6 @@ class ComplaintAnalyzer {
       return {"error": "Both 'location' and 'problem' fields are required!"};
     }
 
-    List<Map<String, dynamic>> complaints = await _searchFirebase(
-      location,
-      problem,
-      latitude: latitude,
-      longitude: longitude,
-      radiusInKm: 5.0,
-    );
 
     List<Map<String, dynamic>> newsResults = await _searchOnline(
       location,
@@ -879,7 +713,6 @@ class ComplaintAnalyzer {
     return {
       "location": location,
       "problem": problem,
-      "matched_complaints": complaints,
       "news_results": newsResults,
       "coordinates":
           (latitude != null && longitude != null)
