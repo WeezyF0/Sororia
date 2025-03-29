@@ -140,7 +140,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     if (userData == null) return false;
 
     final List<dynamic> savedComplaints =
-        userData['saved_c'] as List<dynamic>? ?? [];
+        userData['my_c'] as List<dynamic>? ?? [];
     return savedComplaints.any((entry) {
       if (entry is Map<String, dynamic>) {
         return entry['complaintId'] == widget.complaintId;
@@ -209,6 +209,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           .update({
             'Updates': FieldValue.arrayUnion([updateData]),
             'update_count': FieldValue.increment(1),
+            'queried': false
           });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
