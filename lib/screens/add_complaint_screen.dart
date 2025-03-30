@@ -169,11 +169,13 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
-        "original_text": complaintText, // Store the original text
-        "processed_text": structuredComplaint?["Text_description"] ?? complaintText, // Store the processed text
+        "original_text": complaintText, 
+        "processed_text": structuredComplaint?["Text_description"] ?? complaintText,
         "timestamp": timestamp,
+        "timestamp_ms": DateTime.now().millisecondsSinceEpoch,
         "user_id": userId,
-        "queried": false
+        "queried": false,
+        "upvotes": 0,
       };
 
       // Add the complaint document and then update user's my_c field with the new complaint's ID.
