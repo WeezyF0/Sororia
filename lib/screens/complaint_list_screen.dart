@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'navbar.dart';
-import 'package:complaints_app/theme/theme_provider.dart';
+import 'package:flutter/cupertino.dart';
 
 class ComplaintListScreen extends StatefulWidget {
   const ComplaintListScreen({super.key});
@@ -226,29 +226,6 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                 }
               }
 
-              // Get complaint status or default to 'Pending'
-              String status = data['status'] ?? 'Pending';
-              Color statusColor;
-
-              // Assign colors based on status
-              switch (status.toLowerCase()) {
-                case 'resolved':
-                  statusColor = theme.colorScheme.brightness == Brightness.dark
-                      ? ColorPalette.success.withOpacity(0.8)
-                      : ColorPalette.success;
-                  break;
-                case 'in progress':
-                  statusColor = theme.colorScheme.brightness == Brightness.dark
-                      ? ColorPalette.warning.withOpacity(0.8)
-                      : ColorPalette.warning;
-                  break;
-                default:
-                  statusColor = theme.colorScheme.brightness == Brightness.dark
-                      ? ColorPalette.info.withOpacity(0.8)
-                      : ColorPalette.info;
-                  break;
-              }
-
               return Container(
                 margin: EdgeInsets.only(bottom: 16.0),
                 decoration: BoxDecoration(
@@ -279,210 +256,148 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                           },
                         );
                       },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Enhanced status indicator bar at top
-                          Container(
-                            height: 6,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              gradient: LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [
-                                  statusColor.withOpacity(0.7),
-                                  statusColor,
-                                ],
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: Column(
+                      child: Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Header row with issue type and date
+                            Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Header row with issue type and date
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // First row: Issue type tag
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: primaryColor.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(
-                                          color: primaryColor.withOpacity(0.25),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        data['issue_type'] ?? 'General',
-                                        style: theme.textTheme.labelSmall?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                          color: primaryColor,
-                                        ),
-                                      ),
+                                // First row: Issue type tag
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: primaryColor.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: primaryColor.withOpacity(0.25),
+                                      width: 1,
                                     ),
-                                    const SizedBox(height: 8),
-                                    // Second row: Save button, upvote button and timeago display in one row
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        SaveButton(
-                                          complaintId: doc.id,
-                                          theme: theme,
-                                        ),
-                                        const SizedBox(width: 8),
-                                        UpvoteButton(
-                                          complaintId: doc.id,
-                                          theme: theme,
-                                          currentUpvotes: upvotes,
-                                          isLoading: _upvoteInProgress[doc.id] ?? false,
-                                          onUpvote: () => _handleUpvote(doc.id, upvotes),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: textSecondary.withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.access_time_rounded,
-                                                size: 12,
-                                                color: textSecondary,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Flexible(
-                                                child: Text(
-                                                  timeAgoText,
-                                                  style: theme.textTheme.labelSmall?.copyWith(
-                                                    color: textSecondary,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
+                                  ),
+                                  child: Text(
+                                    data['issue_type'] ?? 'General',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      color: primaryColor,
                                     ),
-                                  ],
-                                ),
-                                SizedBox(height: 16),
-
-                                // Complaint text with better styling
-                                Text(
-                                  data['original_text'] ?? 'No details available',
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodyLarge?.copyWith(
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.4,
-                                    letterSpacing: 0.2,
                                   ),
                                 ),
-                                SizedBox(height: 18),
-
-                                // Footer with location and status
+                                const SizedBox(height: 8),
+                                // Second row: Save button, upvote button and timeago display in one row
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Location with enhanced styling
-                                    Expanded(
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: textSecondary.withOpacity(
-                                            0.08,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: Border.all(
-                                            color: textSecondary.withOpacity(
-                                              0.15,
-                                            ),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.location_on_rounded,
-                                              size: 16,
-                                              color: textSecondary,
-                                            ),
-                                            SizedBox(width: 6),
-                                            Expanded(
-                                              child: Text(
-                                                data['location'] ??
-                                                    'Unknown location',
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: theme
-                                                    .textTheme
-                                                    .labelMedium
-                                                    ?.copyWith(
-                                                      fontWeight:
-                                                          FontWeight.w500,
-                                                    ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                    SaveButton(
+                                      complaintId: doc.id,
+                                      theme: theme,
                                     ),
-                                    SizedBox(width: 12),
-                                    // Status chip with improved styling
+                                    const SizedBox(width: 8),
+                                    UpvoteButton(
+                                      complaintId: doc.id,
+                                      theme: theme,
+                                      currentUpvotes: upvotes,
+                                      isLoading: _upvoteInProgress[doc.id] ?? false,
+                                      onUpvote: () => _handleUpvote(doc.id, upvotes),
+                                    ),
+                                    const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 8,
-                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                                       decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: statusColor.withOpacity(0.3),
-                                          width: 1,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: statusColor.withOpacity(0.1),
-                                            blurRadius: 4,
-                                            spreadRadius: 0,
-                                            offset: Offset(0, 2),
+                                        color: textSecondary.withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.access_time_rounded,
+                                            size: 12,
+                                            color: textSecondary,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Flexible(
+                                            child: Text(
+                                              timeAgoText,
+                                              style: theme.textTheme.labelSmall?.copyWith(
+                                                color: textSecondary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                           ),
                                         ],
-                                      ),
-                                      child: Text(
-                                        status,
-                                        style: theme.textTheme.labelMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: statusColor,
-                                              letterSpacing: 0.3,
-                                            ),
                                       ),
                                     ),
                                   ],
                                 ),
                               ],
                             ),
-                          ),
-                        ],
+                            SizedBox(height: 16),
+
+                            // Complaint text with better styling
+                            Text(
+                              data['original_text'] ?? 'No details available',
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontWeight: FontWeight.w500,
+                                height: 1.4,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            SizedBox(height: 18),
+
+                            // Footer with location only
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: textSecondary.withOpacity(
+                                  0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  10,
+                                ),
+                                border: Border.all(
+                                  color: textSecondary.withOpacity(
+                                    0.15,
+                                  ),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.location_on_rounded,
+                                    size: 16,
+                                    color: textSecondary,
+                                  ),
+                                  SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      data['location'] ??
+                                          'Unknown location',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme
+                                          .textTheme
+                                          .labelMedium
+                                          ?.copyWith(
+                                            fontWeight:
+                                                FontWeight.w500,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -606,7 +521,7 @@ class UpvoteButton extends StatelessWidget {
                         size: 16,
                       )
                     : Icon(
-                        hasUpvoted ? Icons.arrow_upward : Icons.arrow_upward_outlined,
+                        hasUpvoted ? Icons.filter_tilt_shift : Icons.filter_tilt_shift_outlined,
                         size: 16,
                         color: hasUpvoted
                             ? theme.primaryColor
