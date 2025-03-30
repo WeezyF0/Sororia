@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:complaints_app/screens/navbar.dart';
 
 class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -72,7 +72,7 @@ class HomePage extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : theme.colorScheme.onBackground,
+                  color: isDark ? Colors.white : theme.colorScheme.onSurface,
                 ),
               ),
               SizedBox(height: 16),

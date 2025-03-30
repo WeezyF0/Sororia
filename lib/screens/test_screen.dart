@@ -420,7 +420,7 @@ class _TestScreenState extends State<TestScreen> {
                   child: Text(
                     '${snapshot.data!.nbHits} hits',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onBackground.withOpacity(0.7),
+                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                     ),
                   ),
                 );

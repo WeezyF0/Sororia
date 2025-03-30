@@ -190,7 +190,7 @@ class _NewsScreenState extends State<NewsScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
-        ...newsList.map((news) => _buildNewsCard(news)).toList(),
+        ...newsList.map((news) => _buildNewsCard(news)),
       ],
     );
   }

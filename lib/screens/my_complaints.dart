@@ -452,8 +452,7 @@ class MyComplaintScreen extends StatelessWidget {
 
                         // Check if complaint exists in saved_c
                         final userData =
-                            (await userDoc.get()).data()
-                                as Map<String, dynamic>? ??
+                            (await userDoc.get()).data() ??
                             {};
                         final List<dynamic> savedList =
                             userData['saved_c'] ?? [];
@@ -701,7 +700,7 @@ class MyComplaintScreen extends StatelessWidget {
 
     final userDoc =
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
-    final userData = userDoc.data() as Map<String, dynamic>? ?? {};
+    final userData = userDoc.data() ?? {};
     final List<dynamic> savedList = userData['saved_c'] ?? [];
     return savedList.any((entry) {
       if (entry is Map<String, dynamic>) {
