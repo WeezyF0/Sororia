@@ -561,9 +561,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.expand),
-                      onPressed:
-                          () =>
-                              _showAllCommentsDialog(context, comments, theme),
+                      onPressed: () => _showAllCommentsDialog(context, theme),
                       tooltip: 'Show all comments',
                     ),
                   ],
@@ -632,11 +630,13 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     );
   }
 
-  void _showAllCommentsDialog(
-    BuildContext context,
-    List<dynamic> comments,
-    ThemeData theme,
-  ) {
+  void _showAllCommentsDialog(BuildContext context, ThemeData theme) {
+    final commentsStream =
+        FirebaseFirestore.instance
+            .collection('complaints')
+            .doc(widget.complaintId)
+            .snapshots();
+
     showDialog(
       context: context,
       builder:
@@ -648,134 +648,158 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.8,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('All Comments', style: theme.textTheme.titleLarge),
-                        IconButton(
-                          icon: Icon(
-                            Icons.close,
-                            color: theme.colorScheme.onSurface,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(12),
-                      shrinkWrap: true,
-                      itemCount: comments.length,
-                      itemBuilder: (context, index) {
-                        final comment = comments[index] as Map<String, dynamic>;
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  CircleAvatar(
-                                    radius: 12,
-                                    backgroundColor: theme.primaryColor,
-                                    child: Text(
-                                      (comment['user_id']?.toString().substring(
-                                                0,
-                                                2,
-                                              ) ??
-                                              '??')
-                                          .toUpperCase(),
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(
-                                            color: theme.colorScheme.onPrimary,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    comment['user_id']?.toString() ??
-                                        'Anonymous',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    _formatTimeAgo(
-                                      comment['timestamp']?.toString() ?? '',
-                                    ),
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: theme.textTheme.bodySmall?.color
-                                          ?.withOpacity(0.6),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                comment['context']?.toString() ??
-                                    'No comment text',
-                                style: theme.textTheme.bodyMedium,
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  const Divider(height: 1),
-                  Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _commentController,
-                            decoration: InputDecoration(
-                              hintText: 'Add a comment...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(20),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: theme.colorScheme.surfaceVariant,
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: commentsStream,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docData = snapshot.data!.data() as Map<String, dynamic>;
+                  final comments = docData['Comments'] as List<dynamic>? ?? [];
+
+                  comments.sort((a, b) {
+                    final aTime =
+                        DateTime.tryParse(a['timestamp'] ?? '') ??
+                        DateTime(1970);
+                    final bTime =
+                        DateTime.tryParse(b['timestamp'] ?? '') ??
+                        DateTime(1970);
+                    return bTime.compareTo(aTime);
+                  });
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header and close button
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'All Comments',
+                              style: theme.textTheme.titleLarge,
                             ),
-                            maxLines: null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        CircleAvatar(
-                          backgroundColor: theme.colorScheme.primary,
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.send,
-                              color: theme.colorScheme.onPrimary,
+                            IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                              onPressed: () => Navigator.pop(context),
                             ),
-                            onPressed:
-                                () => _addCommentToFirestore(
-                                  _commentController.text,
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      // Comments list
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: comments.length,
+                          itemBuilder: (context, index) {
+                            final comment =
+                                comments[index] as Map<String, dynamic>;
+                            return _buildCommentItem(comment, theme);
+                          },
+                        ),
+                      ),
+                      // Input field
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _commentController,
+                                decoration: InputDecoration(
+                                  hintText: 'Add a comment...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  filled: true,
+                                  fillColor: theme.colorScheme.surfaceVariant,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
                                 ),
-                          ),
+                                maxLines: null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            CircleAvatar(
+                              backgroundColor: theme.colorScheme.primary,
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.send,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                                onPressed: () async {
+                                  await _addCommentToFirestore(
+                                    _commentController.text,
+                                  );
+                                  _commentController.clear();
+                                },
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
+    );
+  }
+
+  Widget _buildCommentItem(Map<String, dynamic> comment, ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 12,
+                backgroundColor: theme.primaryColor,
+                child: Text(
+                  (comment['user_id']?.toString().substring(0, 2) ?? '??')
+                      .toUpperCase(),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onPrimary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                comment['user_id']?.toString() ?? 'Anonymous',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            comment['context']?.toString() ?? 'No comment text',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
 
