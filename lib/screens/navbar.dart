@@ -112,6 +112,7 @@ class NavBar extends StatelessWidget {
                       route: "/complaints_map",
                       isDarkMode: isDarkMode,
                     ),
+                    
 
                     _buildDivider(isDarkMode),
 
