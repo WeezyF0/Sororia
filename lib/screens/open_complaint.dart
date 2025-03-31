@@ -28,6 +28,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   Map<String, dynamic> _analysisResult = {};
   bool _isAnalyzing = false;
   final TextEditingController _updateController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
@@ -39,9 +40,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   void dispose() {
     _isAnalyzing = false;
     _updateController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
-
 
   Future<void> _analyzeComplaint() async {
     if (_isAnalyzing || !mounted) return;
@@ -99,32 +100,28 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   void _navigateToChatbot() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('complaints')
-          .doc(widget.complaintId)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('complaints')
+              .doc(widget.complaintId)
+              .get();
 
       if (doc.exists) {
         final complaintData = doc.data();
         final String complaintInfo = complaintData.toString();
-        Navigator.pushNamed(
-          context,
-          '/chatbot',
-          arguments: complaintInfo, // Pass the serialized string
-        );
+        Navigator.pushNamed(context, '/chatbot', arguments: complaintInfo);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complaint not found.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Complaint not found.')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch complaint: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to fetch complaint: $e')));
     }
   }
 
-  /// Updated: Checks if the current user's "saved_c" list contains this complaint
   Future<bool> _isComplaintInSavedC() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
@@ -138,25 +135,25 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     if (userData == null) return false;
 
     final List<dynamic> savedComplaints =
-        userData['my_c'] as List<dynamic>? ?? [];
+        userData['saved_c'] as List<dynamic>? ?? [];
     return savedComplaints.any((entry) {
       if (entry is Map<String, dynamic>) {
         return entry['complaintId'] == widget.complaintId;
       } else if (entry is String) {
-        // For legacy string entries.
         return entry == widget.complaintId;
       }
       return false;
     });
   }
 
-  /// Only allow adding an update if complaint is in saved_c
   Future<void> _showAddUpdateDialog() async {
     final isInSavedC = await _isComplaintInSavedC();
     if (!isInSavedC) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You must have saved this experience to add an update.'),
+          content: Text(
+            'You must have saved this experience to add an update.',
+          ),
         ),
       );
       return;
@@ -207,7 +204,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           .update({
             'Updates': FieldValue.arrayUnion([updateData]),
             'update_count': FieldValue.increment(1),
-            'queried': false
           });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -335,6 +331,8 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           const SizedBox(height: 16),
           _buildChatbotRedirectCard(),
           const SizedBox(height: 16),
+          _buildCommentCard(),
+          const SizedBox(height: 16),
           _buildNewsSection(),
         ],
       ),
@@ -407,7 +405,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 ],
               ),
             const SizedBox(height: 16),
-            // Updates Section integrated in the complaint card:
             StreamBuilder<DocumentSnapshot>(
               stream:
                   FirebaseFirestore.instance
@@ -430,7 +427,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                     snapshot.data?.data() as Map<String, dynamic>? ?? {};
                 final updates = docData['Updates'] as List<dynamic>? ?? [];
 
-                // Sorting updates (newest first)
                 updates.sort((a, b) {
                   final aTime =
                       DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(1970);
@@ -442,7 +438,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header row for Updates with add icon if in saved_c
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -457,17 +452,15 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         FutureBuilder<bool>(
                           future: _isComplaintInSavedC(),
                           builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
+                            if (!snapshot.hasData)
                               return const SizedBox.shrink();
-                            }
                             final isInSavedC = snapshot.data ?? false;
-                            if (!isInSavedC) {
-                              return const SizedBox.shrink();
-                            }
-                            return IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: _showAddUpdateDialog,
-                            );
+                            return isInSavedC
+                                ? IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: _showAddUpdateDialog,
+                                )
+                                : const SizedBox.shrink();
                           },
                         ),
                       ],
@@ -513,6 +506,323 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildCommentCard() {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream:
+              FirebaseFirestore.instance
+                  .collection('complaints')
+                  .doc(widget.complaintId)
+                  .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text(
+                'Error loading comments',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              );
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docData =
+                snapshot.data?.data() as Map<String, dynamic>? ?? {};
+            final comments = docData['Comments'] as List<dynamic>? ?? [];
+
+            comments.sort((a, b) {
+              final aTime =
+                  DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(1970);
+              final bTime =
+                  DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime(1970);
+              return bTime.compareTo(aTime);
+            });
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Comments',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.expand),
+                      onPressed:
+                          () =>
+                              _showAllCommentsDialog(context, comments, theme),
+                      tooltip: 'Show all comments',
+                    ),
+                  ],
+                ),
+                if (comments.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No comments yet',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                if (comments.isNotEmpty)
+                  _buildFirstComment(
+                    comments.first as Map<String, dynamic>,
+                    theme,
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFirstComment(Map<String, dynamic> comment, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: theme.primaryColor,
+              child: Text(
+                (comment['user_id']?.toString().substring(0, 2) ?? '??')
+                    .toUpperCase(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              comment['user_id']?.toString() ?? 'Anonymous',
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          comment['context']?.toString() ?? 'No comment text',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+
+  void _showAllCommentsDialog(
+    BuildContext context,
+    List<dynamic> comments,
+    ThemeData theme,
+  ) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('All Comments', style: theme.textTheme.titleLarge),
+                        IconButton(
+                          icon: Icon(
+                            Icons.close,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      shrinkWrap: true,
+                      itemCount: comments.length,
+                      itemBuilder: (context, index) {
+                        final comment = comments[index] as Map<String, dynamic>;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  CircleAvatar(
+                                    radius: 12,
+                                    backgroundColor: theme.primaryColor,
+                                    child: Text(
+                                      (comment['user_id']?.toString().substring(
+                                                0,
+                                                2,
+                                              ) ??
+                                              '??')
+                                          .toUpperCase(),
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: theme.colorScheme.onPrimary,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    comment['user_id']?.toString() ??
+                                        'Anonymous',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _formatTimeAgo(
+                                      comment['timestamp']?.toString() ?? '',
+                                    ),
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.textTheme.bodySmall?.color
+                                          ?.withOpacity(0.6),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                comment['context']?.toString() ??
+                                    'No comment text',
+                                style: theme.textTheme.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const Divider(height: 1),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _commentController,
+                            decoration: InputDecoration(
+                              hintText: 'Add a comment...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(20),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: theme.colorScheme.surfaceVariant,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                            maxLines: null,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        CircleAvatar(
+                          backgroundColor: theme.colorScheme.primary,
+                          child: IconButton(
+                            icon: Icon(
+                              Icons.send,
+                              color: theme.colorScheme.onPrimary,
+                            ),
+                            onPressed:
+                                () => _addCommentToFirestore(
+                                  _commentController.text,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  Future<void> _addCommentToFirestore(String commentText) async {
+    if (commentText.isEmpty) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to comment')),
+      );
+      return;
+    }
+
+    try {
+      final commentData = {
+        'user_id': currentUser.uid,
+        'context': commentText,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.complaintId)
+          .update({
+            'Comments': FieldValue.arrayUnion([commentData]),
+            'comment_count': FieldValue.increment(1),
+          });
+
+      _commentController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add comment: ${e.toString()}')),
+      );
+    }
+  }
+
+  String _formatTimeAgo(String timestamp) {
+    final dateTime = DateTime.tryParse(timestamp);
+    if (dateTime == null) return 'Unknown time';
+
+    final difference = DateTime.now().difference(dateTime);
+
+    if (difference.inDays > 0) return '${difference.inDays}d ago';
+    if (difference.inHours > 0) return '${difference.inHours}h ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
+    return 'Just now';
   }
 
   Widget _buildChatbotRedirectCard() {
@@ -563,7 +873,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       ),
     );
   }
-
 
   Widget _buildNewsSection() {
     final theme = Theme.of(context);
@@ -662,7 +971,6 @@ class ComplaintAnalyzer {
     }
   }
 
-
   Future<List<Map<String, dynamic>>> _searchOnline(
     String location,
     String problem,
@@ -703,7 +1011,6 @@ class ComplaintAnalyzer {
     if (location.isEmpty || problem.isEmpty) {
       return {"error": "Both 'location' and 'problem' fields are required!"};
     }
-
 
     List<Map<String, dynamic>> newsResults = await _searchOnline(
       location,
