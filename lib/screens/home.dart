@@ -289,13 +289,43 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void showComplaintDetails(BuildContext context, String title, String description, Map<String, dynamic> complaintData, String complaintId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OpenComplaintScreen(
-          complaintData: complaintData,
-          complaintId: complaintId,
+  void showComplaintDetails(
+    BuildContext context, 
+    String title, 
+    String description, 
+    Map<String, dynamic> complaintData,
+    String complaintId,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+            const SizedBox(height: 8),
+            Text(description),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); 
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OpenComplaintScreen(
+                      complaintData: complaintData,
+                      complaintId: complaintId,
+                    ),
+                  ),
+                );
+              },
+              child: const Text("View Details"),
+            ),
+          ],
         ),
       ),
     );
