@@ -1,6 +1,6 @@
 # 💜 Sororia
 
-**Sororia** is a **Flutter-based mobile application** dedicated to empowering **women** by providing a platform to share their experiences and concerns, start & sign petitions, and visualize reported issues on a map, view their local news and helpful government schemes.
+**Sororia** is an **app** dedicated to empowering **women** by providing a platform to share their experiences and concerns, start & sign petitions, and visualize reported issues on a map, view their local news and helpful government schemes.
 
 ## 🚀 Features
 - 🤖 **SororiAI** – Users can interact with our AI chatbot to seek guidance, find solutions, and get assistance for their concerns.
