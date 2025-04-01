@@ -593,26 +593,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       children: [
         Row(
           children: [
-            CircleAvatar(
-              radius: 12,
-              backgroundColor: theme.primaryColor,
-              child: Text(
-                (comment['user_id']?.toString().substring(0, 2) ?? '??')
-                    .toUpperCase(),
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onPrimary,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Text(
-              comment['user_id']?.toString() ?? 'Anonymous',
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(width: 8),
             Text(
               _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
               style: theme.textTheme.bodySmall?.copyWith(
@@ -757,49 +737,49 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     );
   }
 
+  Future<String> _getUserEmail(String? userId) async {
+    if (userId == null || userId.isEmpty) return 'Anonymous';
+
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .get();
+      return doc.data()?['email'] ?? 'Anonymous';
+    } catch (e) {
+      return 'Anonymous';
+    }
+  }
+
+  // Modify the _buildCommentItem widget
   Widget _buildCommentItem(Map<String, dynamic> comment, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+    return FutureBuilder<String>(
+      future: _getUserEmail(comment['user_id']?.toString()),
+      builder: (context, snapshot) {
+        final email = snapshot.data ?? 'Anonymous';
+        final initials = email.substring(0, 2).toUpperCase();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 12,
-                backgroundColor: theme.primaryColor,
-                child: Text(
-                  (comment['user_id']?.toString().substring(0, 2) ?? '??')
-                      .toUpperCase(),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onPrimary,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                comment['user_id']?.toString() ?? 'Anonymous',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(width: 8),
               Text(
                 _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                comment['context']?.toString() ?? 'No comment text',
+                style: theme.textTheme.bodyMedium,
+              ),
             ],
           ),
-          const SizedBox(height: 4),
-          Text(
-            comment['context']?.toString() ?? 'No comment text',
-            style: theme.textTheme.bodyMedium,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

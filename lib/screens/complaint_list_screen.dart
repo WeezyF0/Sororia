@@ -14,10 +14,10 @@ class ComplaintListScreen extends StatefulWidget {
 class _ComplaintListScreenState extends State<ComplaintListScreen> {
   String selectedSort = 'Recent';
   final sortOptions = ['Recent', 'Most Upvoted'];
-  
+
   // Map to track ongoing upvote operations
   final Map<String, bool> _upvoteInProgress = {};
-  
+
   // Map to track optimistic upvote states
   final Map<String, int> _optimisticUpvotes = {};
 
@@ -61,76 +61,82 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
 
     return Scaffold(
       appBar: PreferredSize(
-      preferredSize: Size.fromHeight(80.0),
-      child: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        titleSpacing: 0, // Remove default title spacing
-        title: Padding(
-          padding: EdgeInsets.only(left: 16.0), // Add padding to offset from drawer icon
-          child: Text(
-            "All Experiences",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/appBar_bg.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          foregroundDecoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.withOpacity(0.3),
-                Colors.purple.withOpacity(0.3),
-              ],
-            ),
-          ),
-        ),
-        actions: [
-          // Sort dropdown in the actions area
-          Padding(
-            padding: const EdgeInsets.only(right: 16.0),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: DropdownButton<String>(
-                value: selectedSort,
-                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                dropdownColor: theme.primaryColor,
-                underline: const SizedBox(),
-                style: const TextStyle(color: Colors.white),
-                onChanged: (String? newValue) {
-                  if (newValue != null) {
-                    setState(() {
-                      selectedSort = newValue;
-                    });
-                  }
-                },
-                items: sortOptions.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                }).toList(),
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          titleSpacing: 0, // Remove default title spacing
+          title: Padding(
+            padding: EdgeInsets.only(
+              left: 16.0,
+            ), // Add padding to offset from drawer icon
+            child: Text(
+              "All Experiences",
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ),
-        ],
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/appBar_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            // Sort dropdown in the actions area
+            Padding(
+              padding: const EdgeInsets.only(right: 16.0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: DropdownButton<String>(
+                  value: selectedSort,
+                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+                  dropdownColor: theme.primaryColor,
+                  underline: const SizedBox(),
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: (String? newValue) {
+                    if (newValue != null) {
+                      setState(() {
+                        selectedSort = newValue;
+                      });
+                    }
+                  },
+                  items:
+                      sortOptions.map<DropdownMenuItem<String>>((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
-    drawer: NavBar(),
+      drawer: NavBar(),
       floatingActionButton: Container(
         height: 56,
         padding: EdgeInsets.symmetric(horizontal: 8),
@@ -157,15 +163,16 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
         ),
       ),
       body: StreamBuilder(
-        stream: selectedSort == 'Recent'
-            ? FirebaseFirestore.instance
-                .collection('complaints')
-                .orderBy('timestamp_ms', descending: true)
-                .snapshots()
-            : FirebaseFirestore.instance
-                .collection('complaints')
-                .orderBy('upvotes', descending: true)
-                .snapshots(),
+        stream:
+            selectedSort == 'Recent'
+                ? FirebaseFirestore.instance
+                    .collection('complaints')
+                    .orderBy('timestamp_ms', descending: true)
+                    .snapshots()
+                : FirebaseFirestore.instance
+                    .collection('complaints')
+                    .orderBy('upvotes', descending: true)
+                    .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(
@@ -204,12 +211,14 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
               var doc = snapshot.data!.docs[index];
-              final Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+              final Map<String, dynamic> data =
+                  doc.data() as Map<String, dynamic>;
 
               // Get the actual or optimistic upvote count
-              final upvotes = _optimisticUpvotes.containsKey(doc.id) 
-                  ? _optimisticUpvotes[doc.id]! 
-                  : (data['upvotes'] ?? 0);
+              final upvotes =
+                  _optimisticUpvotes.containsKey(doc.id)
+                      ? _optimisticUpvotes[doc.id]!
+                      : (data['upvotes'] ?? 0);
 
               // Format the timestamp as "time ago"
               String timeAgoText = "Unknown date";
@@ -231,9 +240,10 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: isDark
-                          ? Colors.black.withOpacity(0.3)
-                          : Colors.black.withOpacity(0.1),
+                      color:
+                          isDark
+                              ? Colors.black.withOpacity(0.3)
+                              : Colors.black.withOpacity(0.1),
                       blurRadius: 12,
                       spreadRadius: 1,
                       offset: Offset(0, 4),
@@ -266,7 +276,10 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                               children: [
                                 // First row: Issue type tag
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: primaryColor.withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(8),
@@ -286,23 +299,26 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                                 const SizedBox(height: 8),
                                 // Second row: Save button, upvote button and timeago display in one row
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
-                                    SaveButton(
-                                      complaintId: doc.id,
-                                      theme: theme,
-                                    ),
+                                    SaveButton(complaintId: doc.id),
                                     const SizedBox(width: 8),
                                     UpvoteButton(
                                       complaintId: doc.id,
                                       theme: theme,
                                       currentUpvotes: upvotes,
-                                      isLoading: _upvoteInProgress[doc.id] ?? false,
-                                      onUpvote: () => _handleUpvote(doc.id, upvotes),
+                                      isLoading:
+                                          _upvoteInProgress[doc.id] ?? false,
+                                      onUpvote:
+                                          () => _handleUpvote(doc.id, upvotes),
                                     ),
                                     const SizedBox(width: 8),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 6,
+                                      ),
                                       decoration: BoxDecoration(
                                         color: textSecondary.withOpacity(0.12),
                                         borderRadius: BorderRadius.circular(8),
@@ -319,10 +335,11 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                                           Flexible(
                                             child: Text(
                                               timeAgoText,
-                                              style: theme.textTheme.labelSmall?.copyWith(
-                                                color: textSecondary,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                              style: theme.textTheme.labelSmall
+                                                  ?.copyWith(
+                                                    color: textSecondary,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
                                             ),
@@ -356,16 +373,10 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: textSecondary.withOpacity(
-                                  0.08,
-                                ),
-                                borderRadius: BorderRadius.circular(
-                                  10,
-                                ),
+                                color: textSecondary.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
-                                  color: textSecondary.withOpacity(
-                                    0.15,
-                                  ),
+                                  color: textSecondary.withOpacity(0.15),
                                   width: 1,
                                 ),
                               ),
@@ -379,16 +390,12 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                                   SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
-                                      data['location'] ??
-                                          'Unknown location',
+                                      data['location'] ?? 'Unknown location',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: theme
-                                          .textTheme
-                                          .labelMedium
+                                      style: theme.textTheme.labelMedium
                                           ?.copyWith(
-                                            fontWeight:
-                                                FontWeight.w500,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                     ),
                                   ),
@@ -417,44 +424,46 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
     if (_upvoteInProgress[complaintId] == true) return;
 
     // Get user document to check if already upvoted
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
     final upvotedList = (userDoc.data()?['upvoted'] as List<dynamic>?) ?? [];
     final hasUpvoted = upvotedList.contains(complaintId);
 
     // Set optimistic state
     setState(() {
       _upvoteInProgress[complaintId] = true;
-      _optimisticUpvotes[complaintId] = hasUpvoted ? currentUpvotes - 1 : currentUpvotes + 1;
+      _optimisticUpvotes[complaintId] =
+          hasUpvoted ? currentUpvotes - 1 : currentUpvotes + 1;
     });
 
     try {
       // Perform the actual update
-      final complaintDoc = FirebaseFirestore.instance.collection('complaints').doc(complaintId);
-      final userDocRef = FirebaseFirestore.instance.collection('users').doc(userId);
+      final complaintDoc = FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(complaintId);
+      final userDocRef = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId);
 
       if (hasUpvoted) {
         // Remove upvote
         await userDocRef.update({
           'upvoted': FieldValue.arrayRemove([complaintId]),
         });
-        await complaintDoc.update({
-          'upvotes': FieldValue.increment(-1),
-        });
+        await complaintDoc.update({'upvotes': FieldValue.increment(-1)});
       } else {
         // Add upvote
         await userDocRef.update({
           'upvoted': FieldValue.arrayUnion([complaintId]),
         });
-        await complaintDoc.update({
-          'upvotes': FieldValue.increment(1),
-        });
+        await complaintDoc.update({'upvotes': FieldValue.increment(1)});
       }
     } catch (e) {
       // Revert optimistic update on error
       setState(() {
         _optimisticUpvotes[complaintId] = currentUpvotes;
       });
-      
+
       // Show error message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -494,14 +503,16 @@ class UpvoteButton extends StatelessWidget {
     if (userId == null) return const SizedBox.shrink();
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .snapshots(),
+      stream:
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
 
-        final upvotedList = (snapshot.data?.data() as Map<String, dynamic>?)?['upvoted'] ?? [];
+        final upvotedList =
+            (snapshot.data?.data() as Map<String, dynamic>?)?['upvoted'] ?? [];
         final hasUpvoted = upvotedList.contains(complaintId);
 
         return Row(
@@ -514,18 +525,24 @@ class UpvoteButton extends StatelessWidget {
                   color: theme.primaryColor.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: isLoading 
-                    ? SpinKitFadingCircle(
-                        color: theme.primaryColor,
-                        size: 16,
-                      )
-                    : Icon(
-                        hasUpvoted ? Icons.filter_tilt_shift : Icons.filter_tilt_shift_outlined,
-                        size: 16,
-                        color: hasUpvoted
-                            ? theme.primaryColor
-                            : theme.colorScheme.onSurface.withOpacity(0.6),
-                      ),
+                child:
+                    isLoading
+                        ? SpinKitFadingCircle(
+                          color: theme.primaryColor,
+                          size: 16,
+                        )
+                        : Icon(
+                          hasUpvoted
+                              ? Icons.filter_tilt_shift
+                              : Icons.filter_tilt_shift_outlined,
+                          size: 16,
+                          color:
+                              hasUpvoted
+                                  ? theme.primaryColor
+                                  : theme.colorScheme.onSurface.withOpacity(
+                                    0.6,
+                                  ),
+                        ),
               ),
             ),
             const SizedBox(width: 4),
@@ -545,13 +562,8 @@ class UpvoteButton extends StatelessWidget {
 // Add the missing SaveButton widget
 class SaveButton extends StatelessWidget {
   final String complaintId;
-  final ThemeData theme;
 
-  const SaveButton({
-    super.key,
-    required this.complaintId,
-    required this.theme,
-  });
+  const SaveButton({super.key, required this.complaintId});
 
   @override
   Widget build(BuildContext context) {
@@ -559,68 +571,70 @@ class SaveButton extends StatelessWidget {
     if (userId == null) return const SizedBox.shrink();
 
     return StreamBuilder<DocumentSnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .snapshots(),
+      stream:
+          FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .snapshots(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
+        final userData = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final List<dynamic> savedList = userData['saved_c'] ?? [];
 
-        final savedList = (snapshot.data?.data() as Map<String, dynamic>?)?['saved'] ?? [];
-        final isSaved = savedList.contains(complaintId);
+        dynamic existingEntry;
+        try {
+          existingEntry = savedList.firstWhere((entry) {
+            if (entry is Map<String, dynamic>) {
+              return entry['complaintId'] == complaintId;
+            } else if (entry is String) {
+              return entry == complaintId;
+            }
+            return false;
+          });
+        } catch (_) {}
 
-        return InkWell(
+        final isSaved = existingEntry != null;
+
+        return GestureDetector(
           onTap: () async {
-            try {
-              final userDocRef = FirebaseFirestore.instance.collection('users').doc(userId);
+            final userDoc = FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId);
 
-              if (isSaved) {
-                // Remove save
-                await userDocRef.update({
-                  'saved': FieldValue.arrayRemove([complaintId]),
-                });
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Experience removed from saved'),
-                    backgroundColor: theme.primaryColor,
-                  ),
-                );
-              } else {
-                // Add save
-                await userDocRef.update({
-                  'saved': FieldValue.arrayUnion([complaintId]),
-                });
-                
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Experience saved'),
-                    backgroundColor: theme.primaryColor,
-                  ),
-                );
-              }
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Failed to save experience: $e'),
-                  backgroundColor: Colors.red,
-                ),
-              );
+            if (existingEntry is String) {
+              await userDoc.update({
+                'saved_c': FieldValue.arrayRemove([existingEntry]),
+              });
+              existingEntry = {
+                'complaintId': existingEntry,
+                'last_seen_update_count': 0,
+              };
+              await userDoc.update({
+                'saved_c': FieldValue.arrayUnion([existingEntry]),
+              });
+            }
+
+            if (isSaved) {
+              await userDoc.update({
+                'saved_c': FieldValue.arrayRemove([existingEntry]),
+              });
+            } else {
+              final newEntry = {
+                'complaintId': complaintId,
+                'last_seen_update_count': 0,
+              };
+              await userDoc.update({
+                'saved_c': FieldValue.arrayUnion([newEntry]),
+              });
             }
           },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: theme.primaryColor.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              isSaved ? Icons.bookmark : Icons.bookmark_border,
-              size: 16,
-              color: isSaved
-                  ? theme.primaryColor
-                  : theme.colorScheme.onSurface.withOpacity(0.6),
-            ),
+          child: Icon(
+            isSaved ? Icons.bookmark : Icons.bookmark_border,
+            size: 14,
+            color:
+                isSaved
+                    ? Theme.of(context).primaryColor
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         );
       },
