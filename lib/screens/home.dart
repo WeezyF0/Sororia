@@ -91,6 +91,15 @@ class _HomePageState extends State<HomePage> {
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           flexibleSpace: Container(
             decoration: BoxDecoration(
               image: DecorationImage(
@@ -103,26 +112,9 @@ class _HomePageState extends State<HomePage> {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Colors.blue.withOpacity(0.3), 
-                  Colors.purple.withOpacity(0.3)
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
                 ],
-              ),
-            ),
-            child: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        "SORORIA",
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ),
           ),

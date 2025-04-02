@@ -72,12 +72,21 @@ class MyComplaintScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
+        preferredSize: Size.fromHeight(80.0),
         child: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          centerTitle: true,
+          title: Text(
+            "MY EXPERIENCES",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           flexibleSpace: Container(
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               image: DecorationImage(
                 image: AssetImage('assets/images/appBar_bg.png'),
                 fit: BoxFit.cover,
@@ -93,30 +102,10 @@ class MyComplaintScreen extends StatelessWidget {
                 ],
               ),
             ),
-            child: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        "MY EXPERIENCES",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
           ),
         ),
       ),
-      drawer: const NavBar(),
+      drawer: NavBar(),
       floatingActionButton: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 8),

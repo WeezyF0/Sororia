@@ -318,68 +318,53 @@ class _TestScreenState extends State<TestScreen> {
     return Scaffold(
       key: _mainScaffoldKey,
       appBar: PreferredSize(
-      preferredSize: Size.fromHeight(80.0),
-      child: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/appBar_bg.png'),
-              fit: BoxFit.cover,
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: Text(
+            "SEARCH EXPERIENCES",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20, 
+              fontWeight: FontWeight.bold,
             ),
           ),
-          foregroundDecoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.withOpacity(0.3),
-                Colors.purple.withOpacity(0.3),
-              ],
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/appBar_bg.png'),
+                fit: BoxFit.cover,
+              ),
             ),
-          ),
-          child: SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(width: 48), 
-                    Text(
-                      "SEARCH EXPERIENCES",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    Row(
-                      children: [
-                        IconButton(
-                          onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
-                          icon: const Icon(Icons.filter_list_sharp, color: Colors.white),
-                        ),
-                        IconButton(
-                          onPressed: _syncComplaints,
-                          icon: const Icon(Icons.sync, color: Colors.white),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
+                ],
               ),
             ),
           ),
+          actions: [
+            IconButton(
+              onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
+              icon: const Icon(Icons.filter_list_sharp, color: Colors.white),
+            ),
+            IconButton(
+              onPressed: _syncComplaints,
+              icon: const Icon(Icons.sync, color: Colors.white),
+            ),
+          ],
         ),
-        actions: [Container()],
       ),
-    ),
-    drawer: NavBar(),
-    endDrawer: Drawer(
-      child: _filters(context),
-    ),
+      drawer: NavBar(),
+      endDrawer: Drawer(
+        child: _filters(context),
+      ),
       body: Center(
         child: Column(
           children: <Widget>[

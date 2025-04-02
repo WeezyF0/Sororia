@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'navbar.dart';
+import 'package:flutter/cupertino.dart';
 
 class ComplaintListScreen extends StatefulWidget {
   const ComplaintListScreen({super.key});
@@ -71,7 +72,7 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
               left: 16.0,
             ), // Add padding to offset from drawer icon
             child: Text(
-              "All Experiences",
+              "ALL EXPERIENCES",
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -533,8 +534,8 @@ class UpvoteButton extends StatelessWidget {
                         )
                         : Icon(
                           hasUpvoted
-                              ? Icons.filter_tilt_shift
-                              : Icons.filter_tilt_shift_outlined,
+                              ? CupertinoIcons.shift_fill
+                              : CupertinoIcons.shift,
                           size: 16,
                           color:
                               hasUpvoted
