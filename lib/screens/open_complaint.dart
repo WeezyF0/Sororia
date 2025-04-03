@@ -593,6 +593,26 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       children: [
         Row(
           children: [
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: theme.primaryColor,
+              child: Text(
+                (comment['user_id']?.toString().substring(0, 2) ?? '??')
+                    .toUpperCase(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              maskUserId(comment['user_id']?.toString()),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
             Text(
               _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
               style: theme.textTheme.bodySmall?.copyWith(
@@ -608,6 +628,14 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
         ),
       ],
     );
+  }
+
+  String maskUserId(String? userId) {
+    if (userId == null || userId.length < 3) {
+      return userId ?? "";
+    }
+    
+    return userId.substring(0, userId.length - 3) + "\$\$\$";
   }
 
   void _showAllCommentsDialog(BuildContext context, ThemeData theme) {
@@ -676,11 +704,62 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                       Expanded(
                         child: ListView.builder(
                           padding: const EdgeInsets.all(12),
+                          shrinkWrap: true,
                           itemCount: comments.length,
                           itemBuilder: (context, index) {
-                            final comment =
-                                comments[index] as Map<String, dynamic>;
-                            return _buildCommentItem(comment, theme);
+                            final comment = comments[index] as Map<String, dynamic>;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 12,
+                                        backgroundColor: theme.primaryColor,
+                                        child: Text(
+                                          (comment['user_id']?.toString().substring(
+                                                    0,
+                                                    2,
+                                                  ) ??
+                                                  '??')
+                                              .toUpperCase(),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme.colorScheme.onPrimary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        maskUserId(comment['user_id']?.toString()),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _formatTimeAgo(
+                                          comment['timestamp']?.toString() ?? '',
+                                        ),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.textTheme.bodySmall?.color
+                                              ?.withOpacity(0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    comment['context']?.toString() ??
+                                        'No comment text',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            );
                           },
                         ),
                       ),
