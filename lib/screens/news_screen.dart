@@ -82,46 +82,39 @@ class _NewsScreenState extends State<NewsScreen> {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
+      preferredSize: Size.fromHeight(80.0),
+      child: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Text(
+          "State & Central News - $currentState",
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/appBar_bg.png'),
+              fit: BoxFit.cover,
             ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Text(
-                    "State & Central News - $currentState",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
+          ),
+          foregroundDecoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.blue.withOpacity(0.3),
+                Colors.purple.withOpacity(0.3),
+              ],
             ),
           ),
         ),
       ),
-      drawer: NavBar(),
+    ),
+    drawer: NavBar(),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
@@ -190,7 +183,7 @@ class _NewsScreenState extends State<NewsScreen> {
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ),
-        ...newsList.map((news) => _buildNewsCard(news)).toList(),
+        ...newsList.map((news) => _buildNewsCard(news)),
       ],
     );
   }

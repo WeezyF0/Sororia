@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http;
-import 'package:string_similarity/string_similarity.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'dart:math' show sin, cos, sqrt, atan2, pi;
 import 'package:firebase_auth/firebase_auth.dart';
 
 class OpenComplaintScreen extends StatefulWidget {
@@ -30,6 +28,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   Map<String, dynamic> _analysisResult = {};
   bool _isAnalyzing = false;
   final TextEditingController _updateController = TextEditingController();
+  final TextEditingController _commentController = TextEditingController();
 
   @override
   void initState() {
@@ -41,9 +40,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   void dispose() {
     _isAnalyzing = false;
     _updateController.dispose();
+    _commentController.dispose();
     super.dispose();
   }
-
 
   Future<void> _analyzeComplaint() async {
     if (_isAnalyzing || !mounted) return;
@@ -101,32 +100,28 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   void _navigateToChatbot() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('complaints')
-          .doc(widget.complaintId)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('complaints')
+              .doc(widget.complaintId)
+              .get();
 
       if (doc.exists) {
         final complaintData = doc.data();
         final String complaintInfo = complaintData.toString();
-        Navigator.pushNamed(
-          context,
-          '/chatbot',
-          arguments: complaintInfo, // Pass the serialized string
-        );
+        Navigator.pushNamed(context, '/chatbot', arguments: complaintInfo);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complaint not found.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Complaint not found.')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch complaint: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to fetch complaint: $e')));
     }
   }
 
-  /// Updated: Checks if the current user's "saved_c" list contains this complaint
   Future<bool> _isComplaintInSavedC() async {
     final currentUser = FirebaseAuth.instance.currentUser;
     if (currentUser == null) return false;
@@ -140,25 +135,25 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     if (userData == null) return false;
 
     final List<dynamic> savedComplaints =
-        userData['my_c'] as List<dynamic>? ?? [];
+        userData['saved_c'] as List<dynamic>? ?? [];
     return savedComplaints.any((entry) {
       if (entry is Map<String, dynamic>) {
         return entry['complaintId'] == widget.complaintId;
       } else if (entry is String) {
-        // For legacy string entries.
         return entry == widget.complaintId;
       }
       return false;
     });
   }
 
-  /// Only allow adding an update if complaint is in saved_c
   Future<void> _showAddUpdateDialog() async {
     final isInSavedC = await _isComplaintInSavedC();
     if (!isInSavedC) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('You must have saved this experience to add an update.'),
+          content: Text(
+            'You must have saved this experience to add an update.',
+          ),
         ),
       );
       return;
@@ -209,7 +204,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           .update({
             'Updates': FieldValue.arrayUnion([updateData]),
             'update_count': FieldValue.increment(1),
-            'queried': false
           });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -337,7 +331,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           const SizedBox(height: 16),
           _buildChatbotRedirectCard(),
           const SizedBox(height: 16),
-          _buildSimilarComplaintsSection(),
+          _buildCommentCard(),
           const SizedBox(height: 16),
           _buildNewsSection(),
         ],
@@ -411,7 +405,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 ],
               ),
             const SizedBox(height: 16),
-            // Updates Section integrated in the complaint card:
             StreamBuilder<DocumentSnapshot>(
               stream:
                   FirebaseFirestore.instance
@@ -434,7 +427,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                     snapshot.data?.data() as Map<String, dynamic>? ?? {};
                 final updates = docData['Updates'] as List<dynamic>? ?? [];
 
-                // Sorting updates (newest first)
                 updates.sort((a, b) {
                   final aTime =
                       DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(1970);
@@ -446,7 +438,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header row for Updates with add icon if in saved_c
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -461,17 +452,15 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         FutureBuilder<bool>(
                           future: _isComplaintInSavedC(),
                           builder: (context, snapshot) {
-                            if (!snapshot.hasData) {
+                            if (!snapshot.hasData)
                               return const SizedBox.shrink();
-                            }
                             final isInSavedC = snapshot.data ?? false;
-                            if (!isInSavedC) {
-                              return const SizedBox.shrink();
-                            }
-                            return IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: _showAddUpdateDialog,
-                            );
+                            return isInSavedC
+                                ? IconButton(
+                                  icon: const Icon(Icons.add),
+                                  onPressed: _showAddUpdateDialog,
+                                )
+                                : const SizedBox.shrink();
                           },
                         ),
                       ],
@@ -519,6 +508,406 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     );
   }
 
+  Widget _buildCommentCard() {
+    final theme = Theme.of(context);
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: StreamBuilder<DocumentSnapshot>(
+          stream:
+              FirebaseFirestore.instance
+                  .collection('complaints')
+                  .doc(widget.complaintId)
+                  .snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Text(
+                'Error loading comments',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              );
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final docData =
+                snapshot.data?.data() as Map<String, dynamic>? ?? {};
+            final comments = docData['Comments'] as List<dynamic>? ?? [];
+
+            comments.sort((a, b) {
+              final aTime =
+                  DateTime.tryParse(a['timestamp'] ?? '') ?? DateTime(1970);
+              final bTime =
+                  DateTime.tryParse(b['timestamp'] ?? '') ?? DateTime(1970);
+              return bTime.compareTo(aTime);
+            });
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Comments',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.expand),
+                      onPressed: () => _showAllCommentsDialog(context, theme),
+                      tooltip: 'Show all comments',
+                    ),
+                  ],
+                ),
+                if (comments.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'No comments yet',
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                if (comments.isNotEmpty)
+                  _buildFirstComment(
+                    comments.first as Map<String, dynamic>,
+                    theme,
+                  ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFirstComment(Map<String, dynamic> comment, ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            CircleAvatar(
+              radius: 12,
+              backgroundColor: theme.primaryColor,
+              child: Text(
+                (comment['user_id']?.toString().substring(0, 2) ?? '??')
+                    .toUpperCase(),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onPrimary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              maskUserId(comment['user_id']?.toString()),
+              style: theme.textTheme.bodySmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Text(
+          comment['context']?.toString() ?? 'No comment text',
+          style: theme.textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+
+  String maskUserId(String? userId) {
+    if (userId == null || userId.length < 3) {
+      return userId ?? "";
+    }
+    
+    return userId.substring(0, userId.length - 3) + "\$\$\$";
+  }
+
+  void _showAllCommentsDialog(BuildContext context, ThemeData theme) {
+    final commentsStream =
+        FirebaseFirestore.instance
+            .collection('complaints')
+            .doc(widget.complaintId)
+            .snapshots();
+
+    showDialog(
+      context: context,
+      builder:
+          (context) => Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.8,
+              ),
+              child: StreamBuilder<DocumentSnapshot>(
+                stream: commentsStream,
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  final docData = snapshot.data!.data() as Map<String, dynamic>;
+                  final comments = docData['Comments'] as List<dynamic>? ?? [];
+
+                  comments.sort((a, b) {
+                    final aTime =
+                        DateTime.tryParse(a['timestamp'] ?? '') ??
+                        DateTime(1970);
+                    final bTime =
+                        DateTime.tryParse(b['timestamp'] ?? '') ??
+                        DateTime(1970);
+                    return bTime.compareTo(aTime);
+                  });
+
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Header and close button
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'All Comments',
+                              style: theme.textTheme.titleLarge,
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.close,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      // Comments list
+                      Expanded(
+                        child: ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          shrinkWrap: true,
+                          itemCount: comments.length,
+                          itemBuilder: (context, index) {
+                            final comment = comments[index] as Map<String, dynamic>;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 12,
+                                        backgroundColor: theme.primaryColor,
+                                        child: Text(
+                                          (comment['user_id']?.toString().substring(
+                                                    0,
+                                                    2,
+                                                  ) ??
+                                                  '??')
+                                              .toUpperCase(),
+                                          style: theme.textTheme.bodySmall
+                                              ?.copyWith(
+                                                color: theme.colorScheme.onPrimary,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        maskUserId(comment['user_id']?.toString()),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _formatTimeAgo(
+                                          comment['timestamp']?.toString() ?? '',
+                                        ),
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.textTheme.bodySmall?.color
+                                              ?.withOpacity(0.6),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    comment['context']?.toString() ??
+                                        'No comment text',
+                                    style: theme.textTheme.bodyMedium,
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // Input field
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _commentController,
+                                decoration: InputDecoration(
+                                  hintText: 'Add a comment...',
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                  filled: true,
+                                  fillColor: theme.colorScheme.surfaceVariant,
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 12,
+                                  ),
+                                ),
+                                maxLines: null,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            CircleAvatar(
+                              backgroundColor: theme.colorScheme.primary,
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.send,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                                onPressed: () async {
+                                  await _addCommentToFirestore(
+                                    _commentController.text,
+                                  );
+                                  _commentController.clear();
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+    );
+  }
+
+  Future<String> _getUserEmail(String? userId) async {
+    if (userId == null || userId.isEmpty) return 'Anonymous';
+
+    try {
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .get();
+      return doc.data()?['email'] ?? 'Anonymous';
+    } catch (e) {
+      return 'Anonymous';
+    }
+  }
+
+  // Modify the _buildCommentItem widget
+  Widget _buildCommentItem(Map<String, dynamic> comment, ThemeData theme) {
+    return FutureBuilder<String>(
+      future: _getUserEmail(comment['user_id']?.toString()),
+      builder: (context, snapshot) {
+        final email = snapshot.data ?? 'Anonymous';
+        final initials = email.substring(0, 2).toUpperCase();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _formatTimeAgo(comment['timestamp']?.toString() ?? ''),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                comment['context']?.toString() ?? 'No comment text',
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _addCommentToFirestore(String commentText) async {
+    if (commentText.isEmpty) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must be logged in to comment')),
+      );
+      return;
+    }
+
+    try {
+      final commentData = {
+        'user_id': currentUser.uid,
+        'context': commentText,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+
+      await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.complaintId)
+          .update({
+            'Comments': FieldValue.arrayUnion([commentData]),
+            'comment_count': FieldValue.increment(1),
+          });
+
+      _commentController.clear();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add comment: ${e.toString()}')),
+      );
+    }
+  }
+
+  String _formatTimeAgo(String timestamp) {
+    final dateTime = DateTime.tryParse(timestamp);
+    if (dateTime == null) return 'Unknown time';
+
+    final difference = DateTime.now().difference(dateTime);
+
+    if (difference.inDays > 0) return '${difference.inDays}d ago';
+    if (difference.inHours > 0) return '${difference.inHours}h ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
+    return 'Just now';
+  }
+
   Widget _buildChatbotRedirectCard() {
     final theme = Theme.of(context);
     return Card(
@@ -563,78 +952,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSimilarComplaintsSection() {
-    final theme = Theme.of(context);
-    final matchedComplaints =
-        _analysisResult['matched_complaints'] as List<dynamic>? ?? [];
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Similar Experiences',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Divider(),
-            const SizedBox(height: 8),
-            if (matchedComplaints.isEmpty)
-              Text(
-                'No similar experiences found in the database.',
-                style: theme.textTheme.bodyMedium,
-              ),
-            for (var complaint in matchedComplaints)
-              Card(
-                margin: const EdgeInsets.only(bottom: 8.0),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        complaint['text'] ?? '',
-                        style: theme.textTheme.bodySmall,
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: theme.primaryColor,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${complaint['similarity']?.toStringAsFixed(1) ?? 0}% match',
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
         ),
       ),
     );
@@ -722,7 +1039,6 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 }
 
 class ComplaintAnalyzer {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   late final String? _serperApiKey;
 
   ComplaintAnalyzer() {
@@ -736,90 +1052,6 @@ class ComplaintAnalyzer {
     if (_serperApiKey == null) {
       throw Exception('Missing API Key: Serper API key must be provided.');
     }
-  }
-
-  double _calculateSimilarity(String text1, String text2) {
-    return text1.similarityTo(text2) * 100;
-  }
-
-  double _degreesToRadians(double degrees) {
-    return degrees * (pi / 180);
-  }
-
-  double _calculateDistance(
-    double lat1,
-    double lon1,
-    double lat2,
-    double lon2,
-  ) {
-    const double earthRadius = 6371;
-    final double latDelta = _degreesToRadians(lat2 - lat1);
-    final double lonDelta = _degreesToRadians(lon2 - lon1);
-
-    final double a =
-        sin(latDelta / 2) * sin(latDelta / 2) +
-        cos(_degreesToRadians(lat1)) *
-            cos(_degreesToRadians(lat2)) *
-            sin(lonDelta / 2) *
-            sin(lonDelta / 2);
-    final double c = 2 * atan2(sqrt(a), sqrt(1 - a));
-
-    return earthRadius * c;
-  }
-
-  Future<List<Map<String, dynamic>>> _searchFirebase(
-    String location,
-    String problem, {
-    double threshold = 70.0,
-    double? latitude,
-    double? longitude,
-    double radiusInKm = 5.0,
-  }) async {
-    QuerySnapshot complaintsSnapshot =
-        await _firestore.collection("complaints").get();
-
-    List<Map<String, dynamic>> matchedComplaints = [];
-
-    for (var doc in complaintsSnapshot.docs) {
-      Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-      String complaintText = data["text"] ?? "";
-
-      double textSimilarity = _calculateSimilarity(complaintText, problem);
-      bool isInRadius = true;
-      double distance = double.infinity;
-
-      if (latitude != null &&
-          longitude != null &&
-          data.containsKey("latitude") &&
-          data.containsKey("longitude")) {
-        double docLat = (data["latitude"] as num).toDouble();
-        double docLong = (data["longitude"] as num).toDouble();
-        distance = _calculateDistance(latitude, longitude, docLat, docLong);
-        isInRadius = distance <= radiusInKm;
-      }
-
-      if (!isInRadius && latitude != null && longitude != null) {
-        continue;
-      }
-
-      if (textSimilarity >= threshold) {
-        matchedComplaints.add({
-          "processed_text": complaintText,
-          "similarity": textSimilarity,
-          "location": data["location"] ?? "Unknown",
-          "distance_km": distance != double.infinity ? distance : null,
-          "id": doc.id,
-        });
-      }
-    }
-
-    matchedComplaints.sort((a, b) {
-      final aValue = a["similarity"] as double;
-      final bValue = b["similarity"] as double;
-      return bValue.compareTo(aValue);
-    });
-
-    return matchedComplaints;
   }
 
   Future<List<Map<String, dynamic>>> _searchOnline(
@@ -863,14 +1095,6 @@ class ComplaintAnalyzer {
       return {"error": "Both 'location' and 'problem' fields are required!"};
     }
 
-    List<Map<String, dynamic>> complaints = await _searchFirebase(
-      location,
-      problem,
-      latitude: latitude,
-      longitude: longitude,
-      radiusInKm: 5.0,
-    );
-
     List<Map<String, dynamic>> newsResults = await _searchOnline(
       location,
       problem,
@@ -879,7 +1103,6 @@ class ComplaintAnalyzer {
     return {
       "location": location,
       "problem": problem,
-      "matched_complaints": complaints,
       "news_results": newsResults,
       "coordinates":
           (latitude != null && longitude != null)

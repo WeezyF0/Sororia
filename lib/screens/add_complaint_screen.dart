@@ -169,11 +169,13 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
-        "original_text": complaintText, // Store the original text
-        "processed_text": structuredComplaint?["Text_description"] ?? complaintText, // Store the processed text
+        "original_text": complaintText, 
+        "processed_text": structuredComplaint?["Text_description"] ?? complaintText,
         "timestamp": timestamp,
+        "timestamp_ms": DateTime.now().millisecondsSinceEpoch,
         "user_id": userId,
-        "queried": false
+        "queried": false,
+        "upvotes": 0,
       };
 
       // Add the complaint document and then update user's my_c field with the new complaint's ID.
@@ -209,6 +211,19 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
           automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            "Share Experience",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          titleSpacing: 0,
           flexibleSpace: Container(
             decoration: const BoxDecoration(
               image: DecorationImage(
@@ -224,28 +239,6 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
                   Colors.blue.withOpacity(0.3),
                   Colors.purple.withOpacity(0.3),
                 ],
-              ),
-            ),
-            child: SafeArea(
-              child: Center(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      "Share Experience",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ),
           ),

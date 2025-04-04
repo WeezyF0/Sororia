@@ -57,6 +57,8 @@ dependencies:
   infinite_scroll_pagination: 4.1.0  
   algoliasearch: ^1.30.2
   algolia_client_search: ^1.31.0
+  flutter_spinkit: ^5.2.0
+  timeago: ^3.5.0
 
 dev_dependencies:
   flutter_native_splash: ^2.3.4

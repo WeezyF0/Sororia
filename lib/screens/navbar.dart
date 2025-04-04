@@ -98,12 +98,13 @@ class NavBar extends StatelessWidget {
                     ),
                     _buildNavigationTile(
                       context: context,
-                      icon: CupertinoIcons.map_fill,
-                      iconColor: ColorPalette.success,
-                      title: "Map View",
-                      route: "/complaints_map",
+                      icon: CupertinoIcons.search,
+                      iconColor: ColorPalette.warning,
+                      title: "Search Experiences",
+                      route: "/test",
                       isDarkMode: isDarkMode,
                     ),
+                    
 
                     _buildDivider(isDarkMode),
 
@@ -140,14 +141,7 @@ class NavBar extends StatelessWidget {
                       route: "/news",
                       isDarkMode: isDarkMode,
                     ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.lab_flask,
-                      iconColor: ColorPalette.warning,
-                      title: "Search Experiences",
-                      route: "/test",
-                      isDarkMode: isDarkMode,
-                    ),
+  
                     _buildDivider(isDarkMode),
 
                     // Settings section
@@ -204,24 +198,24 @@ class NavBar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // User avatar
-              CircleAvatar(
-                radius: 30,
-                backgroundColor: ColorPalette.primaryLight,
-                child: Text(
-                  userInitial,
-                  style: GoogleFonts.poppins(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
+              // Logo and app name
+              Row(
+                children: [
+                  Image.asset('assets/images/logo2.png', height: 40, width: 40),
+                  SizedBox(width: 8),
+                  Text(
+                    "SORORIA",
+                    style: _poppinsStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
+                ],
               ),
-
-              Spacer(),
-
+              
               // Close button
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -236,9 +230,9 @@ class NavBar extends StatelessWidget {
               ),
             ],
           ),
-
+          
           SizedBox(height: 16),
-
+          
           // User email
           Text(
             userEmail,
@@ -250,28 +244,19 @@ class NavBar extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-
-          SizedBox(height: 4),
-
-          // App name
-          InkWell(
-            onTap: () => Navigator.pushReplacementNamed(context, '/home'),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                children: [
-                  Image.asset('assets/images/logo2.png', height: 24, width: 24),
-                  SizedBox(width: 8),
-                  Text(
-                    "Sororia",
-                    style: _poppinsStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
+          
+          SizedBox(height: 12),
+          
+          // User initial avatar
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: ColorPalette.primaryLight,
+            child: Text(
+              userInitial,
+              style: GoogleFonts.poppins(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ),
@@ -279,6 +264,7 @@ class NavBar extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildSectionTitle(String title, bool isDarkMode) {
     return Padding(

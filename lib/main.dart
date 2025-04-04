@@ -1,4 +1,3 @@
-import 'package:complaints_app/screens/complaints_map_screen.dart';
 import 'package:complaints_app/screens/home.dart';
 import 'package:complaints_app/screens/my_petitions.dart';
 import 'package:complaints_app/screens/open_complaint.dart';
@@ -68,7 +67,6 @@ class MyApp extends StatelessWidget {
         '/add_complaint': (context) => AddComplaintScreen(),
         '/add_petition': (context) => AddPetitionScreen(),
         '/petitions': (context) => PetitionListScreen(),
-        '/complaints_map': (context) => ComplaintMapScreen(),
         '/open_petition': (context) => OpenPetitionScreen(),
         '/my_petitions': (context) => MyPetitionScreen(),
         '/my_complaints': (context) => MyComplaintScreen(),
