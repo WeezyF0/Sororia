@@ -54,6 +54,14 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       throw Exception("Gemini API Key is missing!");
     }
 
+    // Define the allowed tags explicitly
+    final List<String> allowedTags = [
+      "Workplace", "Family", "Safety", "Social", "Others", 
+      "Severe", "Institutional", "Discrimination", "Harassment", 
+      "Healthcare", "Education", "Legal", "Domestic", "Public", 
+      "Online", "Financial", "Professional"
+    ];
+
     final model = GenerativeModel(
       model: 'gemini-2.0-flash',
       apiKey: apiKey!,
@@ -65,37 +73,22 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         responseMimeType: 'application/json',
         responseSchema: Schema(
           SchemaType.object,
-          requiredProperties: ["Issue Type", "Text_description"],
+          requiredProperties: ["Issue Type", "Text_description", "Primary_tags"],
           properties: {
             "Issue Type": Schema(
               SchemaType.object,
-              requiredProperties: ["Workplace", "Family", "Safety", "Social", "Others", "Severe", "Institutional", "Discrimation"],
-              properties: {
-                "Workplace": Schema(
-                  SchemaType.boolean,
-                ),
-                "Family": Schema(
-                  SchemaType.boolean,
-                ),
-                "Safety": Schema(
-                  SchemaType.boolean,
-                ),
-                "Social": Schema(
-                  SchemaType.boolean,
-                ),
-                "Others": Schema(
-                  SchemaType.boolean,
-                ),
-                "Severe": Schema(
-                  SchemaType.boolean,
-                ),
-                "Institutional": Schema(
-                  SchemaType.boolean,
-                ),
-                "Discrimation": Schema(
-                  SchemaType.boolean,
-                ),
-              },
+              requiredProperties: allowedTags,
+              properties: Map.fromEntries(
+                allowedTags.map((tag) => MapEntry(tag, Schema(SchemaType.boolean)))
+              ),
+            ),
+            "Primary_tags": Schema(
+              SchemaType.array,
+              items: Schema(
+                SchemaType.string,
+                enumValues: allowedTags, // Only allow tags from the predefined list
+              ),
+              description: "The 4 most relevant tags for this complaint, in order of relevance",
             ),
             "Text_description": Schema(
               SchemaType.string,
@@ -103,9 +96,19 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
           },
         ),
       ),
-      systemInstruction: Content.system('You will be given a experience from a woman about a specific issue in a particular place formalize it, into the format having types and a description, the broader types need to be marked as true, and also try be as honest as you can about the issue no alteration. The complaint text needs to be brief but precise.'),
+      systemInstruction: Content.system(
+        'You will be given an experience from a woman about a specific issue. '
+        'Analyze it carefully and do the following:\n'
+        '1. Formalize it into a brief but precise description\n'
+        '2. Mark all applicable issue types as true\n'
+        '3. Select ONLY the 4 MOST RELEVANT tags from this list ONLY: ${allowedTags.join(", ")}\n'
+        '4. List them in the Primary_tags array in order of relevance\n'
+        '5. Be honest and accurate in your assessment without altering the core issue\n'
+        '6. Be sensitive to the serious nature of these reports and prioritize tags that best categorize the experience'
+      ),
     );
 
+    // Rest of the function remains the same
     final chat = model.startChat();
     final response = await chat.sendMessage(
       Content.multi([TextPart(complaintText)]),
@@ -156,16 +159,31 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         complaintText,
       );
 
+      // Use primary tags if available, otherwise fall back to issue types
       List<String> issueTypes = [];
-      if (structuredComplaint != null &&
-          structuredComplaint.containsKey("Issue Type")) {
-        structuredComplaint["Issue Type"].forEach((key, value) {
-          if (value == true) issueTypes.add(key);
-        });
+      
+      if (structuredComplaint != null) {
+        if (structuredComplaint.containsKey("Primary_tags") && 
+            structuredComplaint["Primary_tags"] is List) {
+            
+          // Use the AI-selected primary tags (limited to 4)
+          issueTypes = List<String>.from(structuredComplaint["Primary_tags"]);
+        } else if (structuredComplaint.containsKey("Issue Type")) {
+          // Fall back to old method: get all true tags
+          Map<String, dynamic> allTags = structuredComplaint["Issue Type"];
+          List<MapEntry<String, dynamic>> sortedTags = allTags.entries.where(
+            (entry) => entry.value == true
+          ).toList();
+          
+          // Limit to 4 tags
+          sortedTags = sortedTags.take(4).toList();
+          issueTypes = sortedTags.map((e) => e.key).toList();
+        }
       }
 
       Map<String, dynamic> formattedComplaint = {
         "issue_type": issueTypes.join(", "),
+        "issue_tags": issueTypes, // Store as array for better querying
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
@@ -189,13 +207,16 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       });
 
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Your experience has been shared successfully"))
+        );
         Navigator.pop(context);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: ${error.toString()}")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error: ${error.toString()}"))
+        );
       }
     }
 
@@ -247,20 +268,34 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TextField(
-              controller: _controller,
-              decoration: const InputDecoration(
-                labelText: "Share your experience",
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                decoration: const InputDecoration(
+                  labelText: "Share your experience",
+                  hintText: "Tell us what happened...",
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: null,
+                expands: true,
+                textAlignVertical: TextAlignVertical.top,
               ),
             ),
             const SizedBox(height: 20),
             _isLoading
-                ? const CircularProgressIndicator()
+                ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-                  onPressed: () => _submitComplaint(context),
-                  child: const Text("Submit"),
-                ),
+                    onPressed: () => _submitComplaint(context),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                    child: const Text(
+                      "Submit",
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  ),
           ],
         ),
       ),

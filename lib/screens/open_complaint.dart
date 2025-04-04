@@ -971,7 +971,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Related News',
+              'Related News and Articles',
               style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.bold,
               ),

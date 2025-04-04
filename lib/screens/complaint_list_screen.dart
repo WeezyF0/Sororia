@@ -52,6 +52,37 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
     }
   }
 
+  Widget buildIssueTagsDisplay(Map<String, dynamic> data) {
+    final theme = Theme.of(context);
+    final primaryColor = theme.primaryColor;
+    
+    // Get the issue type
+    String issueType = data['issue_type'] ?? 'General';
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: primaryColor.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: primaryColor.withOpacity(0.25),
+          width: 1,
+        ),
+      ),
+      child: Text(
+        issueType,
+        style: theme.textTheme.labelSmall?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: primaryColor,
+        ),
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -275,28 +306,8 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                             Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // First row: Issue type tag
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: primaryColor.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: primaryColor.withOpacity(0.25),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    data['issue_type'] ?? 'General',
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                      color: primaryColor,
-                                    ),
-                                  ),
-                                ),
+                                // First row: Issue type tags (using our new helper method)
+                                buildIssueTagsDisplay(data),
                                 const SizedBox(height: 8),
                                 // Second row: Save button, upvote button and timeago display in one row
                                 Row(

@@ -32,23 +32,6 @@ class MyComplaintScreen extends StatelessWidget {
     }
   }
 
-  Color _getStatusColor(ThemeData theme, String status) {
-    switch (status.toLowerCase()) {
-      case 'resolved':
-        return theme.brightness == Brightness.dark
-            ? Colors.greenAccent.withOpacity(0.8)
-            : Colors.green;
-      case 'in progress':
-        return theme.brightness == Brightness.dark
-            ? Colors.orangeAccent.withOpacity(0.8)
-            : Colors.orange;
-      default:
-        return theme.brightness == Brightness.dark
-            ? Colors.lightBlueAccent.withOpacity(0.8)
-            : Colors.lightBlue;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -303,8 +286,6 @@ class MyComplaintScreen extends StatelessWidget {
               } catch (_) {}
 
               final showUpdateBanner = currentUpdateCount > lastSeenCount;
-              final status = data['status'] ?? 'Pending';
-              final statusColor = _getStatusColor(theme, status);
 
               return Container(
                 margin: const EdgeInsets.only(bottom: 16.0),
@@ -379,13 +360,13 @@ class MyComplaintScreen extends StatelessWidget {
                           Container(
                             height: 6,
                             decoration: BoxDecoration(
-                              color: statusColor,
+                              color: primaryColor,
                               gradient: LinearGradient(
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
                                 colors: [
-                                  statusColor.withOpacity(0.7),
-                                  statusColor,
+                                  primaryColor.withOpacity(0.7),
+                                  primaryColor,
                                 ],
                               ),
                             ),
@@ -483,75 +464,38 @@ class MyComplaintScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(height: 18),
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 10,
-                                          vertical: 8,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: textSecondary.withOpacity(
-                                            0.08,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            10,
-                                          ),
-                                          border: Border.all(
-                                            color: textSecondary.withOpacity(
-                                              0.15,
-                                            ),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Icon(
-                                              Icons.location_on_rounded,
-                                              size: 16,
-                                              color: textSecondary,
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Expanded(
-                                              child: Text(
-                                                data['location'] ??
-                                                    'Unknown location',
-                                                overflow: TextOverflow.ellipsis,
-                                                style:
-                                                    theme.textTheme.labelMedium,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: textSecondary.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(
+                                      color: textSecondary.withOpacity(0.15),
+                                      width: 1,
                                     ),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 8,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_rounded,
+                                        size: 16,
+                                        color: textSecondary,
                                       ),
-                                      decoration: BoxDecoration(
-                                        color: statusColor.withOpacity(0.15),
-                                        borderRadius: BorderRadius.circular(10),
-                                        border: Border.all(
-                                          color: statusColor.withOpacity(0.3),
-                                          width: 1,
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: Text(
+                                          data['location'] ??
+                                              'Unknown location',
+                                          overflow: TextOverflow.ellipsis,
+                                          style: theme.textTheme.labelMedium,
                                         ),
                                       ),
-                                      child: Text(
-                                        status,
-                                        style: theme.textTheme.labelMedium
-                                            ?.copyWith(
-                                              fontWeight: FontWeight.w600,
-                                              color: statusColor,
-                                            ),
-                                      ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                                 if (showUpdateBanner)
                                   Padding(
