@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:complaints_app/services/serper_news.dart';
+import 'package:complaints_app/services/news_api.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -21,12 +22,14 @@ class _NewsScreenState extends State<NewsScreen> {
   String currentState = "";
 
   late SerperService serperService;
-
+  late NewsApiService newsApiService;
+  
   @override
   void initState() {
     super.initState();
     final serperApiKey = dotenv.env['serper-api'] ?? "";
     serperService = SerperService(serperApiKey);
+    newsApiService = NewsApiService();
     _determinePosition();
   }
 
@@ -63,7 +66,7 @@ class _NewsScreenState extends State<NewsScreen> {
 
     final centralNewsFuture = serperService.fetchSerperNews("Latest central government woman scheme site:.gov.in");
     final stateNewsFuture = serperService.fetchSerperNews("Latest $state state woman schemes site:.gov.in");
-    final generalStateNewsFuture = serperService.fetchSerperNews("$state woman news site:news.google.com");
+    final generalStateNewsFuture = newsApiService.search("related to woman in $state");
 
     final results = await Future.wait([centralNewsFuture, stateNewsFuture, generalStateNewsFuture]);
 

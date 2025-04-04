@@ -452,8 +452,9 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                         FutureBuilder<bool>(
                           future: _isComplaintInSavedC(),
                           builder: (context, snapshot) {
-                            if (!snapshot.hasData)
+                            if (!snapshot.hasData) {
                               return const SizedBox.shrink();
+                            }
                             final isInSavedC = snapshot.data ?? false;
                             return isInSavedC
                                 ? IconButton(
@@ -635,7 +636,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       return userId ?? "";
     }
     
-    return userId.substring(0, userId.length - 3) + "\$\$\$";
+    return "${userId.substring(0, userId.length - 3)}\$\$\$";
   }
 
   void _showAllCommentsDialog(BuildContext context, ThemeData theme) {
@@ -779,7 +780,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
-                                  fillColor: theme.colorScheme.surfaceVariant,
+                                  fillColor: theme.colorScheme.surfaceContainerHighest,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,
