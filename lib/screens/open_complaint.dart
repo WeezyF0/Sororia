@@ -632,11 +632,11 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
   }
 
   String maskUserId(String? userId) {
-    if (userId == null || userId.length < 3) {
+    if (userId == null || userId.length < 12) {
       return userId ?? "";
     }
     
-    return "${userId.substring(0, userId.length - 3)}\$\$\$";
+    return "${userId.substring(0, userId.length - 12)}";
   }
 
   void _showAllCommentsDialog(BuildContext context, ThemeData theme) {
@@ -780,7 +780,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
-                                  fillColor: theme.colorScheme.surfaceContainerHighest,
+                                  fillColor: theme.colorScheme.surfaceVariant,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,
