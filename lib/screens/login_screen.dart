@@ -1,4 +1,3 @@
-import 'package:complaints_app/screens/phone_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:complaints_app/services/auth_service.dart';
 import 'signup_screen.dart';
@@ -180,20 +179,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             "Don't have an account? Sign up",
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white70 : primaryColor,
-                            ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => PhoneAuthScreen()),
-                            );
-                          },
-                          child: Text(
-                            "Login with Phone Number",
                             style: TextStyle(
                               color: isDarkMode ? Colors.white70 : primaryColor,
                             ),

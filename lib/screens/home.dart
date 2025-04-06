@@ -152,8 +152,8 @@ class _HomePageState extends State<HomePage> {
                 String coordKey = "$newLat,$newLon";
 
                 while (uniqueCoordinates.contains(coordKey)) {
-                  newLat += (random.nextDouble() - 0.5) * 0.001;
-                  newLon += (random.nextDouble() - 0.5) * 0.001;
+                  newLat += (random.nextDouble() - 0.5) * 0.1;
+                  newLon += (random.nextDouble() - 0.5) * 0.1;
                   coordKey = "$newLat,$newLon";
                 }
                 uniqueCoordinates.add(coordKey);
