@@ -18,7 +18,6 @@ Contributions are **welcome**! Feel free to **fork** the repository and submit a
 ---
 
 ### 💖 Made with love  
-by  
 **Aayush Kumar**  
 **Aniruddha Sahay Varma**  
 **Akshun Chappola**  
