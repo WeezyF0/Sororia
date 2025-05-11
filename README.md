@@ -14,3 +14,15 @@ Contributions are **welcome**! Feel free to **fork** the repository and submit a
 
 ## 📱 Try the App!
 📥 **[Download the APK](https://drive.google.com/file/d/1GqR7grncvl9tcI-oOLbeQg9s_7ZwbPJt/view?usp=sharing)** and test **Sororia** on your **Android device**. *(iOS version under development.)*
+
+---
+
+### 💖 Made with love  
+**Aayush Kumar**  
+**Aniruddha Sahay Varma**  
+**Akshun Chappola**  
+**Akhilesh Negi**
+
+🧪 *Tested with 💜 by*  
+**Aayush Gupta**
+
