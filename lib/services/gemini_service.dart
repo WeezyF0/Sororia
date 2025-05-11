@@ -3,8 +3,8 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 class GeminiService {
   final String _apiKey = dotenv.env['gemini-api'] ?? '';
-  GenerativeModel? _model; // Make the model nullable
-  ChatSession? _chatSession; // Make the chat session nullable
+  GenerativeModel? _model; 
+  ChatSession? _chatSession; 
 
   String _systemPromptText = """
 You are SororiAI, an empathetic chatbot designed to empower women by providing a safe platform to share experiences, 
@@ -41,14 +41,12 @@ Any topic unrelated to women empowerment or issues.
 resources, and a supportive community to address challenges, advocate for rights, and create meaningful change.
 """;
 
-  // Constructor does not initialize the model
   GeminiService();
 
   void _initializeModel() {
-    if (_model != null) return; // Ensure the model is initialized only once
-
+    if (_model != null) return; 
     _model = GenerativeModel(
-      model: 'gemini-2.0-pro-exp-02-05',
+      model: 'gemini-2.5-flash-preview-04-17',
       apiKey: _apiKey,
       systemInstruction: Content.system(_systemPromptText),
       generationConfig: GenerationConfig(
