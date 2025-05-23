@@ -669,12 +669,14 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
 
-          Positioned(
-            bottom: 80,
-            left: 20,
-            right: 20,
-            child: _buildOptions(context),
-          ),
+          // Only show options when routes are NOT visible
+          if (!_isRouteVisible)
+            Positioned(
+              bottom: 80,
+              left: 20,
+              right: 20,
+              child: _buildOptions(context),
+            ),
         ],
       ),
     );
@@ -752,4 +754,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-  }
+}
