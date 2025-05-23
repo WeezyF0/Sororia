@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:geocoding/geocoding.dart' as geo;
 import 'package:geolocator/geolocator.dart';
 import 'dart:math';
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:complaints_app/screens/open_complaint.dart';
 import 'package:flutter/cupertino.dart';
-
+import 'package:complaints_app/services/unpack_polyline.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,12 +23,49 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController _searchController = TextEditingController();
   final MapController _mapController = MapController();
   final FocusNode _searchFocusNode = FocusNode();
+  
+  // Routing variables
+  LatLng? _currentLocation;
+  LatLng? _destinationLocation;
+  List<LatLng> _routePoints = [];
+  bool _isRouteVisible = false;
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  Future<void> _getCurrentLocationCoordinates() async {
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        _showError("Location services are disabled.");
+        return;
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          _showError("Location permission denied");
+          return;
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showError("Location permissions are permanently denied.");
+        return;
+      }
+
+      Position position = await Geolocator.getCurrentPosition();
+      setState(() {
+        _currentLocation = LatLng(position.latitude, position.longitude);
+      });
+    } catch (e) {
+      _showError("Failed to get current location");
+    }
   }
 
   void _searchLocation() async {
@@ -37,10 +76,22 @@ class _HomePageState extends State<HomePage> {
         return;
       }
 
-      List<Location> locations = await locationFromAddress(placeName);
+      List<geo.Location> locations = await geo.locationFromAddress(placeName);
       if (locations.isNotEmpty) {
-        Location location = locations.first;
-        _mapController.move(LatLng(location.latitude, location.longitude), 14.0);
+        geo.Location location = locations.first;
+        LatLng destination = LatLng(location.latitude, location.longitude);
+        
+        setState(() {
+          _destinationLocation = destination;
+        });
+        
+        _mapController.move(destination, 14.0);
+        
+        // Get current location and draw route
+        await _getCurrentLocationCoordinates();
+        if (_currentLocation != null) {
+          await _drawRoute();
+        }
       } else {
         _showError("Location not found");
       }
@@ -49,32 +100,76 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+  Future<void> _drawRoute() async {
+    if (_currentLocation == null || _destinationLocation == null) return;
 
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showError("Location services are disabled.");
-      return;
-    }
+    try {
+      // Build OSRM API URL
+      String coordinates = "${_currentLocation!.longitude},${_currentLocation!.latitude};${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
+      String url = "http://router.project-osrm.org/route/v1/driving/$coordinates?overview=full&geometries=polyline";
+      
+      // Make HTTP request
+      final response = await http.get(Uri.parse(url));
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = json.decode(response.body);
+        
+        if (data['code'] == 'Ok' && data['routes'].isNotEmpty) {
+          final String encodedPolyline = data['routes'][0]['geometry'];
+          final List<LatLng> routePoints = decodePolyline(encodedPolyline).unpackPolyline();
+          
+          setState(() {
+            _routePoints = routePoints;
+            _isRouteVisible = true;
+          });
 
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _showError("Location permission denied");
-        return;
+          // Fit the map to show the entire route
+          if (routePoints.isNotEmpty) {
+            _fitMapToRoute(routePoints);
+          }
+        } else {
+          _showError("No route found");
+        }
+      } else {
+        _showError("Failed to get route: HTTP ${response.statusCode}");
       }
+    } catch (e) {
+      _showError("Failed to get route: $e");
     }
+  }
 
-    if (permission == LocationPermission.deniedForever) {
-      _showError("Location permissions are permanently denied.");
-      return;
+  void _fitMapToRoute(List<LatLng> points) {
+    if (points.isEmpty) return;
+
+    double minLat = points.map((p) => p.latitude).reduce(min);
+    double maxLat = points.map((p) => p.latitude).reduce(max);
+    double minLng = points.map((p) => p.longitude).reduce(min);
+    double maxLng = points.map((p) => p.longitude).reduce(max);
+
+    LatLng southwest = LatLng(minLat, minLng);
+    LatLng northeast = LatLng(maxLat, maxLng);
+
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds(southwest, northeast),
+        padding: const EdgeInsets.all(50),
+      ),
+    );
+  }
+
+  void _clearRoute() {
+    setState(() {
+      _routePoints.clear();
+      _isRouteVisible = false;
+      _destinationLocation = null;
+    });
+  }
+
+  Future<void> _getCurrentLocation() async {
+    await _getCurrentLocationCoordinates();
+    if (_currentLocation != null) {
+      _mapController.move(_currentLocation!, 14.0);
     }
-
-    Position position = await Geolocator.getCurrentPosition();
-    _mapController.move(LatLng(position.latitude, position.longitude), 14.0);
   }
 
   void _showError(String message) {
@@ -138,6 +233,38 @@ class _HomePageState extends State<HomePage> {
               Set<String> uniqueCoordinates = {};
               List<Marker> markers = [];
 
+              // Add current location marker if available
+              if (_currentLocation != null) {
+                markers.add(
+                  Marker(
+                    point: _currentLocation!,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(
+                      Icons.my_location,
+                      color: Colors.blue,
+                      size: 36,
+                    ),
+                  ),
+                );
+              }
+
+              // Add destination marker if available
+              if (_destinationLocation != null) {
+                markers.add(
+                  Marker(
+                    point: _destinationLocation!,
+                    width: 40,
+                    height: 40,
+                    child: const Icon(
+                      Icons.location_on,
+                      color: Colors.green,
+                      size: 36,
+                    ),
+                  ),
+                );
+              }
+
               for (var doc in snapshot.data!.docs) {
                 var data = doc.data() as Map<String, dynamic>;
                 double? lat = data['latitude'] as double?;
@@ -181,6 +308,18 @@ class _HomePageState extends State<HomePage> {
                 );
               }
 
+              // Create polyline for route
+              List<Polyline> polylines = [];
+              if (_isRouteVisible && _routePoints.isNotEmpty) {
+                polylines.add(
+                  Polyline(
+                    points: _routePoints,
+                    strokeWidth: 4.0,
+                    color: Colors.blue,
+                  ),
+                );
+              }
+
               return FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
@@ -194,6 +333,7 @@ class _HomePageState extends State<HomePage> {
                     urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
                     userAgentPackageName: 'com.complaints.app',
                   ),
+                  if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
                   MarkerLayer(markers: markers),
                 ],
               );
@@ -219,9 +359,19 @@ class _HomePageState extends State<HomePage> {
                   hintText: "Search for a location...",
                   contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: InputBorder.none,
-                  suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: Colors.blue),
-                    onPressed: _searchLocation,
+                  suffixIcon: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_isRouteVisible)
+                        IconButton(
+                          icon: Icon(Icons.clear, color: Colors.red),
+                          onPressed: _clearRoute,
+                        ),
+                      IconButton(
+                        icon: Icon(Icons.search, color: Colors.blue),
+                        onPressed: _searchLocation,
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -322,4 +472,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
+  }

@@ -59,6 +59,8 @@ dependencies:
   algolia_client_search: ^1.31.0
   flutter_spinkit: ^5.2.0
   timeago: ^3.5.0
+  routing_client_dart: ^1.0.7
+  google_polyline_algorithm: ^3.1.0
 
 dev_dependencies:
   flutter_native_splash: ^2.3.4
