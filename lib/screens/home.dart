@@ -79,7 +79,7 @@ class _HomePageState extends State<HomePage> {
     try {
       String placeName = _searchController.text.trim();
       if (placeName.isEmpty) {
-        _showError("Please enter a place name");
+        _showError("Enter the destination location");
         return;
       }
 

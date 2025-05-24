@@ -141,6 +141,14 @@ class NavBar extends StatelessWidget {
                       route: "/news",
                       isDarkMode: isDarkMode,
                     ),
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.news,
+                      iconColor: ColorPalette.primaryLight,
+                      title: "News Map",
+                      route: "/news_map",
+                      isDarkMode: isDarkMode,
+                    ),
   
                     _buildDivider(isDarkMode),
 

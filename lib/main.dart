@@ -22,6 +22,7 @@ import 'package:flutter/services.dart';
 import 'screens/chat_screen.dart';
 import 'screens/news_screen.dart';
 import 'screens/test_screen.dart';
+import 'screens/news_map_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +74,7 @@ class MyApp extends StatelessWidget {
         '/chatbot': (context) => ChatScreen(compInfo: ModalRoute.of(context)!.settings.arguments as String),
         '/news': (context) => NewsScreen(),
         '/test': (context) => const TestScreen(), // Add the test screen route
+        '/news_map': (context) => NewsMapScreen(),
 
       },
       onGenerateRoute: (settings) {
