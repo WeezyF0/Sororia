@@ -3,7 +3,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:complaints_app/services/serper_news.dart';
-import 'package:complaints_app/services/news_api.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -17,19 +16,16 @@ class NewsScreen extends StatefulWidget {
 class _NewsScreenState extends State<NewsScreen> {
   List<Map<String, String>> centralNews = [];
   List<Map<String, String>> stateNews = [];
-  List<Map<String, String>> generalStateNews = [];
   bool isLoading = false;
   String currentState = "";
 
   late SerperService serperService;
-  late NewsApiService newsApiService;
   
   @override
   void initState() {
     super.initState();
     final serperApiKey = dotenv.env['serper-api'] ?? "";
     serperService = SerperService(serperApiKey);
-    newsApiService = NewsApiService();
     _determinePosition();
   }
 
@@ -66,14 +62,12 @@ class _NewsScreenState extends State<NewsScreen> {
 
     final centralNewsFuture = serperService.fetchSerperNews("Latest central government woman scheme site:.gov.in");
     final stateNewsFuture = serperService.fetchSerperNews("Latest $state state woman schemes site:.gov.in");
-    final generalStateNewsFuture = newsApiService.search("related to woman in $state");
 
-    final results = await Future.wait([centralNewsFuture, stateNewsFuture, generalStateNewsFuture]);
+    final results = await Future.wait([centralNewsFuture, stateNewsFuture]);
 
     setState(() {
       centralNews = results[0];
       stateNews = results[1];
-      generalStateNews = results[2];
       isLoading = false;
     });
   }
@@ -142,11 +136,6 @@ class _NewsScreenState extends State<NewsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             SizedBox(height: 24),
-                            _buildNewsSection(
-                              "General State News from $currentState",
-                              generalStateNews,
-                            ),
-
                             _buildNewsSection(
                               "Central Government Schemes",
                               centralNews,

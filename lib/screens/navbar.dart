@@ -137,7 +137,7 @@ class NavBar extends StatelessWidget {
                       context: context,
                       icon: CupertinoIcons.news_solid,
                       iconColor: ColorPalette.primaryLight,
-                      title: "View News in your area",
+                      title: "View Gov Schems in your area",
                       route: "/news",
                       isDarkMode: isDarkMode,
                     ),
