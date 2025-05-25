@@ -87,14 +87,47 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
     }
 
     try {
-      final Uri uri = Uri.parse(url);
+      // Clean the URL - remove any extra whitespace
+      String cleanUrl = url.trim();
+      
+      // Ensure URL has proper protocol
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        cleanUrl = 'https://$cleanUrl';
+      }
+      
+      print("Attempting to launch URL: $cleanUrl"); // Debug log
+      
+      final Uri uri = Uri.parse(cleanUrl);
+      
+      // Try different launch modes
       if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        // Try external application first
+        bool launched = await launchUrl(
+          uri, 
+          mode: LaunchMode.externalApplication,
+        );
+        
+        if (!launched) {
+          // Fallback to platform default
+          launched = await launchUrl(
+            uri, 
+            mode: LaunchMode.platformDefault,
+          );
+        }
+        
+        if (!launched) {
+          // Final fallback to in-app web view
+          await launchUrl(
+            uri, 
+            mode: LaunchMode.inAppWebView,
+          );
+        }
       } else {
-        _showError("Could not open news article");
+        _showError("Cannot open this URL on your device");
       }
     } catch (e) {
-      _showError("Invalid news article URL");
+      print("URL Launch Error: $e"); // Debug log
+      _showError("Error opening article: ${e.toString()}");
     }
   }
 
@@ -138,7 +171,7 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
       body: Stack(
         children: [
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('ghosty').snapshots(),
+            stream: FirebaseFirestore.instance.collection('news_markers').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
