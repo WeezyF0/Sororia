@@ -5,6 +5,7 @@
 ## 🚀 Features
 - 🤖 **SororiAI** – Users can interact with our AI chatbot to seek guidance, find solutions, and get assistance for their concerns.
 - ✅ **Share Experiences** – A safe space for women to **share their experiences** and seek help.
+- 📰 **News Map** – Get **real time** news related to women's rights and safety on an **interactive map**.
 - 📰 **Government Schemes** – Get relevant information related to women's rights and safety in different states in India.
 - 📜 **Petitions** – Start and sign petitions to drive meaningful change and gather support.
 - 🗺️ **Issue Mapping** – Visualize reported concerns on an **interactive map** with GPS-based locations.
