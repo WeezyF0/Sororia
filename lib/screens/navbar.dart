@@ -131,6 +131,19 @@ class NavBar extends StatelessWidget {
 
                     _buildDivider(isDarkMode),
 
+                    // safety
+                    _buildSectionTitle('SAFETY', isDarkMode),
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.news_solid,
+                      iconColor: ColorPalette.primaryLight,
+                      title: "Find Safest Route",
+                      route: "/safest_route",
+                      isDarkMode: isDarkMode,
+                    ),
+
+                    _buildDivider(isDarkMode),
+
                     // news
                     _buildSectionTitle('NEWS', isDarkMode),
                     _buildNavigationTile(

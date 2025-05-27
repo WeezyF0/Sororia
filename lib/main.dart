@@ -23,6 +23,7 @@ import 'screens/chat_screen.dart';
 import 'screens/news_screen.dart';
 import 'screens/test_screen.dart';
 import 'screens/news_map_screen.dart';
+import 'screens/safest_route.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,7 +76,7 @@ class MyApp extends StatelessWidget {
         '/news': (context) => NewsScreen(),
         '/test': (context) => const TestScreen(), // Add the test screen route
         '/news_map': (context) => NewsMapScreen(),
-
+        '/safest_route': (context) => SafestRoutePage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {
