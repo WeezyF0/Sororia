@@ -24,6 +24,8 @@ import 'screens/news_screen.dart';
 import 'screens/test_screen.dart';
 import 'screens/news_map_screen.dart';
 import 'screens/safest_route.dart';
+import 'screens/stats_screen.dart';
+import 'screens/summary_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,11 +74,16 @@ class MyApp extends StatelessWidget {
         '/open_petition': (context) => OpenPetitionScreen(),
         '/my_petitions': (context) => MyPetitionScreen(),
         '/my_complaints': (context) => MyComplaintScreen(),
-        '/chatbot': (context) => ChatScreen(compInfo: ModalRoute.of(context)!.settings.arguments as String),
+        '/chatbot':
+            (context) => ChatScreen(
+              compInfo: ModalRoute.of(context)!.settings.arguments as String,
+            ),
         '/news': (context) => NewsScreen(),
         '/test': (context) => const TestScreen(), // Add the test screen route
         '/news_map': (context) => NewsMapScreen(),
         '/safest_route': (context) => SafestRoutePage(),
+        '/summary_screen': (context) => SummaryScreen(),
+        '/stats_screen': (context) => StatsScreen(category: 'Category'),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {

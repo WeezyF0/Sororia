@@ -104,7 +104,6 @@ class NavBar extends StatelessWidget {
                       route: "/test",
                       isDarkMode: isDarkMode,
                     ),
-                    
 
                     _buildDivider(isDarkMode),
 
@@ -162,7 +161,15 @@ class NavBar extends StatelessWidget {
                       route: "/news_map",
                       isDarkMode: isDarkMode,
                     ),
-  
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.news,
+                      iconColor: ColorPalette.primaryLight,
+                      title: "Summary",
+                      route: "/summary_screen",
+                      isDarkMode: isDarkMode,
+                    ),
+
                     _buildDivider(isDarkMode),
 
                     // Settings section
@@ -236,7 +243,7 @@ class NavBar extends StatelessWidget {
                   ),
                 ],
               ),
-              
+
               // Close button
               IconButton(
                 onPressed: () => Navigator.of(context).pop(),
@@ -251,9 +258,9 @@ class NavBar extends StatelessWidget {
               ),
             ],
           ),
-          
+
           SizedBox(height: 16),
-          
+
           // User email
           Text(
             userEmail,
@@ -265,9 +272,9 @@ class NavBar extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          
+
           SizedBox(height: 12),
-          
+
           // User initial avatar
           CircleAvatar(
             radius: 20,
@@ -285,7 +292,6 @@ class NavBar extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildSectionTitle(String title, bool isDarkMode) {
     return Padding(

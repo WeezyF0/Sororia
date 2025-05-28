@@ -3,48 +3,43 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 class GeminiService {
   final String _apiKey = dotenv.env['gemini-api'] ?? '';
-  GenerativeModel? _model; 
-  ChatSession? _chatSession; 
+  GenerativeModel? _model;
+  GenerativeModel? _summaryModel; // New model for summary generation
+  ChatSession? _chatSession;
 
-  String _systemPromptText = """
-You are SororiAI, an empathetic chatbot designed to empower women by providing a safe platform to share experiences, 
-start petitions, and raise awareness about women-centric issues. 
-Your primary goals are:
--Listen actively to user concerns and validate their experiences.
--Guide users in drafting petitions and sharing stories to inspire change.
--Provide resources like helplines, safety tools, or updates on womens rights and empowerment initiatives.
--Foster community by encouraging collaboration and resilience-building.
+  // Existing system prompt for chat
+  String _systemPromptText = """..."""; // Keep your existing system prompt
 
-🚨 Important Rules:
-❌ DO NOT entertain irrelevant queries such as:
-"Write a poem"
-"Tell me a joke"
-Any topic unrelated to women empowerment or issues.
-(Politely decline and redirect the user to focus on empowerment topics.)
+  // New system prompt for summary generation
+  final String _summaryPromptText = """
+You are a safety analyst AI assistant. Your task is to analyze user complaints and 
+generate concise, professional safety summaries with these guidelines:
 
-🌍 Features:
--Assist with complaint drafting and petition creation.
--Share actionable resources for safety, rights, and advocacy.
--Promote a supportive environment for storytelling and community building.
+1. Focus on key safety trends, risks, and improvement opportunities
+2. Provide actionable recommendations
+3. Include relevant statistics if available
+4. Use professional but accessible language
+5. Limit summaries to 100-150 words
+6. Structure with:
+   - Overview of safety status
+   - Main concerns identified
+   - Notable trends/patterns
+   - Recommendations
+7. Use bullet points only for recommendations
 
-### *🌍 Web Search Handling Rules*
-🔹 *Non-explicit Web Requests:*  
-- If a user asks for a *valid link, website, or real-time information*, respond with:  
-  *"I can search online for you."*  
-- Wait for confirmation ("Yes").  
-- If confirmed, generate a *short, optimized summary of the query* and return it to be searched online.  
-
-🔹 *Explicit/Harmful Queries:*  
-- If the request is *potentially unsafe or harmful, use the **exploitive content flag* to *block the search* and warn the user.  
-
-🚀 *Your mission: Empower women to take charge of their lives by providing them with tools, 
-resources, and a supportive community to address challenges, advocate for rights, and create meaningful change.
+Example format:
+"Safety analysis of [category] based on [N] reports shows... 
+Key concerns include... 
+Trend analysis reveals... 
+Recommendations:
+- First recommendation
+- Second recommendation"
 """;
 
   GeminiService();
 
   void _initializeModel() {
-    if (_model != null) return; 
+    if (_model != null) return;
     _model = GenerativeModel(
       model: 'gemini-2.5-flash-preview-04-17',
       apiKey: _apiKey,
@@ -59,22 +54,61 @@ resources, and a supportive community to address challenges, advocate for rights
     _chatSession = _model!.startChat();
   }
 
+  void _initializeSummaryModel() {
+    if (_summaryModel != null) return;
+    _summaryModel = GenerativeModel(
+      model: 'gemini-1.5-flash', // Better for summarization
+      apiKey: _apiKey,
+      systemInstruction: Content.system(_summaryPromptText),
+      generationConfig: GenerationConfig(
+        temperature: 0.7, // More focused than chat
+        topK: 40,
+        topP: 0.9,
+        maxOutputTokens: 1024, // Appropriate for summaries
+      ),
+    );
+  }
+
+  // Existing chat method
   Future<String> getResponse(String message) async {
     if (_model == null || _chatSession == null) {
       return "Error: Model not initialized. Please update the system prompt first.";
     }
 
     try {
-      final response = await _chatSession!.sendMessage(
-        Content.text(message),
-      );
-
+      final response = await _chatSession!.sendMessage(Content.text(message));
       return response.text ?? "Error: No response received.";
     } catch (e) {
       return "Error: ${e.toString()}";
     }
   }
 
+  // NEW: Summary generation method
+  Future<String> generateSummary(String context, String category) async {
+    _initializeSummaryModel(); // Ensure model is initialized
+
+    try {
+      final prompt = """
+Generate a safety summary for $category based on these complaints:
+$context
+
+Focus on:
+1. Key safety trends and patterns
+2. Most common issues
+3. Risk areas
+4. Actionable recommendations
+""";
+
+      final response = await _summaryModel!.generateContent([
+        Content.text(prompt),
+      ]);
+      return response.text ?? "No summary available";
+    } catch (e) {
+      return "Error generating summary: ${e.toString()}";
+    }
+  }
+
+  // Existing methods remain unchanged
   void resetChat() {
     if (_chatSession != null) {
       _chatSession = _model!.startChat();
@@ -82,8 +116,7 @@ resources, and a supportive community to address challenges, advocate for rights
   }
 
   void updateSystemPrompt(String additionalPrompt) {
-    // Append the new prompt to the existing system prompt
     _systemPromptText += "\n\n$additionalPrompt";
-    _initializeModel(); // Initialize the model after updating the prompt
+    _initializeModel();
   }
 }
