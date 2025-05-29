@@ -21,12 +21,14 @@ tasks.register<Delete>("clean") {
 }
 
 buildscript {
+    val kotlinVersion by extra("2.1.0")  // Add this line
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
         classpath("com.android.tools.build:gradle:8.2.0")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")  // Add this line
         classpath("com.google.gms:google-services:4.4.0")
     }
 }
