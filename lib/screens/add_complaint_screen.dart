@@ -59,7 +59,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       "Workplace", "Family", "Safety", "Social", "Others", 
       "Severe", "Institutional", "Discrimination", "Harassment", 
       "Healthcare", "Education", "Legal", "Domestic", "Public", 
-      "Online", "Financial", "Professional"
+      "Online", "Financial", "Professional", "Transport", "City", "Night"
     ];
 
     final model = GenerativeModel(
