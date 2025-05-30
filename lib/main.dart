@@ -6,6 +6,7 @@ import 'package:complaints_app/screens/my_complaints.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
 import 'screens/complaint_list_screen.dart';
@@ -26,20 +27,82 @@ import 'screens/news_map_screen.dart';
 import 'screens/safest_route.dart';
 import 'screens/stats_screen.dart';
 import 'screens/summary_screen.dart';
+FirebaseMessaging messaging = FirebaseMessaging.instance;
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  // If you're going to use other Firebase services in the background, such as Firestore,
+  // make sure you call `initializeApp` before using other Firebase services.
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
+
+// Add this function to request notification permissions
+Future<void> requestNotificationPermission() async {
+  NotificationSettings settings = await messaging.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  print('User granted permission: ${settings.authorizationStatus}');
+  
+  if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+    print('User granted permission');
+  } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
+    print('User granted provisional permission');
+  } else {
+    print('User declined or has not accepted permission');
+  }
+}
+
+// Add this function to handle foreground notifications
+Future<void> setupNotificationHandlers() async {
+  // Handle notification when app is in foreground
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    print('Got a message whilst in the foreground!');
+    print('Message data: ${message.data}');
+
+    if (message.notification != null) {
+      print('Message also contained a notification: ${message.notification}');
+      // You can show a local notification here or update UI
+    }
+  });
+
+  // Handle notification when app is opened from background
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    print('A new onMessageOpenedApp event was published!');
+    print('Message data: ${message.data}');
+    // Navigate to specific screen based on notification data
+  });
+
+  // Get FCM token for this device
+  String? token = await messaging.getToken();
+  print('FCM Token: $token');
+  // You can send this token to your server to send targeted notifications
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-
+  
   await dotenv.load(fileName: ".env");
-
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  
+  // Request notification permission
+  await requestNotificationPermission();
+  
+  // Setup notification handlers
+  await setupNotificationHandlers();
+  
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
@@ -47,14 +110,11 @@ void main() async {
     ),
   );
 }
-
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Sororia',
@@ -103,10 +163,8 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
-
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -122,7 +180,6 @@ class AuthWrapper extends StatelessWidget {
       },
     );
   }
-
   Widget _buildLoadingScreen() {
     return Scaffold(
       body: Container(

@@ -1,6 +1,6 @@
 plugins {
     id("com.android.application")
-    id("kotlin-android")
+    id("kotlin-android")  // Remove the version from here
     id("dev.flutter.flutter-gradle-plugin") // Flutter Gradle Plugin must be after Android & Kotlin
     id("com.google.gms.google-services") // Google Services for Firebase
 }
