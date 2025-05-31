@@ -59,6 +59,7 @@ dependencies:
   algolia_client_search: ^1.31.0
   flutter_spinkit: ^5.2.0
   timeago: ^3.5.0
+  fl_chart: 1.0.0
   routing_client_dart: ^1.0.7
   google_polyline_algorithm: ^3.1.0
   firebase_messaging: ^15.2.6
