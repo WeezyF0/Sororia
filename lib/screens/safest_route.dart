@@ -33,6 +33,11 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   bool _isLoading = false;
   List<LatLng> _newsMarkers = []; // Store news marker locations for safety calculation
   
+  // Marker visibility toggles
+  bool _showNews = true;
+  bool _showNGOs = false;
+  bool _showPoliceStations = false;
+  
   // Route metrics
   List<double> _routeDistances = [];
   List<double> _routeDurations = [];
@@ -505,7 +510,16 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }
   }
 
-  List<Marker> _buildMarkers(QuerySnapshot snapshot) {
+  Stream<List<QuerySnapshot>> _combineStreams() {
+    return Stream.periodic(const Duration(seconds: 1), (count) async {
+      final news = await FirebaseFirestore.instance.collection('news_markers').get();
+      final ngos = await FirebaseFirestore.instance.collection('ngos').get();
+      final police = await FirebaseFirestore.instance.collection('police_stations').get();
+      return [news, ngos, police];
+    }).asyncMap((future) => future);
+  }
+
+  List<Marker> _buildMarkers(QuerySnapshot newsSnapshot, QuerySnapshot ngosSnapshot, QuerySnapshot policeSnapshot) {
     final markers = <Marker>[];
     final newsMarkers = <LatLng>[];
 
@@ -541,35 +555,129 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       );
     }
 
-    // Add news markers WITHOUT offset
-    for (final doc in snapshot.docs) {
-      final data = doc.data() as Map<String, dynamic>;
-      final lat = data['latitude'] as double?;
-      final lon = data['longitude'] as double?;
-      final title = data['issue_type'] ?? 'No issue type';
-      final description = data['original_text'] ?? 'No description';
-      final sourceUrl = data['source_url'] as String?;
+    // Add news markers
+    if (_showNews) {
+      for (final doc in newsSnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          final lat = data['latitude'] as double?;
+          final lon = data['longitude'] as double?;
+          final title = data['issue_type']?.toString() ?? 'No issue type';
+          final description = data['original_text']?.toString() ?? 'No description';
+          final sourceUrl = data['source_url']?.toString();
 
-      if (lat == null || lon == null) continue;
+          if (lat == null || lon == null) continue;
 
-      final newsLocation = LatLng(lat, lon);
-      newsMarkers.add(newsLocation);
+          final newsLocation = LatLng(lat, lon);
+          newsMarkers.add(newsLocation);
 
-      markers.add(
-        Marker(
-          point: newsLocation,
-          width: 40,
-          height: 40,
-          child: GestureDetector(
-            onTap: () => _showNewsDetails(context, title, description, sourceUrl),
-            child: const Icon(
-              CupertinoIcons.exclamationmark_shield_fill,
-              color: Color.fromARGB(255, 31, 134, 178),
-              size: 36,
+          markers.add(
+            Marker(
+              point: newsLocation,
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _showNewsDetails(context, title, description, sourceUrl),
+                child: const Icon(
+                  CupertinoIcons.exclamationmark_shield_fill,
+                  color: Color.fromARGB(255, 31, 134, 178),
+                  size: 36,
+                ),
+              ),
             ),
-          ),
-        ),
-      );
+          );
+        } catch (e) {
+          print("Error processing news marker: $e");
+          continue;
+        }
+      }
+    }
+
+    // Add NGO markers
+    if (_showNGOs) {
+      for (final doc in ngosSnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          
+          // Handle location field safely
+          final locationData = data['location'];
+          if (locationData == null) continue;
+          
+          double? lat, lon;
+          
+          if (locationData is Map<String, dynamic>) {
+            lat = locationData['latitude'] as double?;
+            lon = locationData['longitude'] as double?;
+          }
+          
+          if (lat == null || lon == null) continue;
+
+          final name = data['name']?.toString() ?? 'Unknown NGO';
+          
+          // Handle sectors array safely
+          List<String>? sectors;
+          final sectorsData = data['sectors'];
+          if (sectorsData is List) {
+            sectors = sectorsData.map((e) => e.toString()).toList();
+          }
+
+          final ngoLocation = LatLng(lat, lon);
+
+          markers.add(
+            Marker(
+              point: ngoLocation,
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _showNGODetails(context, name, sectors),
+                child: const Icon(
+                  Icons.volunteer_activism,
+                  color: Colors.orange,
+                  size: 36,
+                ),
+              ),
+            ),
+          );
+        } catch (e) {
+          print("Error processing NGO marker: $e");
+          continue;
+        }
+      }
+    }
+
+    // Add Police Station markers
+    if (_showPoliceStations) {
+      for (final doc in policeSnapshot.docs) {
+        try {
+          final data = doc.data() as Map<String, dynamic>;
+          final lat = data['latitude'] as double?;
+          final lon = data['longitude'] as double?;
+          final name = data['name']?.toString() ?? 'Police Station';
+
+          if (lat == null || lon == null) continue;
+
+          final policeLocation = LatLng(lat, lon);
+
+          markers.add(
+            Marker(
+              point: policeLocation,
+              width: 40,
+              height: 40,
+              child: GestureDetector(
+                onTap: () => _showPoliceStationDetails(context, name),
+                child: const Icon(
+                  Icons.local_police,
+                  color: Colors.red,
+                  size: 36,
+                ),
+              ),
+            ),
+          );
+        } catch (e) {
+          print("Error processing police marker: $e");
+          continue;
+        }
+      }
     }
 
     // Update news markers for safety calculation
@@ -608,6 +716,225 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }
 
     return polylines;
+  }
+
+  Widget _buildMarkerToggle(String label, IconData icon, Color color, bool value, Function(bool) onChanged) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 16),
+        const SizedBox(width: 4),
+        Text(label, style: const TextStyle(fontSize: 10)),
+        const SizedBox(width: 4),
+        Switch(
+          value: value,
+          onChanged: onChanged,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ],
+    );
+  }
+
+  void _showNGODetails(BuildContext context, String name, List<String>? sectors) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20.0),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.orange.withOpacity(0.8),
+                    Colors.deepOrange.withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.volunteer_activism,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Sectors
+            if (sectors != null && sectors.isNotEmpty) ...[
+              const Text(
+                "Sectors",
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: sectors.map((sector) => Chip(
+                  label: Text(
+                    sector,
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                  backgroundColor: Colors.orange.withOpacity(0.2),
+                )).toList(),
+              ),
+            ],
+            
+            const SizedBox(height: 16),
+            
+            // Close Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text("Close"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showPoliceStationDetails(BuildContext context, String name) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      backgroundColor: Colors.white,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(20.0),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.4,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.red.withOpacity(0.8),
+                    Colors.red.shade700.withOpacity(0.8),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.local_police,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            const Text(
+              "Emergency Services Available",
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.black54,
+              ),
+            ),
+            
+            const SizedBox(height: 16),
+            
+            // Close Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text("Close"),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -650,18 +977,22 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       drawer: const NavBar(),
       body: Stack(
         children: [
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('news_markers').snapshots(),
+          StreamBuilder<List<QuerySnapshot>>(
+            stream: _combineStreams(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("No news markers available"));
+              if (!snapshot.hasData || snapshot.data!.length < 3) {
+                return const Center(child: Text("Loading map data..."));
               }
 
-              final markers = _buildMarkers(snapshot.data!);
+              final newsSnapshot = snapshot.data![0];
+              final ngosSnapshot = snapshot.data![1];
+              final policeSnapshot = snapshot.data![2];
+
+              final markers = _buildMarkers(newsSnapshot, ngosSnapshot, policeSnapshot);
               final polylines = _buildPolylines();
 
               return FlutterMap(
@@ -724,6 +1055,51 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                     ],
                   ),
                 ),
+              ),
+            ),
+          ),
+
+          // Marker Filter Panel
+          Positioned(
+            top: 100,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Show Markers",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildMarkerToggle(
+                    "News", 
+                    CupertinoIcons.exclamationmark_shield_fill, 
+                    Colors.blue, 
+                    _showNews, 
+                    (value) => setState(() => _showNews = value)
+                  ),
+                  _buildMarkerToggle(
+                    "NGOs", 
+                    Icons.volunteer_activism, 
+                    Colors.orange, 
+                    _showNGOs, 
+                    (value) => setState(() => _showNGOs = value)
+                  ),
+                  _buildMarkerToggle(
+                    "Police", 
+                    Icons.local_police, 
+                    Colors.red, 
+                    _showPoliceStations, 
+                    (value) => setState(() => _showPoliceStations = value)
+                  ),
+                ],
               ),
             ),
           ),
