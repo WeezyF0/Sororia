@@ -170,26 +170,18 @@ class NavBar extends StatelessWidget {
                       isDarkMode: isDarkMode,
                     ),
 
+                    // In your NavBar class, replace the Settings section with:
                     _buildDivider(isDarkMode),
 
                     // Settings section
                     _buildSectionTitle('SETTINGS', isDarkMode),
-                    _buildThemeSwitchTile(isDarkMode, themeProvider),
-
-                    _buildDivider(isDarkMode),
-
-                    // Account section
                     _buildNavigationTile(
                       context: context,
-                      icon: CupertinoIcons.square_arrow_left,
-                      iconColor: ColorPalette.error,
-                      title: "Logout",
+                      icon: CupertinoIcons.settings,
+                      iconColor: Colors.blueGrey,
+                      title: "Settings",
+                      route: "/settings_screen",
                       isDarkMode: isDarkMode,
-                      onTap: () async {
-                        await FirebaseAuth.instance.signOut();
-                        Navigator.pushReplacementNamed(context, '/login');
-                      },
-                      showTrailing: false,
                     ),
                   ],
                 ),

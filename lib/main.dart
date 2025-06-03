@@ -27,6 +27,8 @@ import 'screens/news_map_screen.dart';
 import 'screens/safest_route.dart';
 import 'screens/stats_screen.dart';
 import 'screens/summary_screen.dart';
+import 'screens/settings_screen.dart';
+
 FirebaseMessaging messaging = FirebaseMessaging.instance;
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
@@ -48,7 +50,7 @@ Future<void> requestNotificationPermission() async {
   );
 
   print('User granted permission: ${settings.authorizationStatus}');
-  
+
   if (settings.authorizationStatus == AuthorizationStatus.authorized) {
     print('User granted permission');
   } else if (settings.authorizationStatus == AuthorizationStatus.provisional) {
@@ -87,22 +89,22 @@ Future<void> setupNotificationHandlers() async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   await dotenv.load(fileName: ".env");
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  
+
   // Request notification permission
   await requestNotificationPermission();
-  
+
   // Setup notification handlers
   await setupNotificationHandlers();
-  
+
   runApp(
     ChangeNotifierProvider(
       create: (context) => ThemeProvider(),
@@ -110,6 +112,7 @@ void main() async {
     ),
   );
 }
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
   @override
@@ -144,6 +147,7 @@ class MyApp extends StatelessWidget {
         '/safest_route': (context) => SafestRoutePage(),
         '/summary_screen': (context) => SummaryScreen(),
         '/stats_screen': (context) => StatsScreen(category: 'Category'),
+        '/settings_screen': (context) => SettingsScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {
@@ -163,6 +167,7 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
   @override
@@ -180,6 +185,7 @@ class AuthWrapper extends StatelessWidget {
       },
     );
   }
+
   Widget _buildLoadingScreen() {
     return Scaffold(
       body: Container(

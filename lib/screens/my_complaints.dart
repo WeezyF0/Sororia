@@ -128,6 +128,7 @@ class MyComplaintScreen extends StatelessWidget {
             return Center(
               child: Text(
                 "No user data available.",
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge,
               ),
             );
@@ -140,6 +141,7 @@ class MyComplaintScreen extends StatelessWidget {
             return Center(
               child: Text(
                 "You haven't saved or shared any experiences yet.",
+                textAlign: TextAlign.center,
                 style: theme.textTheme.bodyLarge,
               ),
             );
