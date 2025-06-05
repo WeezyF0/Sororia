@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_markdown/flutter_markdown.dart'; // Add this dependency
 
 class StatsScreen extends StatefulWidget {
   final String category;
@@ -13,8 +16,15 @@ class StatsScreen extends StatefulWidget {
 
 class _StatsScreenState extends State<StatsScreen> {
   bool isLoading = true;
+  bool isSummaryLoading = false;
   Map<String, dynamic> statsData = {};
   List<Map<String, dynamic>> recentComplaints = [];
+  String? aiSummary;
+  bool showSummary = false;
+
+  // Get API key from .env file
+  String get _geminiApiKey => dotenv.env['GEMINI_API_KEY'] ?? '';
+  late final GenerativeModel _model;
 
   // Map categories to their corresponding issue types
   final Map<String, List<String>> categoryMapping = {
@@ -28,7 +38,115 @@ class _StatsScreenState extends State<StatsScreen> {
   @override
   void initState() {
     super.initState();
+    _initializeGemini();
     _fetchStatsData();
+  }
+
+  void _initializeGemini() {
+    if (_geminiApiKey.isEmpty) {
+      print('Warning: GEMINI_API_KEY not found in .env file');
+      return;
+    }
+    
+    _model = GenerativeModel(
+      model: 'gemini-2.0-flash-exp',
+      apiKey: _geminiApiKey,
+    );
+  }
+
+  Future<void> _generateAISummary() async {
+    if (statsData.isEmpty || _geminiApiKey.isEmpty) {
+      setState(() {
+        aiSummary = 'API key not configured. Please add GEMINI_API_KEY to your .env file.';
+        showSummary = true;
+      });
+      return;
+    }
+
+    setState(() {
+      isSummaryLoading = true;
+    });
+
+    try {
+      final prompt = _buildPromptFromStats();
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      
+      setState(() {
+        aiSummary = response.text;
+        showSummary = true;
+        isSummaryLoading = false;
+      });
+    } catch (e) {
+      print('Error generating AI summary: $e');
+      setState(() {
+        aiSummary = 'Failed to generate summary. Please check your API key and try again.\n\nError: ${e.toString()}';
+        showSummary = true;
+        isSummaryLoading = false;
+      });
+    }
+  }
+
+  String _buildPromptFromStats() {
+    final totalComplaints = statsData['totalComplaints'] ?? 0;
+    final avgUpvotes = statsData['avgUpvotes'] ?? 0.0;
+    final topLocations = statsData['topLocations'] as Map<String, int>? ?? {};
+    final issueTypes = statsData['issueTypeDistribution'] as Map<String, int>? ?? {};
+    final weeklyTrend = statsData['weeklyTrend'] as Map<String, int>? ?? {};
+
+    // Get top 3 locations
+    final sortedLocations = topLocations.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top3Locations = sortedLocations.take(3).toList();
+
+    // Get top 3 issue types
+    final sortedIssues = issueTypes.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final top3Issues = sortedIssues.take(3).toList();
+
+    // Calculate weekly trend
+    final weeklyValues = weeklyTrend.values.toList();
+    String trendDescription = "stable";
+    if (weeklyValues.length >= 2) {
+      final recent = weeklyValues.length >= 3 
+          ? weeklyValues.sublist(weeklyValues.length - 3).fold(0, (a, b) => a + b)
+          : weeklyValues.last;
+      final earlier = weeklyValues.length >= 4 
+          ? weeklyValues.sublist(0, 4).fold(0, (a, b) => a + b)
+          : (weeklyValues.length > 1 ? weeklyValues.first : 0);
+      if (recent > earlier) {
+        trendDescription = "increasing";
+      } else if (recent < earlier) {
+        trendDescription = "decreasing";
+      }
+    }
+
+    return '''
+Analyze the following safety complaint statistics for ${widget.category} and provide a comprehensive summary with insights and recommendations. Please format your response using Markdown for better readability:
+
+**STATISTICS OVERVIEW:**
+- Total Complaints: $totalComplaints
+- Average Upvotes per Complaint: ${avgUpvotes.toStringAsFixed(1)}
+- Weekly Trend: $trendDescription
+
+**TOP AFFECTED LOCATIONS:**
+${top3Locations.map((e) => '- ${e.key}: ${e.value} complaints').join('\n')}
+
+**MOST COMMON ISSUE TYPES:**
+${top3Issues.map((e) => '- ${e.key}: ${e.value} occurrences').join('\n')}
+
+**RECENT COMPLAINT SAMPLES:**
+${recentComplaints.take(3).map((c) => '- "${c['text']}" at ${c['location']} (${c['upvotes']} upvotes)').join('\n')}
+
+Please provide your analysis using proper Markdown formatting with:
+1. **Brief Overview** of the current situation
+2. **Key Trends & Patterns** identified
+3. **Priority Areas** that need immediate attention
+4. **Actionable Recommendations** for improvement
+5. **Preventive Measures** to consider
+
+Use headers, bullet points, and emphasis to make the summary clear and actionable for safety improvement initiatives.
+''';
   }
 
   Future<void> _fetchStatsData() async {
@@ -169,6 +287,13 @@ class _StatsScreenState extends State<StatsScreen> {
         title: Text(widget.category),
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome),
+            onPressed: statsData.isNotEmpty ? _generateAISummary : null,
+            tooltip: 'Generate AI Summary',
+          ),
+        ],
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -179,6 +304,10 @@ class _StatsScreenState extends State<StatsScreen> {
                 children: [
                   _buildOverviewCards(theme),
                   const SizedBox(height: 24),
+                  if (showSummary) ...[
+                    _buildAISummaryCard(theme),
+                    const SizedBox(height: 24),
+                  ],
                   _buildWeeklyTrendChart(theme),
                   const SizedBox(height: 24),
                   _buildTopLocationsChart(theme),
@@ -189,6 +318,147 @@ class _StatsScreenState extends State<StatsScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildAISummaryCard(ThemeData theme) {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, color: theme.primaryColor),
+                const SizedBox(width: 8),
+                Expanded( // Fix overflow here
+                  child: Text(
+                    'Gen-AI Insights',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => setState(() => showSummary = false),
+                  tooltip: 'Close Summary',
+                ),
+              ],
+            ),
+            const Divider(),
+            if (isSummaryLoading)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Generating AI insights...'),
+                    ],
+                  ),
+                ),
+              )
+                          else if (aiSummary != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: theme.primaryColor.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: theme.primaryColor.withOpacity(0.2),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  child: MarkdownBody(
+                    data: aiSummary!,
+                    styleSheet: MarkdownStyleSheet(
+                      p: theme.textTheme.bodyMedium?.copyWith(
+                        height: 1.5,
+                        fontSize: 14,
+                      ),
+                      h1: theme.textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                        fontSize: 20,
+                      ),
+                      h2: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                        fontSize: 18,
+                      ),
+                      h3: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: theme.primaryColor,
+                        fontSize: 16,
+                      ),
+                      listBullet: theme.textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                      ),
+                      strong: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                      em: theme.textTheme.bodyMedium?.copyWith(
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                      ),
+                      blockquote: theme.textTheme.bodyMedium?.copyWith(
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                        fontSize: 14,
+                      ),
+                      code: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'monospace',
+                        backgroundColor: Colors.grey[200],
+                        fontSize: 13,
+                      ),
+                    ),
+                    selectable: true,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 12),
+            Wrap( // Use Wrap instead of Row to prevent overflow
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline,
+                      size: 16,
+                      color: Colors.amber[700],
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Powered by Gemini 2.0 Flash',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.grey[600],
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton.icon(
+                  onPressed: _generateAISummary,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Regenerate'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.primaryColor,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -249,6 +519,8 @@ class _StatsScreenState extends State<StatsScreen> {
     );
   }
 
+
+
   Widget _buildWeeklyTrendChart(ThemeData theme) {
     final weeklyData = statsData['weeklyTrend'] as Map<String, int>? ?? {};
     
@@ -278,48 +550,60 @@ class _StatsScreenState extends State<StatsScreen> {
           children: [
             Text('Weekly Stats (Last 7 Days)', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 200,
-              child: LineChart(
-                LineChartData(
-                  gridData: FlGridData(show: true),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        getTitlesWidget: (value, meta) {
-                          final index = value.toInt();
-                          if (index >= 0 && index < weeklyData.length) {
-                            return Text(
-                              weeklyData.keys.toList()[index],
-                              style: const TextStyle(fontSize: 10),
-                            );
-                          }
-                          return const Text('');
-                        },
+            LayoutBuilder( // Use LayoutBuilder for responsive chart
+              builder: (context, constraints) {
+                return SizedBox(
+                  height: 200,
+                  width: constraints.maxWidth,
+                  child: LineChart(
+                    LineChartData(
+                      gridData: FlGridData(show: true),
+                      titlesData: FlTitlesData(
+                        bottomTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 30,
+                            getTitlesWidget: (value, meta) {
+                              final index = value.toInt();
+                              if (index >= 0 && index < weeklyData.length) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Text(
+                                    weeklyData.keys.toList()[index],
+                                    style: const TextStyle(fontSize: 10),
+                                  ),
+                                );
+                              }
+                              return const Text('');
+                            },
+                          ),
+                        ),
+                        leftTitles: AxisTitles(
+                          sideTitles: SideTitles(
+                            showTitles: true,
+                            reservedSize: 40,
+                          ),
+                        ),
+                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                       ),
+                      borderData: FlBorderData(show: true),
+                      lineBarsData: [
+                        LineChartBarData(
+                          spots: spots,
+                          isCurved: true,
+                          color: theme.primaryColor,
+                          barWidth: 3,
+                          belowBarData: BarAreaData(
+                            show: true,
+                            color: theme.primaryColor.withOpacity(0.1),
+                          ),
+                        ),
+                      ],
                     ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(showTitles: true),
-                    ),
-                    topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   ),
-                  borderData: FlBorderData(show: true),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      color: theme.primaryColor,
-                      barWidth: 3,
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: theme.primaryColor.withOpacity(0.1),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+                );
+              },
             ),
           ],
         ),
@@ -359,32 +643,49 @@ class _StatsScreenState extends State<StatsScreen> {
             const SizedBox(height: 16),
             ...topLocations.map((entry) => Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(entry.key),
-                  ),
-                  Container(
-                    width: 100,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: entry.value / topLocations.first.value,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: theme.primaryColor,
-                          borderRadius: BorderRadius.circular(4),
+              child: LayoutBuilder( // Use LayoutBuilder for responsive bars
+                builder: (context, constraints) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          entry.key,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(entry.value.toString()),
-                ],
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: FractionallySizedBox(
+                            alignment: Alignment.centerLeft,
+                            widthFactor: entry.value / topLocations.first.value,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: theme.primaryColor,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      SizedBox(
+                        width: 30,
+                        child: Text(
+                          entry.value.toString(),
+                          style: theme.textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             )),
           ],
@@ -477,24 +778,38 @@ class _StatsScreenState extends State<StatsScreen> {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 8),
-                  Row(
+                  Wrap( // Use Wrap instead of Row for responsive layout
+                    spacing: 16,
+                    runSpacing: 4,
                     children: [
-                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        complaint['location'],
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: Text(
+                              complaint['location'],
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey[600],
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
-                      const Spacer(),
-                      Icon(Icons.thumb_up, size: 16, color: Colors.grey[600]),
-                      const SizedBox(width: 4),
-                      Text(
-                        complaint['upvotes'].toString(),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.thumb_up, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            complaint['upvotes'].toString(),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
