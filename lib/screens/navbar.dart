@@ -141,6 +141,15 @@ class NavBar extends StatelessWidget {
                       isDarkMode: isDarkMode,
                     ),
 
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.chart_bar_square_fill,
+                      iconColor: ColorPalette.primaryLight,
+                      title: "Safety Summary",
+                      route: "/summary_screen",
+                      isDarkMode: isDarkMode,
+                    ),
+
                     _buildDivider(isDarkMode),
 
                     // news
@@ -161,14 +170,7 @@ class NavBar extends StatelessWidget {
                       route: "/news_map",
                       isDarkMode: isDarkMode,
                     ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.news,
-                      iconColor: ColorPalette.primaryLight,
-                      title: "Summary",
-                      route: "/summary_screen",
-                      isDarkMode: isDarkMode,
-                    ),
+      
 
                     // In your NavBar class, replace the Settings section with:
                     _buildDivider(isDarkMode),

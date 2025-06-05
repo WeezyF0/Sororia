@@ -30,6 +30,21 @@ import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
 
 FirebaseMessaging messaging = FirebaseMessaging.instance;
+// Global navigator key to use for navigation from anywhere
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Add a provider to store the selected protest ID
+class ProtestProvider extends ChangeNotifier {
+  String? _selectedProtestId;
+
+  String? get selectedProtestId => _selectedProtestId;
+
+  void setSelectedProtestId(String protestId) {
+    _selectedProtestId = protestId;
+    notifyListeners();
+  }
+}
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
   // make sure you call `initializeApp` before using other Firebase services.
@@ -106,8 +121,11 @@ void main() async {
   await setupNotificationHandlers();
 
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeProvider(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => ThemeProvider()),
+        ChangeNotifierProvider(create: (context) => ProtestProvider()),
+      ],
       child: MyApp(),
     ),
   );
@@ -115,10 +133,12 @@ void main() async {
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
+      navigatorKey: navigatorKey, // Set global navigator key
       debugShowCheckedModeBanner: false,
       title: 'Sororia',
       themeMode: themeProvider.themeMode,

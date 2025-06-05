@@ -286,7 +286,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = theme.primaryColor;
-    final surfaceColor = theme.colorScheme.surface;
     final textSecondary = theme.colorScheme.onSurface.withOpacity(0.6);
     final themeProvider = Provider.of<ThemeProvider>(context);
 

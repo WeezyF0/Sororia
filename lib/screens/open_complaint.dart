@@ -289,7 +289,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
               : _buildAnalysisView(),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _navigateToChatbot,
-        icon: const Icon(Icons.chat),
+        icon: const Icon(Icons.auto_awesome),
         label: const Text('SororiAI Assistance'),
       ),
     );
@@ -947,7 +947,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                 alignment: Alignment.centerRight,
                 child: ElevatedButton.icon(
                   onPressed: _navigateToChatbot,
-                  icon: const Icon(Icons.chat),
+                  icon: const Icon(Icons.auto_awesome),
                   label: const Text('Open SororiAI'),
                 ),
               ),

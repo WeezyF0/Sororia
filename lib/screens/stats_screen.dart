@@ -49,7 +49,7 @@ class _StatsScreenState extends State<StatsScreen> {
     }
     
     _model = GenerativeModel(
-      model: 'gemini-2.0-flash-exp',
+      model: 'gemini-2.5-flash-preview-05-20',
       apiKey: _geminiApiKey,
     );
   }
@@ -288,11 +288,26 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
         backgroundColor: theme.primaryColor,
         foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome),
-            onPressed: statsData.isNotEmpty ? _generateAISummary : null,
-            tooltip: 'Generate AI Summary',
-          ),
+          // Replace button with loading indicator when generating
+          isSummaryLoading
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
+                )
+              : IconButton(
+                  icon: const Icon(Icons.auto_awesome),
+                  onPressed: statsData.isNotEmpty ? _generateAISummary : null,
+                  tooltip: 'Generate AI Summary',
+                ),
         ],
       ),
       body: isLoading
@@ -438,7 +453,7 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Powered by Gemini 2.0 Flash',
+                      'Powered by Gemini',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: Colors.grey[600],
                         fontStyle: FontStyle.italic,

@@ -63,6 +63,7 @@ dependencies:
   routing_client_dart: ^1.0.7
   google_polyline_algorithm: ^3.1.0
   firebase_messaging: ^15.2.6
+  share_plus: ^7.0.0
 
 dev_dependencies:
   flutter_native_splash: ^2.3.4
