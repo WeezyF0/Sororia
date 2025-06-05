@@ -53,13 +53,12 @@ class DefaultFirebaseOptions {
     iosBundleId: 'com.example.complaintsApp',
   );
 
-  static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyCUtcTrtZy2uzig3eH9rg-ewHnNaNQlR90',
-    appId: '1:892563764785:web:1f68f2a561f9366ea50710',
-    messagingSenderId: '892563764785',
-    projectId: 'complaints-petition-app-final',
-    authDomain: 'complaints-petition-app-final.firebaseapp.com',
-    storageBucket: 'complaints-petition-app-final.firebasestorage.app',
+  static final FirebaseOptions web = FirebaseOptions(
+    apiKey: dotenv.env['google-api-web'] ?? '',
+    authDomain: "complaints-petition-app-final.firebaseapp.com",
+    projectId: "complaints-petition-app-final",
+    storageBucket: "complaints-petition-app-final.firebasestorage.app",
+    messagingSenderId: "892563764785",
+    appId: "1:892563764785:web:6858f348732e9cf7a50710"
   );
-
 }

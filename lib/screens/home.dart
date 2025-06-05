@@ -368,301 +368,324 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: Text(
-            "SORORIA",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      drawer: NavBar(),
-      body: Stack(
-        children: [
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isWideScreen = constraints.maxWidth > 600; // Define your breakpoint
 
-              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-                return const Center(child: Text("No complaints available"));
-              }
-
-              final random = Random();
-              Set<String> uniqueCoordinates = {};
-              List<Marker> markers = [];
-              
-              // Clear and rebuild complaint markers list
-              _complaintMarkers.clear();
-
-              // Add current location marker if available
-              if (_currentLocation != null) {
-                markers.add(
-                  Marker(
-                    point: _currentLocation!,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(
-                      Icons.my_location,
-                      color: Colors.blue,
-                      size: 36,
-                    ),
-                  ),
-                );
-              }
-
-              // Add destination marker if available
-              if (_destinationLocation != null) {
-                markers.add(
-                  Marker(
-                    point: _destinationLocation!,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.green,
-                      size: 36,
-                    ),
-                  ),
-                );
-              }
-
-              for (var doc in snapshot.data!.docs) {
-                var data = doc.data() as Map<String, dynamic>;
-                double? lat = data['latitude'] as double?;
-                double? lon = data['longitude'] as double?;
-                String title = data['issue_type'] ?? 'No issue type';
-                String description = data['original_text'] ?? 'No description';
-
-                if (lat == null || lon == null) continue;
-
-                double newLat = lat;
-                double newLon = lon;
-                String coordKey = "$newLat,$newLon";
-
-                while (uniqueCoordinates.contains(coordKey)) {
-                  newLat += (random.nextDouble() - 0.5) * 0.1;
-                  newLon += (random.nextDouble() - 0.5) * 0.1;
-                  coordKey = "$newLat,$newLon";
-                }
-                uniqueCoordinates.add(coordKey);
-
-                LatLng complaintLocation = LatLng(newLat, newLon);
-                _complaintMarkers.add(complaintLocation); // Store for safety calculation
-
-                markers.add(
-                  Marker(
-                    point: complaintLocation,
-                    width: 40,
-                    height: 40,
-                    child: GestureDetector(
-                      onTap: () => showComplaintDetails(
-                        context, 
-                        title, 
-                        description,
-                        data,
-                        doc.id,
-                      ),
-                      child: const Icon(
-                        Icons.place_rounded,
-                        color: Colors.red,
-                        size: 36,
-                      ),
-                    ),
-                  ),
-                );
-              }
-
-              // Create polylines for routes
-              List<Polyline> polylines = [];
-              
-              if (_isRouteVisible) {
-                // Draw alternative routes first (so they appear behind the safest route)
-                for (int i = 0; i < _alternativeRoutes.length; i++) {
-                  if (_alternativeRoutes[i].isNotEmpty) {
-                    polylines.add(
-                      Polyline(
-                        points: _alternativeRoutes[i],
-                        strokeWidth: 3.0,
-                        color: Colors.red.withOpacity(0.6), // Semi-transparent red for unsafe routes
-                      ),
-                    );
-                  }
-                }
-                
-                // Draw safest route on top
-                if (_safestRoutePoints.isNotEmpty) {
-                  polylines.add(
-                    Polyline(
-                      points: _safestRoutePoints,
-                      strokeWidth: 5.0,
-                      color: Colors.green, // Bold green for safest route
-                    ),
-                  );
-                }
-              }
-
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: markers.isNotEmpty
-                      ? markers.first.point
-                      : const LatLng(20.5937, 78.9629),
-                  initialZoom: 10,
+        return Scaffold(
+          appBar: PreferredSize(
+            preferredSize: Size.fromHeight(80.0),
+            child: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              centerTitle: true,
+              leading: isWideScreen ? null : Builder( // Show hamburger only on narrow screens
+                builder: (context) => IconButton(
+                  icon: Icon(Icons.menu, color: Colors.white),
+                  onPressed: () => Scaffold.of(context).openDrawer(),
                 ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
-                    userAgentPackageName: 'com.complaints.app',
-                  ),
-                  if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
-                  MarkerLayer(markers: markers),
-                ],
-              );
-            },
-          ),
-
-          /// Search Bar
-          Positioned(
-            top: 30,
-            left: 20,
-            right: 20,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
               ),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                decoration: InputDecoration(
-                  hintText: "Search for a location...",
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: InputBorder.none,
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_isRouteVisible)
-                        IconButton(
-                          icon: Icon(Icons.clear, color: Colors.red),
-                          onPressed: _clearRoute,
-                        ),
-                      IconButton(
-                        icon: Icon(Icons.search, color: Colors.blue),
-                        onPressed: _searchLocation,
-                      ),
+              title: Text(
+                "SORORIA",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              flexibleSpace: Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/appBar_bg.png'),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                foregroundDecoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.blue.withOpacity(0.3),
+                      Colors.purple.withOpacity(0.3),
                     ],
                   ),
                 ),
               ),
             ),
           ),
-
-          /// Route Legend with Distance/Duration
-          if (_isRouteVisible && _routeDistances.isNotEmpty)
-            Positioned(
-              top: 100,
-              right: 20,
-              child: Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
+          drawer: isWideScreen ? null : NavBar(), // Use Drawer only on narrow screens
+          body: Row(
+            children: [
+              if (isWideScreen)
+                Container(
+                  width: 250, // Adjust sidebar width as needed
+                  child: NavBar(),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+              Expanded(
+                child: Stack(
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 4,
-                          color: Colors.green,
-                        ),
-                        SizedBox(width: 8),
-                        Text("Safest Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                      ],
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return const Center(child: Text("No complaints available"));
+                        }
+
+                        final random = Random();
+                        Set<String> uniqueCoordinates = {};
+                        List<Marker> markers = [];
+                        
+                        // Clear and rebuild complaint markers list
+                        _complaintMarkers.clear();
+
+                        // Add current location marker if available
+                        if (_currentLocation != null) {
+                          markers.add(
+                            Marker(
+                              point: _currentLocation!,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.my_location,
+                                color: Colors.blue,
+                                size: 36,
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Add destination marker if available
+                        if (_destinationLocation != null) {
+                          markers.add(
+                            Marker(
+                              point: _destinationLocation!,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(
+                                Icons.location_on,
+                                color: Colors.green,
+                                size: 36,
+                              ),
+                            ),
+                          );
+                        }
+
+                        for (var doc in snapshot.data!.docs) {
+                          var data = doc.data() as Map<String, dynamic>;
+                          double? lat = data['latitude'] as double?;
+                          double? lon = data['longitude'] as double?;
+                          String title = data['issue_type'] ?? 'No issue type';
+                          String description = data['original_text'] ?? 'No description';
+
+                          if (lat == null || lon == null) continue;
+
+                          double newLat = lat;
+                          double newLon = lon;
+                          String coordKey = "$newLat,$newLon";
+
+                          while (uniqueCoordinates.contains(coordKey)) {
+                            newLat += (random.nextDouble() - 0.5) * 0.1;
+                            newLon += (random.nextDouble() - 0.5) * 0.1;
+                            coordKey = "$newLat,$newLon";
+                          }
+                          uniqueCoordinates.add(coordKey);
+
+                          LatLng complaintLocation = LatLng(newLat, newLon);
+                          _complaintMarkers.add(complaintLocation); // Store for safety calculation
+
+                          markers.add(
+                            Marker(
+                              point: complaintLocation,
+                              width: 40,
+                              height: 40,
+                              child: GestureDetector(
+                                onTap: () => showComplaintDetails(
+                                  context, 
+                                  title, 
+                                  description,
+                                  data,
+                                  doc.id,
+                                ),
+                                child: const Icon(
+                                  Icons.place_rounded,
+                                  color: Colors.red,
+                                  size: 36,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        // Create polylines for routes
+                        List<Polyline> polylines = [];
+                        
+                        if (_isRouteVisible) {
+                          // Draw alternative routes first (so they appear behind the safest route)
+                          for (int i = 0; i < _alternativeRoutes.length; i++) {
+                            if (_alternativeRoutes[i].isNotEmpty) {
+                              polylines.add(
+                                Polyline(
+                                  points: _alternativeRoutes[i],
+                                  strokeWidth: 3.0,
+                                  color: Colors.red.withOpacity(0.6), // Semi-transparent red for unsafe routes
+                                ),
+                              );
+                            }
+                          }
+                          
+                          // Draw safest route on top
+                          if (_safestRoutePoints.isNotEmpty) {
+                            polylines.add(
+                              Polyline(
+                                points: _safestRoutePoints,
+                                strokeWidth: 5.0,
+                                color: Colors.green, // Bold green for safest route
+                              ),
+                            );
+                          }
+                        }
+
+                        return FlutterMap(
+                          mapController: _mapController,
+                          options: MapOptions(
+                            initialCenter: markers.isNotEmpty
+                                ? markers.first.point
+                                : const LatLng(20.5937, 78.9629),
+                            initialZoom: 10,
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
+                              userAgentPackageName: 'com.complaints.app',
+                            ),
+                            if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
+                            MarkerLayer(markers: markers),
+                          ],
+                        );
+                      },
                     ),
-                    Padding(
-                      padding: EdgeInsets.only(left: 28),
-                      child: Text(
-                        "${_formatDistance(_routeDistances[_safestRouteIndex])} • ${_formatDuration(_routeDurations[_safestRouteIndex])}",
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+
+                    /// Search Bar
+                    Positioned(
+                      top: 30,
+                      left: 20,
+                      right: 20,
+                      child: Container(
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          decoration: InputDecoration(
+                            hintText: "Search for a location...",
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: InputBorder.none,
+                            suffixIcon: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (_isRouteVisible)
+                                  IconButton(
+                                    icon: Icon(Icons.clear, color: Colors.red),
+                                    onPressed: _clearRoute,
+                                  ),
+                                IconButton(
+                                  icon: Icon(Icons.search, color: Colors.blue),
+                                  onPressed: _searchLocation,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 4,
-                          color: Colors.red.withOpacity(0.6),
+
+                    /// Route Legend with Distance/Duration
+                    if (_isRouteVisible && _routeDistances.isNotEmpty)
+                      Positioned(
+                        top: 100,
+                        right: 20,
+                        child: Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 20,
+                                    height: 4,
+                                    color: Colors.green,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text("Safest Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              Padding(
+                                padding: EdgeInsets.only(left: 28),
+                                child: Text(
+                                  "${_formatDistance(_routeDistances[_safestRouteIndex])} • ${_formatDuration(_routeDurations[_safestRouteIndex])}",
+                                  style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 20,
+                                    height: 4,
+                                    color: Colors.red.withOpacity(0.6),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text("Alternative Routes", style: TextStyle(fontSize: 12)),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
-                        SizedBox(width: 8),
-                        Text("Alternative Routes", style: TextStyle(fontSize: 12)),
-                      ],
+                      ),
+
+                    /// Current Location Button
+                    Positioned(
+                      bottom: 20,
+                      right: 20,
+                      child: FloatingActionButton(
+                        onPressed: _getCurrentLocation,
+                        backgroundColor: Colors.white,
+                        child: const Icon(Icons.my_location, color: Colors.blue),
+                      ),
                     ),
+
+                    // Only show options when routes are NOT visible
+                    if (!_isRouteVisible)
+                      Positioned(
+                        bottom: 80,
+                        left: 20,
+                        right: 20,
+                        child: _buildOptions(context),
+                      ),
                   ],
                 ),
               ),
-            ),
-
-          /// Current Location Button
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: FloatingActionButton(
-              onPressed: _getCurrentLocation,
-              backgroundColor: Colors.white,
-              child: const Icon(Icons.my_location, color: Colors.blue),
-            ),
+            ],
           ),
-
-          // Only show options when routes are NOT visible
-          if (!_isRouteVisible)
-            Positioned(
-              bottom: 80,
-              left: 20,
-              right: 20,
-              child: _buildOptions(context),
-            ),
-        ],
-      ),
+        );
+      },
     );
   }
 
