@@ -8,9 +8,12 @@ import 'dart:math';
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:complaints_app/services/unpack_polyline.dart';
+import 'package:complaints_app/services/location_service.dart';
+import 'package:complaints_app/services/web_geocoding.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 
 class SafestRoutePage extends StatefulWidget {
   const SafestRoutePage({super.key});
@@ -39,10 +42,10 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   bool _showPoliceStations = false;
   
   // Route metrics
-  List<double> _routeDistances = [];
-  List<double> _routeDurations = [];
-  List<double> _routeSafetyScores = [];
-  List<double> _routeOverallScores = [];
+  final List<double> _routeDistances = [];
+  final List<double> _routeDurations = [];
+  final List<double> _routeSafetyScores = [];
+  final List<double> _routeOverallScores = [];
   int _bestRouteIndex = 0;
 
   // Constants
@@ -56,42 +59,21 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     _searchController.dispose();
     _searchFocusNode.dispose();
     super.dispose();
-  }
-
-  Future<void> _getCurrentLocationCoordinates() async {
+  }  Future<void> _getCurrentLocationCoordinates() async {
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) {
-        _showMessage("Location services are disabled.", isError: true);
-        return;
+      Position? position = await LocationService.getCurrentPosition();
+      if (position != null) {
+        setState(() {
+          _currentLocation = LatLng(position.latitude, position.longitude);
+        });
+      } else {
+        _showMessage("Unable to get your current location", isError: true);
       }
-
-      LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-        if (permission == LocationPermission.denied) {
-          _showMessage("Location permission denied", isError: true);
-          return;
-        }
-      }
-
-      if (permission == LocationPermission.deniedForever) {
-        _showMessage("Location permissions are permanently denied.", isError: true);
-        return;
-      }
-
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
-      
-      setState(() {
-        _currentLocation = LatLng(position.latitude, position.longitude);
-      });
     } catch (e) {
-      _showMessage("Failed to get current location: ${e.toString()}", isError: true);
+      String errorMessage = LocationService.getLocationErrorMessage(e);
+      _showMessage(errorMessage, isError: true);
     }
   }
-
   Future<void> _searchLocation() async {
     final placeName = _searchController.text.trim();
     if (placeName.isEmpty) {
@@ -106,10 +88,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     });
 
     try {
-      final locations = await geo.locationFromAddress(placeName);
+      final locations = await WebGeocoding.locationFromAddress(placeName);
       if (locations.isNotEmpty) {
-        final location = locations.first;
-        final destination = LatLng(location.latitude, location.longitude);
+        final destination = locations.first;
         
         setState(() {
           _destinationLocation = destination;
@@ -126,7 +107,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
         _showMessage("Location not found", isError: true);
       }
     } catch (e) {
-      _showMessage("Invalid place name: ${e.toString()}", isError: true);
+      _showMessage("Invalid place name or network error: ${e.toString()}", isError: true);
     } finally {
       setState(() {
         _isLoading = false;

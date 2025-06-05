@@ -1,13 +1,14 @@
 {
-    "name": "complaints_app",
-    "short_name": "complaints_app",
+    "name": "Sororia - Women Empowerment Portal",
+    "short_name": "Sororia",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#FF6B9D",
+    "theme_color": "#FF6B9D",
+    "description": "A comprehensive platform for women's safety and empowerment featuring complaint reporting, safety tools, and support services.",
+    "orientation": "any",
     "prefer_related_applications": false,
+    "categories": ["lifestyle", "social", "safety"],
     "icons": [
         {
             "src": "icons/Icon-192.png",

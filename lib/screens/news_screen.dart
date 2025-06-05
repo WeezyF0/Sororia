@@ -3,6 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:complaints_app/services/serper_news.dart';
+import 'package:complaints_app/services/location_service.dart';
+import 'package:complaints_app/services/web_geocoding.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -28,28 +30,35 @@ class _NewsScreenState extends State<NewsScreen> {
     serperService = SerperService(serperApiKey);
     _determinePosition();
   }
-
   Future<void> _determinePosition() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.deniedForever) {
-        return;
+    try {
+      Position? position = await LocationService.getCurrentPosition();
+      if (position != null) {
+        String locationName = await _getLocationName(position.latitude, position.longitude) ?? "Unknown";
+        setState(() {
+          currentState = locationName;
+        });
+        fetchNews(currentState);
+      } else {
+        // Fallback to default location or show error
+        setState(() {
+          currentState = "India"; // Default fallback
+        });
+        fetchNews(currentState);
       }
+    } catch (e) {
+      print("Location error: $e");
+      // Fallback to default location
+      setState(() {
+        currentState = "India";
+      });
+      fetchNews(currentState);
     }
-
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    String locationName = await _getLocationName(position.latitude, position.longitude) ?? "Unknown";
-    setState(() {
-      currentState = locationName;
-    });
-    fetchNews(currentState);
   }
-
   Future<String?> _getLocationName(double latitude, double longitude) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
-      return placemarks.isNotEmpty ? placemarks.first.administrativeArea ?? "Unknown Location" : "Unknown Location";
+      String? locationName = await WebGeocoding.placemarkFromCoordinates(latitude, longitude);
+      return locationName ?? "Unknown Location";
     } catch (_) {
       return "Unknown Location";
     }

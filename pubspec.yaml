@@ -82,12 +82,14 @@ flutter_native_splash:
   image: assets/images/logo2.png
   android: true
   ios: true
+  web: true
   fullscreen: true
 
 
 flutter_launcher_icons:
   android: true
   ios: true
+  web: true
   image_path: assets/images/logo2.png
   adaptive_icon_background: "#ffffff" # Use a color or an image
   adaptive_icon_foreground: assets/images/logo2.png

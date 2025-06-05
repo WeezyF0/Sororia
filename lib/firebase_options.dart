@@ -7,10 +7,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';  // Import dotenv
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError(
-        'DefaultFirebaseOptions have not been configured for web - '
-        'you can reconfigure this by running the FlutterFire CLI again.',
-      );
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -55,4 +52,14 @@ class DefaultFirebaseOptions {
     storageBucket: 'complaints-petition-app-final.firebasestorage.app',
     iosBundleId: 'com.example.complaintsApp',
   );
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCUtcTrtZy2uzig3eH9rg-ewHnNaNQlR90',
+    appId: '1:892563764785:web:1f68f2a561f9366ea50710',
+    messagingSenderId: '892563764785',
+    projectId: 'complaints-petition-app-final',
+    authDomain: 'complaints-petition-app-final.firebaseapp.com',
+    storageBucket: 'complaints-petition-app-final.firebasestorage.app',
+  );
+
 }

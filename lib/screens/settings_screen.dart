@@ -425,7 +425,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ),
                         );
-                      }).toList(),
+                      }),
                     SizedBox(height: 8),
                     ElevatedButton.icon(
                       icon: Icon(Icons.add, size: 20),

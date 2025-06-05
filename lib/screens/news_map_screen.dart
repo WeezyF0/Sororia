@@ -5,6 +5,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/foundation.dart';
+import 'package:complaints_app/services/location_service.dart';
+import 'package:complaints_app/services/web_geocoding.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class NewsMapScreen extends StatefulWidget {
@@ -25,7 +28,6 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
     _searchFocusNode.dispose();
     super.dispose();
   }
-
   void _searchLocation() async {
     try {
       String placeName = _searchController.text.trim();
@@ -34,44 +36,28 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
         return;
       }
 
-      List<Location> locations = await locationFromAddress(placeName);
+      List<LatLng> locations = await WebGeocoding.locationFromAddress(placeName);
       if (locations.isNotEmpty) {
-        Location location = locations.first;
-        _mapController.move(LatLng(location.latitude, location.longitude), 14.0);
+        LatLng location = locations.first;
+        _mapController.move(location, 14.0);
       } else {
         _showError("Location not found");
       }
     } catch (e) {
-      _showError("Invalid place name");
+      _showError("Invalid place name or network error");
     }
-  }
-
-  Future<void> _getCurrentLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      _showError("Location services are disabled.");
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        _showError("Location permission denied");
-        return;
+  }Future<void> _getCurrentLocation() async {
+    try {
+      Position? position = await LocationService.getCurrentPosition();
+      if (position != null) {
+        _mapController.move(LatLng(position.latitude, position.longitude), 14.0);
+      } else {
+        _showError("Unable to get your current location");
       }
+    } catch (e) {
+      String errorMessage = LocationService.getLocationErrorMessage(e);
+      _showError(errorMessage);
     }
-
-    if (permission == LocationPermission.deniedForever) {
-      _showError("Location permissions are permanently denied.");
-      return;
-    }
-
-    Position position = await Geolocator.getCurrentPosition();
-    _mapController.move(LatLng(position.latitude, position.longitude), 14.0);
   }
 
   void _showError(String message) {
@@ -334,12 +320,12 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text("Close"),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey,
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 12),
                   ),
+                  child: Text("Close"),
                 ),
               ),
           ],
