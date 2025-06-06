@@ -1,4 +1,4 @@
-# 💜 Sororia
+# ![Sororia Logo](assets/images/logo2.png) Sororia
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)
 ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg)
