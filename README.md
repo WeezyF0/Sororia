@@ -1,4 +1,4 @@
-# <img src="assets/images/logo2.png" alt="Sororia Logo" width="10"> Sororia
+# <img src="assets/images/logo2.png" alt="Sororia Logo" width="20"> Sororia
 
 ![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)
 ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg)
