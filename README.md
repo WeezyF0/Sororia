@@ -36,13 +36,3 @@ Let’s make Sororia better together! 💪
 Test **Sororia** on your **Android device** now! *(iOS version under development.)*
 
 ---
-
-### 💖 Made with love
-
-**Aayush Kumar**  
-**Aniruddha Sahay Varma**  
-**Akshun Chappola**  
-**Akhilesh Negi**
-
-🧪 *Tested with 💜 by*  
-**Aayush Gupta**
