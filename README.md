@@ -33,6 +33,4 @@ Let’s make Sororia better together! 💪
 ## 📱 Try the App!
 
 📥 **[Download the APK](https://drive.google.com/file/d/1GqR7grncvl9tcI-oOLbeQg9s_7ZwbPJt/view?usp=sharing)**  
-Test **Sororia** on your **Android device** now! *(iOS version under development.)*
-
----
+Test **Sororia** on your **Android device** now! *(iOS version under development
