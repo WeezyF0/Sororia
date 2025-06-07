@@ -11,6 +11,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:complaints_app/services/unpack_polyline.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -472,6 +473,7 @@ class _HomePageState extends State<HomePage> {
                 );
               }
 
+              // Add complaint markers
               for (var doc in snapshot.data!.docs) {
                 var data = doc.data() as Map<String, dynamic>;
                 double? lat = data['latitude'] as double?;
@@ -493,7 +495,7 @@ class _HomePageState extends State<HomePage> {
                 uniqueCoordinates.add(coordKey);
 
                 LatLng complaintLocation = LatLng(newLat, newLon);
-                _complaintMarkers.add(complaintLocation); // Store for safety calculation
+                _complaintMarkers.add(complaintLocation);
 
                 markers.add(
                   Marker(
@@ -518,51 +520,109 @@ class _HomePageState extends State<HomePage> {
                 );
               }
 
-              // Create polylines for routes
-              List<Polyline> polylines = [];
-              
-              if (_isRouteVisible) {
-                // Draw alternative routes first (so they appear behind the safest route)
-                for (int i = 0; i < _alternativeRoutes.length; i++) {
-                  if (_alternativeRoutes[i].isNotEmpty) {
-                    polylines.add(
-                      Polyline(
-                        points: _alternativeRoutes[i],
-                        strokeWidth: 3.0,
-                        color: Colors.red.withOpacity(0.6), // Semi-transparent red for unsafe routes
-                      ),
-                    );
+              // Add SOS markers using StreamBuilder data
+              return StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance.collection('sos').snapshots(),
+                builder: (context, sosSnapshot) {
+                  // Add SOS markers to the existing markers list
+                  if (sosSnapshot.hasData) {
+                    String? currentUid = FirebaseAuth.instance.currentUser?.uid;
+                    if (currentUid != null) {
+                      for (var doc in sosSnapshot.data!.docs) {
+                        var data = doc.data() as Map<String, dynamic>;
+                        
+                        bool isActive = data['active'] == true;
+                        List<dynamic> relatedUsers = data['related_users'] ?? [];
+                        bool isUserRelated = relatedUsers.contains(currentUid);
+                        
+                        if (!isActive || !isUserRelated) continue;
+                        
+                        double? lat = data['latitude'] as double?;
+                        double? lon = data['longitude'] as double?;
+                        
+                        if (lat == null || lon == null) continue;
+                        
+                        LatLng sosLocation = LatLng(lat, lon);
+                        
+                        markers.add(
+                          Marker(
+                            point: sosLocation,
+                            width: 50,
+                            height: 50,
+                            child: GestureDetector(
+                              onTap: () => _showSOSDetails(context, data, doc.id),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 3),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.orange.withOpacity(0.6),
+                                      spreadRadius: 3,
+                                      blurRadius: 7,
+                                      offset: const Offset(0, 0),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.emergency,
+                                  color: Colors.white,
+                                  size: 30,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    }
                   }
-                }
-                
-                // Draw safest route on top
-                if (_safestRoutePoints.isNotEmpty) {
-                  polylines.add(
-                    Polyline(
-                      points: _safestRoutePoints,
-                      strokeWidth: 5.0,
-                      color: Colors.green, // Bold green for safest route
-                    ),
-                  );
-                }
-              }
 
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: markers.isNotEmpty
-                      ? markers.first.point
-                      : const LatLng(20.5937, 78.9629),
-                  initialZoom: 10,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
-                    userAgentPackageName: 'com.complaints.app',
-                  ),
-                  if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
-                  MarkerLayer(markers: markers),
-                ],
+                  // Create polylines for routes
+                  List<Polyline> polylines = [];
+                  
+                  if (_isRouteVisible) {
+                    for (int i = 0; i < _alternativeRoutes.length; i++) {
+                      if (_alternativeRoutes[i].isNotEmpty) {
+                        polylines.add(
+                          Polyline(
+                            points: _alternativeRoutes[i],
+                            strokeWidth: 3.0,
+                            color: Colors.red.withOpacity(0.6),
+                          ),
+                        );
+                      }
+                    }
+                    
+                    if (_safestRoutePoints.isNotEmpty) {
+                      polylines.add(
+                        Polyline(
+                          points: _safestRoutePoints,
+                          strokeWidth: 5.0,
+                          color: Colors.green,
+                        ),
+                      );
+                    }
+                  }
+
+                  return FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: markers.isNotEmpty
+                          ? markers.first.point
+                          : const LatLng(20.5937, 78.9629),
+                      initialZoom: 10,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
+                        userAgentPackageName: 'com.complaints.app',
+                      ),
+                      if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
+                      MarkerLayer(markers: markers), // Single MarkerLayer with all markers
+                    ],
+                  );
+                },
               );
             },
           ),
@@ -677,6 +737,7 @@ class _HomePageState extends State<HomePage> {
               right: 20,
               child: _buildOptions(context),
             ),
+
         ],
       ),
     );
@@ -754,4 +815,105 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-}
+
+  void _showSOSDetails(BuildContext context, Map<String, dynamic> sosData, String sosId) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.emergency, color: Colors.orange, size: 24),
+                const SizedBox(width: 8),
+                const Text(
+                  'EMERGENCY SOS ALERT',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Location: ${sosData['location'] ?? 'Unknown'}',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Time: ${_formatTimestamp(sosData['timestamp'])}',
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // Add navigation to the SOS location or call emergency services
+                    },
+                    icon: const Icon(Icons.directions),
+                    label: const Text('Get Directions'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      // Add call functionality
+                    },
+                    icon: const Icon(Icons.phone),
+                    label: const Text('Call'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  String _formatTimestamp(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown time';
+    try {
+      DateTime dateTime;
+        if (timestamp is String) {
+          dateTime = DateTime.parse(timestamp);
+        } else if (timestamp is int) {
+          dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+        } else {
+          return 'Unknown time';
+        }
+        
+        Duration difference = DateTime.now().difference(dateTime);
+        
+        if (difference.inMinutes < 1) {
+          return 'Just now';
+        } else if (difference.inMinutes < 60) {
+          return '${difference.inMinutes} minutes ago';
+        } else if (difference.inHours < 24) {
+          return '${difference.inHours} hours ago';
+        } else {
+          return '${difference.inDays} days ago';
+        }
+      } catch (e) {
+        return 'Unknown time';
+      }
+    }
+  }

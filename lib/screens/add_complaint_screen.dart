@@ -183,7 +183,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
       Map<String, dynamic> formattedComplaint = {
         "issue_type": issueTypes.join(", "),
-        "issue_tags": issueTypes, // Store as array for better querying
+        "issue_tags": issueTypes, // StoSre as array for better querying
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
