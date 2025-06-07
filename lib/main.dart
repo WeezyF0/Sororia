@@ -9,6 +9,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'firebase_options.dart';
+import 'package:cloud_firestore/cloud_firestore.dart'; // Added import
 import 'screens/complaint_list_screen.dart';
 import 'screens/add_complaint_screen.dart';
 import 'screens/add_petition_screen.dart';
@@ -28,10 +29,33 @@ import 'screens/safest_route.dart';
 import 'screens/stats_screen.dart';
 import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
+import 'screens/sos_screen.dart'; // Add this line
 
 FirebaseMessaging messaging = FirebaseMessaging.instance;
 // Global navigator key to use for navigation from anywhere
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Helper function to update FCM token in Firestore
+Future<void> _updateUserFCMTokenInFirestore(String token) async {
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user == null) {
+    print('No user logged in. FCM token will not be updated in Firestore yet.');
+    return;
+  }
+
+  try {
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+    DocumentReference userDocRef = firestore.collection('users').doc(user.uid);
+
+    await userDocRef.set({
+      'fcmTokens': FieldValue.arrayUnion([token]),
+      'lastTokenUpdate': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+    print('FCM token updated/added in Firestore for user ${user.uid}');
+  } catch (e) {
+    print('Error updating FCM token in Firestore: $e');
+  }
+}
 
 // Add a provider to store the selected protest ID
 class ProtestProvider extends ChangeNotifier {
@@ -75,12 +99,79 @@ Future<void> requestNotificationPermission() async {
   }
 }
 
+// Add this function to show SOS banner
+void _showSOSBanner(String senderUid) {
+  final context = navigatorKey.currentContext;
+  if (context != null) {
+    ScaffoldMessenger.of(context).showMaterialBanner(
+      MaterialBanner(
+        backgroundColor: Colors.red,
+        content: Row(
+          children: [
+            Icon(
+              Icons.warning,
+              color: Colors.white,
+              size: 24,
+            ),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                '$senderUid in trouble!',
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+              // Navigate to home screen
+              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+            },
+            child: Text(
+              'VIEW',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+          TextButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+            },
+            child: Text(
+              'DISMISS',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // Auto-dismiss after 10 seconds
+    Future.delayed(Duration(seconds: 10), () {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
+      }
+    });
+  }
+}
+
 // Add this function to handle foreground notifications
 Future<void> setupNotificationHandlers() async {
   // Handle notification when app is in foreground
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     print('Got a message whilst in the foreground!');
     print('Message data: ${message.data}');
+
+    // Check if this is an SOS message
+    if (message.data['type'] == 'sos') {
+      String senderUid = message.data['senderUid'] ?? 'Someone';
+      _showSOSBanner(senderUid);
+    }
 
     if (message.notification != null) {
       print('Message also contained a notification: ${message.notification}');
@@ -92,13 +183,22 @@ Future<void> setupNotificationHandlers() async {
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     print('A new onMessageOpenedApp event was published!');
     print('Message data: ${message.data}');
-    // Navigate to specific screen based on notification data
+    
+    // Check if this is an SOS message and navigate to home screen
+    if (message.data['type'] == 'sos') {
+      navigatorKey.currentState?.pushNamedAndRemoveUntil('/home', (route) => false);
+    }
   });
 
   // Get FCM token for this device
   String? token = await messaging.getToken();
   print('FCM Token: $token');
   // You can send this token to your server to send targeted notifications
+
+  if (token != null) {
+    // Attempt to update token here if user is already logged in
+    await _updateUserFCMTokenInFirestore(token);
+  }
 }
 
 void main() async {
@@ -168,6 +268,7 @@ class MyApp extends StatelessWidget {
         '/summary_screen': (context) => SummaryScreen(),
         '/stats_screen': (context) => StatsScreen(category: 'Category'),
         '/settings_screen': (context) => SettingsScreen(),
+        '/sos': (context) => SOSScreen(), // Add this line
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {
@@ -190,6 +291,26 @@ class MyApp extends StatelessWidget {
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
+
+  // Helper function to get and update token, to be called from build
+  Future<void> _getAndUpdateFCMToken() async {
+    // Wait a bit for Firebase Auth to fully initialize and currentUser to be available
+    await Future.delayed(const Duration(seconds: 1));
+    
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      print('AuthWrapper: No user logged in after delay. FCM token update skipped.');
+      return;
+    }
+
+    String? token = await messaging.getToken();
+    if (token != null) {
+      await _updateUserFCMTokenInFirestore(token);
+    } else {
+      print('Failed to get FCM token in AuthWrapper.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
@@ -199,6 +320,9 @@ class AuthWrapper extends StatelessWidget {
           return _buildLoadingScreen();
         }
         if (snapshot.hasData) {
+          // User is logged in, ensure FCM token is updated
+          // Call this asynchronously, don't await here to avoid blocking build
+          _getAndUpdateFCMToken();
           return HomePage(); // Changed to HomePage instead of ComplaintListScreen
         }
         return LoginScreen();

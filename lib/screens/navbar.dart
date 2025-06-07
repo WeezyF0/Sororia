@@ -140,7 +140,14 @@ class NavBar extends StatelessWidget {
                       route: "/safest_route",
                       isDarkMode: isDarkMode,
                     ),
-
+                    _buildNavigationTile(
+                      context: context,
+                      icon: CupertinoIcons.exclamationmark_triangle_fill,
+                      iconColor: Colors.red,
+                      title: "Emergency SOS",
+                      route: "/sos",
+                      isDarkMode: isDarkMode,
+                    ),
                     _buildNavigationTile(
                       context: context,
                       icon: CupertinoIcons.chart_bar_square_fill,
