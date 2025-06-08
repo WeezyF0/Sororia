@@ -9,7 +9,7 @@ import 'package:complaints_app/screens/open_complaint.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:geocoding/geocoding.dart';
+// Remove geocoding import
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,35 +21,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final MapController _mapController = MapController();
   LatLng? _currentLocation;
-  final TextEditingController _searchController = TextEditingController();
-  final FocusNode _searchFocusNode = FocusNode();
+  // Remove search controller and focus node declarations
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
+    // Remove disposal of search controller and focus node
     super.dispose();
   }
 
-  void _searchLocation() async {
-    try {
-      String placeName = _searchController.text.trim();
-      if (placeName.isEmpty) {
-        _showError("Please enter a place name");
-        return;
-      }
-
-      List<Location> locations = await locationFromAddress(placeName);
-      if (locations.isNotEmpty) {
-        Location location = locations.first;
-        _mapController.move(LatLng(location.latitude, location.longitude), 14.0);
-      } else {
-        _showError("Location not found");
-      }
-    } catch (e) {
-      _showError("Invalid place name");
-    }
-  }
+  // Remove _searchLocation() method
 
   Future<void> _getCurrentLocationCoordinates() async {
     try {
@@ -301,34 +281,7 @@ class _HomePageState extends State<HomePage> {
             },
           ),
 
-          // Add search bar
-          Positioned(
-            top: 30,
-            left: 20,
-            right: 20,
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
-              ),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                decoration: InputDecoration(
-                  hintText: "Search for a location...",
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: InputBorder.none,
-                  suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: Colors.blue),
-                    onPressed: _searchLocation,
-                  ),
-                ),
-                onSubmitted: (_) => _searchLocation(),
-              ),
-            ),
-          ),
+          // Remove search bar Positioned widget
 
           /// Current Location Button
           Positioned(

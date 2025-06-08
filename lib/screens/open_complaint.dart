@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'chat_screen.dart';
 
 class OpenComplaintScreen extends StatefulWidget {
   final Map<String, dynamic> complaintData;
@@ -100,25 +101,31 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   void _navigateToChatbot() async {
     try {
-      final doc =
-          await FirebaseFirestore.instance
-              .collection('complaints')
-              .doc(widget.complaintId)
-              .get();
+      final doc = await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.complaintId)
+          .get();
 
       if (doc.exists) {
         final complaintData = doc.data();
         final String complaintInfo = complaintData.toString();
-        Navigator.pushNamed(context, '/chatbot', arguments: complaintInfo);
-      } else {
-        ScaffoldMessenger.of(
+        
+        // Replace pushNamed with direct push
+        Navigator.push(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Complaint not found.')));
+          MaterialPageRoute(
+            builder: (context) => ChatScreen(compInfo: complaintInfo),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Complaint not found.')),
+        );
       }
     } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to fetch complaint: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to fetch complaint: $e')),
+      );
     }
   }
 
