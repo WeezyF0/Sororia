@@ -30,6 +30,7 @@ import 'screens/stats_screen.dart';
 import 'screens/summary_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/sos_screen.dart'; // Add this line
+import 'screens/profile_screen.dart';
 
 FirebaseMessaging messaging = FirebaseMessaging.instance;
 // Global navigator key to use for navigation from anywhere
@@ -108,11 +109,7 @@ void _showSOSBanner(String senderUid) {
         backgroundColor: Colors.red,
         content: Row(
           children: [
-            Icon(
-              Icons.warning,
-              color: Colors.white,
-              size: 24,
-            ),
+            Icon(Icons.warning, color: Colors.white, size: 24),
             SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -131,21 +128,23 @@ void _showSOSBanner(String senderUid) {
             onPressed: () {
               ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
               // Navigate to home screen
-              Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
+              Navigator.of(
+                context,
+              ).pushNamedAndRemoveUntil('/home', (route) => false);
             },
             child: Text(
               'VIEW',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           TextButton(
             onPressed: () {
               ScaffoldMessenger.of(context).hideCurrentMaterialBanner();
             },
-            child: Text(
-              'DISMISS',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: Text('DISMISS', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -183,10 +182,13 @@ Future<void> setupNotificationHandlers() async {
   FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
     print('A new onMessageOpenedApp event was published!');
     print('Message data: ${message.data}');
-    
+
     // Check if this is an SOS message and navigate to home screen
     if (message.data['type'] == 'sos') {
-      navigatorKey.currentState?.pushNamedAndRemoveUntil('/home', (route) => false);
+      navigatorKey.currentState?.pushNamedAndRemoveUntil(
+        '/home',
+        (route) => false,
+      );
     }
   });
 
@@ -269,6 +271,7 @@ class MyApp extends StatelessWidget {
         '/stats_screen': (context) => StatsScreen(category: 'Category'),
         '/settings_screen': (context) => SettingsScreen(),
         '/sos': (context) => SOSScreen(), // Add this line
+        '/profile_screen': (context) => ProfileScreen(),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/open_complaint') {
@@ -296,10 +299,12 @@ class AuthWrapper extends StatelessWidget {
   Future<void> _getAndUpdateFCMToken() async {
     // Wait a bit for Firebase Auth to fully initialize and currentUser to be available
     await Future.delayed(const Duration(seconds: 1));
-    
+
     User? user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      print('AuthWrapper: No user logged in after delay. FCM token update skipped.');
+      print(
+        'AuthWrapper: No user logged in after delay. FCM token update skipped.',
+      );
       return;
     }
 

@@ -331,122 +331,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Emergency Contacts Section
+            // In your SettingsScreen build method, replace the Account Settings section with:
             _buildSectionHeader(
               context,
-              title: "Emergency Contacts",
-              icon: Icons.emergency,
+              title: "Profile",
+              icon: Icons.account_circle,
               primaryColor: primaryColor,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Padding(
-                padding: EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    if (isLoadingContacts)
-                      Center(
-                        child: CircularProgressIndicator(color: primaryColor),
-                      )
-                    else if (emergencyContacts.isEmpty)
-                      Padding(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text(
-                          "No emergency contacts added",
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: textSecondary,
-                          ),
-                        ),
-                      )
-                    else
-                      ...emergencyContacts.asMap().entries.map((entry) {
-                        final index = entry.key;
-                        final contact = entry.value;
-                        return Container(
-                          margin: EdgeInsets.only(bottom: 12),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: textSecondary.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                          child: ListTile(
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            leading: CircleAvatar(
-                              backgroundColor: primaryColor.withOpacity(0.2),
-                              child: Text(
-                                contact['name'][0].toUpperCase(),
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            title: Text(
-                              contact['name'],
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            subtitle: Text(
-                              contact['email'],
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: textSecondary,
-                              ),
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.edit,
-                                    size: 20,
-                                    color: primaryColor,
-                                  ),
-                                  onPressed: () => _editContact(index),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.delete,
-                                    size: 20,
-                                    color: Colors.red,
-                                  ),
-                                  onPressed: () => _deleteContact(index),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      icon: Icon(Icons.add, size: 20),
-                      label: Text("Add Contact"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 12,
-                        ),
+              child: Column(
+                children: [
+                  Container(
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
                       ),
-                      onPressed: _addEmergencyContact,
+                      gradient: LinearGradient(
+                        begin: Alignment.centerLeft,
+                        end: Alignment.centerRight,
+                        colors: [primaryColor.withOpacity(0.7), primaryColor],
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(Icons.person, color: primaryColor),
+                    ),
+                    title: Text(
+                      "View Profile",
+                      style: TextStyle(fontWeight: FontWeight.w500),
+                    ),
+                    trailing: Icon(Icons.chevron_right, color: primaryColor),
+                    onTap: () {
+                      Navigator.pushNamed(context, '/profile_screen');
+                    },
+                  ),
+                ],
               ),
             ),
-
             SizedBox(height: 24),
 
             // Visual Settings Section
