@@ -1,36 +1,33 @@
+![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg) ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0)
+
 # <img src="assets/images/logo2.png" alt="Sororia Logo" width="20"> Sororia
 
-![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)
-![Platform](https://img.shields.io/badge/Platform-Android-blue.svg)
-![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
-[![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0)
-
-**Sororia** is an **app** dedicated to empowering **women** by providing a platform to share their experiences and concerns, start & sign petitions, and visualize reported issues on a map, view their local news and helpful government schemes.
+**Sororia** is an empowerment platform for women; share your story, spark petitions, and uncover safety insights all in one sleek app.
 
 ---
 
 ## 🚀 Features
 
-- 🤖 **SororiAI** – Users can interact with our AI chatbot to seek guidance, find solutions, and get assistance for their concerns.  
-- ✅ **Share Experiences** – A safe space for women to **share their experiences** and seek help.  
-- 📰 **News Map** – Get **real-time** news related to women's rights and safety on an **interactive map**.  
-- 📍 **Nearby Resources** – View **nearby police stations** and **NGOs** on an **interactive map**, just like the news map.  
-- 📰 **Government Schemes** – Get relevant information related to women's rights and safety in different states in India.  
-- 📜 **Petitions** – Start and sign petitions to drive meaningful change and gather support.  
-- 🗺️ **Issue Mapping** – Visualize reported concerns on an **interactive map** with GPS-based locations.  
-- 🛣️ **Safest Route** – Find the **best route** between your current location and destination based on **safety and distance**, helping you travel with confidence.
+- 🤖 **SororiAI Sidekick** – Chat with our AI for instant support, smart advice, and peace of mind.  
+- 💬 **Voice Your Story** – A judgment-free zone to share experiences, connect, and heal together.  
+- 🌐 **Live News Map** – Pinpoint the latest women’s rights and safety updates in real time.  
+- 📍 **Resource Radar** – Locate nearby police stations, NGOs, and support hubs on a dynamic map.  
+- 📜 **Govt. Schemes Hub** – Stay in the loop on the best programs and protections across India’s states.  
+- ✍️ **Petition Power** – Launch or sign petitions to drive real-world impact—your voice, amplified.  
+- 🎤 **Mobilization Hub** – Plan, promote, and organize rallies or protests directly within the app to drive actionable change.  
+- 🗺️ **Issue Heatmap** – Visualize community concerns on an interactive GPS-powered layer.  
+- 🛣️ **Safety Route Planner** – Navigate your world with confidence using AI-optimized, risk-aware routing.  
+- 🚨 **Panic SOS Blast** – Hit SOS and instantly ping your emergency contacts with your live location and a one-tap call option.
 
 ---
 
-## 🤝 Contributing
+## 🤝 Let’s Build Together
 
-Contributions are **welcome**!  
-Feel free to **fork** the repository, create a new branch, and submit a Pull Request.  
-Let’s make Sororia better together! 💪
+Love the vision? Fork it, hack it, and send a PR—your creativity fuels our mission. 💪
 
 ---
 
-## 📱 Try the App!
+## 📱 Get Sororia Now!
 
 📥 **[Download the APK](https://drive.google.com/file/d/1GqR7grncvl9tcI-oOLbeQg9s_7ZwbPJt/view?usp=sharing)**  
-Test **Sororia** on your **Android device** now! *(iOS version under development
+Test **Sororia** on Android today! *(iOS coming soon)*  
