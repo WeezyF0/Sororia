@@ -1,9 +1,7 @@
 # <img src="assets/images/logo2.png" alt="Sororia Logo" width="20"> Sororia
 
-![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg)  
-![Platform](https://img.shields.io/badge/Platform-Android-blue.svg)  
-![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)  
-[![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0)
+![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg) ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0)
+
 
 **Sororia** is the ultimate empowerment tool for women—share your story, spark petitions, and uncover safety insights all in one sleek app.
 
