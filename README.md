@@ -2,7 +2,6 @@
 
 # <img src="assets/images/logo2.png" alt="Sororia Logo" width="20"> Sororia
 
-
 **Sororia** is an empowerment platform for women; share your story, spark petitions, and uncover safety insights all in one sleek app.
 
 ---
@@ -15,6 +14,7 @@
 - 📍 **Resource Radar** – Locate nearby police stations, NGOs, and support hubs on a dynamic map.  
 - 📜 **Govt. Schemes Hub** – Stay in the loop on the best programs and protections across India’s states.  
 - ✍️ **Petition Power** – Launch or sign petitions to drive real-world impact—your voice, amplified.  
+- 🎤 **Mobilization Hub** – Plan, promote, and organize rallies or protests directly within the app to drive actionable change.  
 - 🗺️ **Issue Heatmap** – Visualize community concerns on an interactive GPS-powered layer.  
 - 🛣️ **Safety Route Planner** – Navigate your world with confidence using AI-optimized, risk-aware routing.  
 - 🚨 **Panic SOS Blast** – Hit SOS and instantly ping your emergency contacts with your live location and a one-tap call option.
