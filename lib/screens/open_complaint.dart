@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_screen.dart';
+import 'package:share_plus/share_plus.dart';
 
 class OpenComplaintScreen extends StatefulWidget {
   final Map<String, dynamic> complaintData;
@@ -96,6 +97,45 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       return DateFormat('MMM dd, yyyy • hh:mm a').format(dateTime);
     } catch (e) {
       return timestamp;
+    }
+  }
+
+  String _generateExperienceShareText(String originalText, String location, String timestamp, String issueType) {
+    return """
+  Experience shared from Sororia:
+  "$originalText"
+
+  Location: $location
+  Reported: $timestamp
+  Category: $issueType
+
+  Download Sororia app to view and share safety experiences:
+  https://drive.google.com/file/d/1GqR7grncvl9tcI-oOLbeQg9s_7ZwbPJt/view?usp=sharing
+  """;
+  }
+
+  String _formatTimestampForSharing(dynamic timestamp) {
+    if (timestamp == null) return 'Unknown time';
+    try {
+      DateTime dateTime;
+      if (timestamp is Timestamp) {
+        dateTime = timestamp.toDate();
+      } else if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else if (timestamp is int) {
+        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      } else {
+        return 'Unknown time';
+      }
+      
+      // Format as a human-readable date and time
+      final DateFormat formatter = DateFormat('MMMM d, yyyy', 'en_US');
+      final String date = formatter.format(dateTime);
+      final String time = DateFormat('h:mm a', 'en_US').format(dateTime);
+      
+      return "$date at $time";
+    } catch (e) {
+      return 'Unknown time';
     }
   }
 
@@ -471,8 +511,33 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                                 : const SizedBox.shrink();
                           },
                         ),
+
+                        IconButton(
+                          icon: const Icon(Icons.share, color: Colors.blue),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            padding: const EdgeInsets.all(12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          onPressed: () {
+                            final String readableTimestamp = _formatTimestampForSharing(widget.complaintData['timestamp']);
+
+                            final String shareText = _generateExperienceShareText(
+                              widget.complaintData['original_text'] ?? 'No description',
+                              widget.complaintData['location'] ?? 'Unknown location',
+                              readableTimestamp,
+                              widget.complaintData['issue_type'] ?? 'Unspecified category'
+                            );
+
+                            Share.share(shareText);
+                          },
+                        )
                       ],
                     ),
+
+                  
                     if (updates.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
