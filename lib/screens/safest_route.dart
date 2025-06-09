@@ -1039,6 +1039,17 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     );
   }
 
+  Future<void> _openMapsDirections(double sourceLat, double sourceLng, double destLat, double destLng) async {
+    final url = "https://www.google.com/maps/dir/?api=1&origin=$sourceLat,$sourceLng&destination=$destLat,$destLng";
+    final uri = Uri.parse(url);
+    
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      _showMessage("Could not open maps application", isError: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -1278,6 +1289,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
               top: 150,
               right: 20,
               child: Container(
+                width: 200, // Add explicit width constraint
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -1297,7 +1309,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                           color: Colors.green,
                         ),
                         const SizedBox(width: 8),
-                        const Text("Best Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        const Flexible( // Wrap with Flexible to prevent overflow
+                          child: Text("Best Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
                       ],
                     ),
                     Padding(
@@ -1326,7 +1340,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                           color: Colors.red.withOpacity(0.6),
                         ),
                         const SizedBox(width: 8),
-                        const Text("Alternative Routes", style: TextStyle(fontSize: 12)),
+                        const Flexible( // Wrap with Flexible to prevent overflow
+                          child: Text("Alternative Routes", style: TextStyle(fontSize: 12)),
+                        ),
                       ],
                     ),
                     Padding(
@@ -1334,6 +1350,37 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                       child: Text(
                         "Based on safety + distance",
                         style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Open in Google Maps Button - Remove SizedBox wrapper
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        LatLng? sourceLocation = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
+                        if (sourceLocation != null && _destinationLocation != null) {
+                          _openMapsDirections(
+                            sourceLocation.latitude,
+                            sourceLocation.longitude,
+                            _destinationLocation!.latitude,
+                            _destinationLocation!.longitude,
+                          );
+                        } else {
+                          _showMessage("Source or destination location not available", isError: true);
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text(
+                        "Open in Maps",
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        minimumSize: const Size(double.infinity, 36), // Use minimumSize instead
                       ),
                     ),
                   ],
