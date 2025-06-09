@@ -20,12 +20,16 @@ class SafestRoutePage extends StatefulWidget {
 }
 
 class _SafestRoutePageState extends State<SafestRoutePage> {
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _destSearchController = TextEditingController(); // Renamed from _searchController
+  final TextEditingController _sourceSearchController = TextEditingController(); // New controller for source
   final MapController _mapController = MapController();
-  final FocusNode _searchFocusNode = FocusNode();
+  final FocusNode _destFocusNode = FocusNode(); // Renamed from _searchFocusNode
+  final FocusNode _sourceFocusNode = FocusNode();
   
   // Routing variables
   LatLng? _currentLocation;
+  LatLng? _sourceLocation;
+  bool _useCurrentLocationAsSource = true;
   LatLng? _destinationLocation;
   List<LatLng> _bestRoutePoints = [];
   List<List<LatLng>> _alternativeRoutes = [];
@@ -53,8 +57,10 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
-    _searchFocusNode.dispose();
+    _destSearchController.dispose();
+    _sourceSearchController.dispose();
+    _destFocusNode.dispose();
+    _sourceFocusNode.dispose();
     super.dispose();
   }
 
@@ -92,8 +98,50 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }
   }
 
-  Future<void> _searchLocation() async {
-    final placeName = _searchController.text.trim();
+  Future<void> _searchSourceLocation() async {
+    final placeName = _sourceSearchController.text.trim();
+    if (placeName.isEmpty) {
+      _showMessage("Please enter a source location", isError: true);
+      return;
+    }
+
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final locations = await geo.locationFromAddress(placeName);
+      if (locations.isNotEmpty) {
+        final location = locations.first;
+        final source = LatLng(location.latitude, location.longitude);
+        
+        setState(() {
+          _sourceLocation = source;
+          _useCurrentLocationAsSource = false;
+        });
+        
+        _mapController.move(source, 14.0);
+        
+        // If destination is already set, recalculate route
+        if (_destinationLocation != null) {
+          await _drawBestRoute();
+        }
+      } else {
+        _showMessage("Location not found", isError: true);
+      }
+    } catch (e) {
+      _showMessage("Invalid place name: ${e.toString()}", isError: true);
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _searchDestinationLocation() async { // Renamed from _searchLocation
+    final placeName = _destSearchController.text.trim(); // Changed from _searchController
     if (placeName.isEmpty) {
       _showMessage("Please enter a destination location", isError: true);
       return;
@@ -117,9 +165,14 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
         
         _mapController.move(destination, 14.0);
         
-        // Get current location and draw best route
-        await _getCurrentLocationCoordinates();
-        if (_currentLocation != null) {
+        // If we don't have a source yet, get current location
+        if (_useCurrentLocationAsSource && _currentLocation == null) {
+          await _getCurrentLocationCoordinates();
+        }
+        
+        // Draw route if we have both source and destination
+        if ((_useCurrentLocationAsSource && _currentLocation != null) || 
+            (!_useCurrentLocationAsSource && _sourceLocation != null)) {
           await _drawBestRoute();
         }
       } else {
@@ -212,19 +265,18 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   }
 
   // Improved route fetching with better error handling
-  Future<List<List<LatLng>>> _getAlternativeRoutes() async {
-    if (_currentLocation == null || _destinationLocation == null) return [];
+  Future<List<List<LatLng>>> _getAlternativeRoutes(LatLng sourceLocation) async {
+    if (sourceLocation == null || _destinationLocation == null) return [];
     
     _clearRouteMetrics();
     final routes = <List<LatLng>>[];
     
     try {
       // Get OSRM routes
-      await _fetchOSRMRoutes(routes);
-      
+      await _fetchOSRMRoutes(routes, sourceLocation);
       // Generate additional waypoint routes if needed
       if (routes.length < 3) {
-        await _generateWaypointRoutes(routes);
+        await _generateWaypointRoutes(routes, sourceLocation);
       }
       
       // Calculate overall scores
@@ -244,11 +296,11 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     _routeOverallScores.clear();
   }
 
-  Future<void> _fetchOSRMRoutes(List<List<LatLng>> routes) async {
-    final coordinates = "${_currentLocation!.longitude},${_currentLocation!.latitude};"
-                       "${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
+  Future<void> _fetchOSRMRoutes(List<List<LatLng>> routes, LatLng sourceLocation) async {
+    final coordinates = "${sourceLocation.longitude},${sourceLocation.latitude};"
+                     "${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
     final url = "http://router.project-osrm.org/route/v1/driving/$coordinates"
-               "?overview=full&geometries=polyline&alternatives=true";
+             "?overview=full&geometries=polyline&alternatives=true";
     
     final response = await http.get(Uri.parse(url));
     
@@ -282,12 +334,11 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   }
 
   // Optimized waypoint generation
-  Future<void> _generateWaypointRoutes(List<List<LatLng>> existingRoutes) async {
-    if (_currentLocation == null || _destinationLocation == null) return;
-    
-    final midLat = (_currentLocation!.latitude + _destinationLocation!.latitude) / 2;
-    final midLng = (_currentLocation!.longitude + _destinationLocation!.longitude) / 2;
-    
+  Future<void> _generateWaypointRoutes(List<List<LatLng>> existingRoutes, LatLng sourceLocation) async {
+    if (sourceLocation == null || _destinationLocation == null) return;
+  
+    final midLat = (sourceLocation.latitude + _destinationLocation!.latitude) / 2;
+    final midLng = (sourceLocation.longitude + _destinationLocation!.longitude) / 2;
     // More strategic waypoint placement
     final waypoints = [
       LatLng(midLat + 0.008, midLng + 0.008), // Northeast
@@ -299,15 +350,15 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     for (final waypoint in waypoints) {
       if (existingRoutes.length >= _maxRoutes) break;
       
-      await _fetchWaypointRoute(waypoint, existingRoutes);
+      await _fetchWaypointRoute(waypoint, existingRoutes, sourceLocation);
     }
   }
 
-  Future<void> _fetchWaypointRoute(LatLng waypoint, List<List<LatLng>> routes) async {
+  Future<void> _fetchWaypointRoute(LatLng waypoint, List<List<LatLng>> routes, LatLng sourceLocation) async {
     try {
-      final coordinates = "${_currentLocation!.longitude},${_currentLocation!.latitude};"
-                         "${waypoint.longitude},${waypoint.latitude};"
-                         "${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
+      final coordinates = "${sourceLocation.longitude},${sourceLocation.latitude};"
+                       "${waypoint.longitude},${waypoint.latitude};"
+                       "${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
       final url = "http://router.project-osrm.org/route/v1/driving/$coordinates"
                  "?overview=full&geometries=polyline";
       
@@ -336,12 +387,14 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   }
 
   Future<void> _drawBestRoute() async {
-    if (_currentLocation == null || _destinationLocation == null) return;
+    // Get the correct source location
+    LatLng? sourceLocation = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
+    if (sourceLocation == null || _destinationLocation == null) return;
 
     try {
       _showMessage("Finding best route...", isError: false);
       
-      final routes = await _getAlternativeRoutes();
+      final routes = await _getAlternativeRoutes(sourceLocation);
       
       if (routes.isEmpty) {
         _showMessage("No routes found", isError: true);
@@ -433,16 +486,26 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       _alternativeRoutes.clear();
       _isRouteVisible = false;
       _destinationLocation = null;
+      // Don't clear source location - let user decide
       _clearRouteMetrics();
       _bestRouteIndex = 0;
     });
-    _searchController.clear();
+    _destSearchController.clear(); // Clear only destination
   }
 
   Future<void> _getCurrentLocation() async {
     await _getCurrentLocationCoordinates();
     if (_currentLocation != null) {
       _mapController.move(_currentLocation!, 14.0);
+      setState(() {
+        _useCurrentLocationAsSource = true;
+        _sourceSearchController.clear(); // Clear the source search field
+      });
+      
+      // If destination is set, recalculate route
+      if (_destinationLocation != null) {
+        await _drawBestRoute();
+      }
     }
   }
 
@@ -523,8 +586,8 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     final markers = <Marker>[];
     final newsMarkers = <LatLng>[];
 
-    // Add current location marker
-    if (_currentLocation != null) {
+    // Add current location marker if using it as source
+    if (_useCurrentLocationAsSource && _currentLocation != null) {
       markers.add(
         Marker(
           point: _currentLocation!,
@@ -532,6 +595,22 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
           height: 40,
           child: const Icon(
             Icons.my_location,
+            color: Colors.blue,
+            size: 36,
+          ),
+        ),
+      );
+    }
+
+    // Add custom source location marker if set
+    if (!_useCurrentLocationAsSource && _sourceLocation != null) {
+      markers.add(
+        Marker(
+          point: _sourceLocation!,
+          width: 40,
+          height: 40,
+          child: const Icon(
+            Icons.trip_origin,
             color: Colors.blue,
             size: 36,
           ),
@@ -1020,48 +1099,114 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
             top: 30,
             left: 20,
             right: 20,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
-              ),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                enabled: !_isLoading,
-                decoration: InputDecoration(
-                  hintText: "Search for a destination...",
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  border: InputBorder.none,
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_isRouteVisible)
-                        IconButton(
-                          icon: const Icon(Icons.clear, color: Colors.red),
-                          onPressed: _clearRoute,
-                        ),
-                      IconButton(
-                        icon: _isLoading 
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.search, color: Colors.blue),
-                        onPressed: _isLoading ? null : _searchLocation,
+            child: Column(
+              children: [
+                // Source Location Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                  ),
+                  child: TextField(
+                    controller: _sourceSearchController,
+                    focusNode: _sourceFocusNode,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      hintText: _useCurrentLocationAsSource 
+                          ? "Current Location (tap to change)" 
+                          : "Source Location",
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        Icons.trip_origin,
+                        color: Colors.blue,
+                        size: 20,
                       ),
-                    ],
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!_useCurrentLocationAsSource)
+                            IconButton(
+                              icon: const Icon(Icons.my_location, color: Colors.blue),
+                              onPressed: _getCurrentLocation,
+                              tooltip: "Use current location",
+                            ),
+                          IconButton(
+                            icon: _isLoading 
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.search, color: Colors.blue),
+                            onPressed: _isLoading ? null : _searchSourceLocation,
+                          ),
+                        ],
+                      ),
+                    ),
+                    onTap: () {
+                      if (_useCurrentLocationAsSource) {
+                        setState(() {
+                          _useCurrentLocationAsSource = false;
+                        });
+                      }
+                    },
                   ),
                 ),
-              ),
+                
+                const SizedBox(height: 8), // Space between search bars
+                
+                // Destination Location Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                  ),
+                  child: TextField(
+                    controller: _destSearchController,
+                    focusNode: _destFocusNode,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      hintText: "Search for a destination...",
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        Icons.location_on,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isRouteVisible)
+                            IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.red),
+                              onPressed: _clearRoute,
+                            ),
+                          IconButton(
+                            icon: _isLoading 
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.search, color: Colors.blue),
+                            onPressed: _isLoading ? null : _searchDestinationLocation,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
 
           // Marker Filter Panel
           Positioned(
-            top: 100,
+            top: 150,
             left: 20,
             child: Container(
               padding: const EdgeInsets.all(12),
@@ -1107,7 +1252,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
           // Route Information Panel
           if (_isRouteVisible && _routeDistances.isNotEmpty)
             Positioned(
-              top: 100,
+              top: 150,
               right: 20,
               child: Container(
                 padding: const EdgeInsets.all(12),
