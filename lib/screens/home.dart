@@ -209,56 +209,54 @@ class _HomePageState extends State<HomePage> {
                   // Add SOS markers to the existing markers list
                   if (sosSnapshot.hasData) {
                     String? currentUid = FirebaseAuth.instance.currentUser?.uid;
-                    if (currentUid != null) {
-                      for (var doc in sosSnapshot.data!.docs) {
-                        var data = doc.data() as Map<String, dynamic>;
-                        
-                        bool isActive = data['active'] == true;
-                        List<dynamic> relatedUsers = data['related_users'] ?? [];
-                        bool isUserRelated = relatedUsers.contains(currentUid);
-                        
-                        if (!isActive || !isUserRelated) continue;
-                        
-                        double? lat = data['latitude'] as double?;
-                        double? lon = data['longitude'] as double?;
-                        
-                        if (lat == null || lon == null) continue;
-                        
-                        LatLng sosLocation = LatLng(lat, lon);
-                        
-                        markers.add(
-                          Marker(
-                            point: sosLocation,
-                            width: 50,
-                            height: 50,
-                            child: GestureDetector(
-                              onTap: () => _showSOSDetails(context, data, doc.id),
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: Colors.orange,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 3),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.orange.withOpacity(0.6),
-                                      spreadRadius: 3,
-                                      blurRadius: 7,
-                                      offset: const Offset(0, 0),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.emergency,
-                                  color: Colors.white,
-                                  size: 30,
-                                ),
+                    for (var doc in sosSnapshot.data!.docs) {
+                      var data = doc.data() as Map<String, dynamic>;
+                      
+                      bool isActive = data['active'] == true;
+                      List<dynamic> relatedUsers = data['related_users'] ?? [];
+                      bool isUserRelated = relatedUsers.contains(currentUid);
+                      
+                      if (!isActive || !isUserRelated) continue;
+                      
+                      double? lat = data['latitude'] as double?;
+                      double? lon = data['longitude'] as double?;
+                      
+                      if (lat == null || lon == null) continue;
+                      
+                      LatLng sosLocation = LatLng(lat, lon);
+                      
+                      markers.add(
+                        Marker(
+                          point: sosLocation,
+                          width: 50,
+                          height: 50,
+                          child: GestureDetector(
+                            onTap: () => _showSOSDetails(context, data, doc.id),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.orange,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.orange.withOpacity(0.6),
+                                    spreadRadius: 3,
+                                    blurRadius: 7,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                ],
+                              ),
+                              child: const Icon(
+                                Icons.emergency,
+                                color: Colors.white,
+                                size: 30,
                               ),
                             ),
                           ),
-                        );
-                      }
+                        ),
+                      );
                     }
-                  }
+                                    }
 
                   return FlutterMap(
                     mapController: _mapController,
