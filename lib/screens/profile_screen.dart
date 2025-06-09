@@ -65,6 +65,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _addEmergencyContact() {
     // TODO: Add contact functionality
   }
+
   void _editPhoneNumber() async {
     final TextEditingController controller = TextEditingController(
       text: userData?['phone_no']?.toString().replaceFirst('+91', ''),
@@ -115,6 +116,65 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                   setState(() {
                     userData?['phone_no'] = phone;
+                  });
+
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _editName() async {
+    final TextEditingController controller = TextEditingController(
+      text: userData?['name']?.toString(),
+    );
+
+    final formKey = GlobalKey<FormState>();
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Edit Name"),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: controller,
+              keyboardType: TextInputType.number,
+              maxLength: 10,
+              decoration: const InputDecoration(
+                labelText: "Name",
+                counterText: "", // Hide character counter
+              ),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Name is required';
+                }
+                return null;
+              },
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancel"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  final phone = controller.text.trim();
+                  await _firestore
+                      .collection('users')
+                      .doc(_auth.currentUser!.uid)
+                      .update({'name': phone});
+
+                  setState(() {
+                    userData?['name'] = phone;
                   });
 
                   Navigator.pop(context);
@@ -225,6 +285,29 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               children: [
                                 Expanded(
                                   child: _buildProfileItem(
+                                    icon: Icons.person,
+                                    label: "Name",
+                                    value:
+                                        userData?['name'] != null
+                                            ? "${userData!['name']}"
+                                            : "Not provided",
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.edit,
+                                    size: 20,
+                                    color: primaryColor,
+                                  ),
+                                  onPressed: _editName,
+                                ),
+                              ],
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: _buildProfileItem(
                                     icon: Icons.phone,
                                     label: "Phone",
                                     value:
@@ -276,7 +359,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               Navigator.pushNamed(context, '/my_complaints');
                             },
                           ),
-                          const Divider(height: 1),
                           ListTile(
                             leading: Icon(Icons.article, color: primaryColor),
                             title: const Text("My Petitions"),
