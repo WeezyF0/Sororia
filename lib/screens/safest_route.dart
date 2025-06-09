@@ -482,15 +482,17 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
   void _clearRoute() {
     setState(() {
-      _bestRoutePoints.clear();
-      _alternativeRoutes.clear();
+      _bestRoutePoints = [];
+      _alternativeRoutes = [];
       _isRouteVisible = false;
       _destinationLocation = null;
-      // Don't clear source location - let user decide
-      _clearRouteMetrics();
+      _routeDistances.clear();
+      _routeDurations.clear();
+      _routeSafetyScores.clear();
+      _routeOverallScores.clear();
       _bestRouteIndex = 0;
     });
-    _destSearchController.clear(); // Clear only destination
+    _destSearchController.clear(); // Clear destination search field
   }
 
   Future<void> _getCurrentLocation() async {
@@ -815,204 +817,225 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   }
 
   void _showNGODetails(BuildContext context, String name, List<String>? sectors) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20.0),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.6,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.orange.withOpacity(0.8),
-                    Colors.deepOrange.withOpacity(0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.volunteer_activism,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            name,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.purple,
             ),
-            const SizedBox(height: 16),
-            
-            // Sectors
-            if (sectors != null && sectors.isNotEmpty) ...[
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.volunteer_activism, color: Colors.purple, size: 40),
+              const SizedBox(height: 10),
               const Text(
-                "Sectors",
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
+                'NGO Services:',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+              const SizedBox(height: 5),
+              if (sectors != null && sectors.isNotEmpty)
+                ...sectors.map((sector) => Padding(
+                  padding: const EdgeInsets.only(left: 10, top: 2),
+                  child: Text('• $sector', style: const TextStyle(fontSize: 14)),
+                ))
+              else
+                const Padding(
+                  padding: EdgeInsets.only(left: 10),
+                  child: Text('• General services', style: TextStyle(fontSize: 14)),
+                ),
+            ],
+          ),
+          actions: [
+            // Get Directions Button
+            if (!_isRouteVisible)
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  
+                  try {
+                    final ngoSnapshot = await FirebaseFirestore.instance
+                        .collection('ngos')
+                        .where('name', isEqualTo: name)
+                        .get();
+                    
+                    if (ngoSnapshot.docs.isNotEmpty) {
+                      final doc = ngoSnapshot.docs.first;
+                      final data = doc.data();
+                      
+                      // Extract latitude and longitude as separate fields
+                      final latitude = data['location']?['latitude']?.toDouble();
+                      final longitude = data['location']?['longitude']?.toDouble();
+                      
+                      if (latitude != null && longitude != null) {
+                        // Set as destination
+                        setState(() {
+                          _destinationLocation = LatLng(latitude, longitude);
+                        });
+                        
+                        _destSearchController.text = name;
+                        
+                        if (_useCurrentLocationAsSource && _currentLocation == null) {
+                          await _getCurrentLocationCoordinates();
+                        }
+                        
+                        if ((_useCurrentLocationAsSource && _currentLocation != null) || 
+                            (!_useCurrentLocationAsSource && _sourceLocation != null)) {
+                          await _drawBestRoute();
+                        } else {
+                          _showMessage("Please set your location first", isError: true);
+                        }
+                      } else {
+                        _showMessage("Location data not available", isError: true);
+                      }
+                    } else {
+                      _showMessage("NGO not found", isError: true);
+                    }
+                  } catch (e) {
+                    _showMessage("Error getting directions: ${e.toString()}", isError: true);
+                  }
+                },
+                icon: const Icon(Icons.directions, color: Colors.green),
+                label: const Text(
+                  'Get Directions',
+                  style: TextStyle(color: Colors.green),
                 ),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: sectors.map((sector) => Chip(
-                  label: Text(
-                    sector,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                  backgroundColor: Colors.orange.withOpacity(0.2),
-                )).toList(),
-              ),
-            ],
             
-            const SizedBox(height: 16),
+            // Clear Route Button (if route is visible)
+            if (_isRouteVisible)
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _clearRoute();
+                },
+                icon: const Icon(Icons.clear, color: Colors.red),
+                label: const Text(
+                  'Clear Route',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
             
             // Close Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text("Close"),
-              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 
   void _showPoliceStationDetails(BuildContext context, String name) {
-    showModalBottomSheet(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20.0),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.4,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    Colors.red.withOpacity(0.8),
-                    Colors.red.shade700.withOpacity(0.8),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(
+            name,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.blue,
+            ),
+          ),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.local_police, color: Colors.blue, size: 40),
+              SizedBox(height: 10),
+              Text(
+                'Police Station',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          actions: [
+            // Get Directions Button
+            if (!_isRouteVisible)
+              TextButton.icon(
+                onPressed: () async {
+                  Navigator.of(context).pop();
+                  
+                  try {
+                    final policeSnapshot = await FirebaseFirestore.instance
+                        .collection('police_stations')
+                        .where('name', isEqualTo: name)
+                        .get();
+                  
+                    if (policeSnapshot.docs.isNotEmpty) {
+                      final doc = policeSnapshot.docs.first;
+                      final data = doc.data();
+                      
+                      // Police stations have direct latitude/longitude fields
+                      final latitude = data['latitude']?.toDouble();
+                      final longitude = data['longitude']?.toDouble();
+                      
+                      if (latitude != null && longitude != null) {
+                        // Set as destination
+                        setState(() {
+                          _destinationLocation = LatLng(latitude, longitude);
+                        });
+                      
+                        _destSearchController.text = name;
+                      
+                        if (_useCurrentLocationAsSource && _currentLocation == null) {
+                          await _getCurrentLocationCoordinates();
+                        }
+                      
+                        if ((_useCurrentLocationAsSource && _currentLocation != null) || 
+                            (!_useCurrentLocationAsSource && _sourceLocation != null)) {
+                          await _drawBestRoute();
+                        } else {
+                          _showMessage("Please set your location first", isError: true);
+                        }
+                      } else {
+                        _showMessage("Location data not available", isError: true);
+                      }
+                    } else {
+                      _showMessage("Police station not found", isError: true);
+                    }
+                  } catch (e) {
+                    _showMessage("Error getting directions: ${e.toString()}", isError: true);
+                  }
+                },
+                icon: const Icon(Icons.directions, color: Colors.green),
+                label: const Text(
+                  'Get Directions',
+                  style: TextStyle(color: Colors.green),
                 ),
-                borderRadius: BorderRadius.circular(12),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.local_police,
-                      color: Colors.white,
-                      size: 24,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
             
-            const Text(
-              "Emergency Services Available",
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black54,
+            // Clear Route Button (if route is visible)
+            if (_isRouteVisible)
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  _clearRoute();
+                },
+                icon: const Icon(Icons.clear, color: Colors.red),
+                label: const Text(
+                  'Clear Route',
+                  style: TextStyle(color: Colors.red),
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 16),
             
             // Close Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-                child: const Text("Close"),
-              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Close'),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 

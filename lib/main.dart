@@ -197,9 +197,11 @@ Future<void> setupNotificationHandlers() async {
   print('FCM Token: $token');
   // You can send this token to your server to send targeted notifications
 
+  // Attempt to update token here if user is already logged in
   if (token != null) {
-    // Attempt to update token here if user is already logged in
     await _updateUserFCMTokenInFirestore(token);
+  } else {
+    print('FCM token is null, skipping update.');
   }
 }
 
@@ -312,9 +314,9 @@ class AuthWrapper extends StatelessWidget {
     if (token != null) {
       await _updateUserFCMTokenInFirestore(token);
     } else {
-      print('Failed to get FCM token in AuthWrapper.');
+      print('FCM token is null, skipping update.');
     }
-  }
+    }
 
   @override
   Widget build(BuildContext context) {
