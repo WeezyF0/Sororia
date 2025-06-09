@@ -51,19 +51,259 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _editContact(int index) {
-    // TODO: Add edit functionality
+  Future<void> _loadEmergencyContacts() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final doc = await _firestore.collection('users').doc(user.uid).get();
+      if (doc.exists) {
+        setState(() {
+          emergencyContacts = List<Map<String, dynamic>>.from(
+            doc.data()?['e_contacts'] ?? [],
+          );
+          isLoadingContacts = false;
+        });
+      }
+    } catch (e) {
+      print("Error loading contacts: $e");
+      setState(() => isLoadingContacts = false);
+    }
   }
 
-  void _deleteContact(int index) {
+  Future<void> _editContact(int index) async {
+    final TextEditingController nameController = TextEditingController(
+      text: emergencyContacts[index]['name'],
+    );
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Edit Contact Name",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: "Display Name",
+            hintText: "Enter new name",
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) return;
+
+              final user = _auth.currentUser;
+              if (user == null) return;
+
+              try {
+                await _firestore.runTransaction((transaction) async {
+                  final userDoc = await transaction.get(
+                    _firestore.collection('users').doc(user.uid),
+                  );
+                  final currentContacts = List<Map<String, dynamic>>.from(
+                    userDoc.data()?['e_contacts'] ?? [],
+                  );
+
+                  final updatedContact = Map<String, dynamic>.from(
+                    emergencyContacts[index],
+                  );
+                  updatedContact['name'] = nameController.text;
+
+                  // Remove old contact and add updated one
+                  currentContacts.removeWhere(
+                    (c) => c['email'] == emergencyContacts[index]['email'],
+                  );
+                  currentContacts.add(updatedContact);
+
+                  transaction.update(userDoc.reference, {
+                    'e_contacts': currentContacts,
+                  });
+                });
+
+                setState(() {
+                  emergencyContacts[index]['name'] = nameController.text;
+                });
+
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error updating contact")),
+                );
+              }
+            },
+            child: Text(
+              "Save",
+              style: TextStyle(
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteContact(int index) async {
+  final user = _auth.currentUser;
+  if (user == null) return;
+
+  try {
+    await _firestore.collection('users').doc(user.uid).update({
+      'e_contacts': FieldValue.arrayRemove([emergencyContacts[index]]),
+    });
+
     setState(() {
       emergencyContacts.removeAt(index);
     });
-    // TODO: Update in Firestore
+  } catch (e) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Error deleting contact")));
   }
+}
 
-  void _addEmergencyContact() {
-    // TODO: Add contact functionality
+  Future<void> _addEmergencyContact() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Add Emergency Contact",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                labelText: "User Email",
+                hintText: "Enter user's email",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: "Display Name",
+                hintText: "Optional contact name",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: TextStyle(color: Colors.grey)),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (emailController.text.isEmpty) return;
+
+              try {
+                final query =
+                    await _firestore
+                        .collection('users')
+                        .where('email', isEqualTo: emailController.text)
+                        .limit(1)
+                        .get();
+
+                if (query.docs.isEmpty) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("User not found")));
+                  return;
+                }
+
+                final newContact = {
+                  'email': emailController.text,
+                  'name':
+                      nameController.text.isNotEmpty
+                          ? nameController.text
+                          : emailController.text.split('@')[0],
+                  'userId': query.docs.first.id,
+                  'addedAt':
+                      DateTime.now()
+                          .toIso8601String(), // Changed to regular timestamp
+                };
+
+                // Use transaction to ensure atomic update
+                await _firestore.runTransaction((transaction) async {
+                  final userDoc = await transaction.get(
+                    _firestore.collection('users').doc(user.uid),
+                  );
+                  final currentContacts = List<Map<String, dynamic>>.from(
+                    userDoc.data()?['e_contacts'] ?? [],
+                  );
+
+                  // Check if contact already exists
+                  if (currentContacts.any(
+                    (c) => c['email'] == emailController.text,
+                  )) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Contact already exists")),
+                    );
+                    return;
+                  }
+
+                  currentContacts.add(newContact);
+                  transaction.update(userDoc.reference, {
+                    'e_contacts': currentContacts,
+                  });
+                });
+
+                setState(() {
+                  emergencyContacts.add(newContact);
+                });
+
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Error adding contact: ${e.toString()}"),
+                  ),
+                );
+              }
+            },
+            child: Text(
+              "Add",
+              style: TextStyle(
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _editPhoneNumber() async {
@@ -145,7 +385,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             key: formKey,
             child: TextFormField(
               controller: controller,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
+              textCapitalization: TextCapitalization.words,
               maxLength: 10,
               decoration: const InputDecoration(
                 labelText: "Name",

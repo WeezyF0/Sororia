@@ -14,35 +14,35 @@ class SummaryScreen extends StatelessWidget {
       {
         'title': 'Nightlife Safety',
         'summary':
-            'Nightlife areas show moderate safety levels with increased patrols on weekends. Most incidents involve petty theft. Avoid poorly lit alleyways after midnight.',
+            'Focuses on safety conditions during evening and night hours across the city. Addresses visibility issues in poorly lit areas, safety in entertainment districts after dark, and recommended precautions when navigating the city at night.',
         'icon': Icons.nightlife,
         'color': Colors.purple,
       },
       {
         'title': 'City Wide Safety',
         'summary':
-            'Overall city safety is rated 7.5/10. Property crimes decreased by 12% this quarter. Central districts have the highest police presence.',
+            'Overall safety assessment across different neighborhoods and districts. Provides information about crime trends, police presence, and general safety recommendations for residents and visitors throughout the city.',
         'icon': Icons.location_city,
         'color': Colors.blue,
       },
       {
         'title': 'Workspace Safety',
         'summary':
-            'Office safety compliance at 89%. Most common issues: electrical hazards and ergonomic concerns. Monthly safety audits show improvement.',
+            'Examines safety conditions in office environments, construction sites, and other workplaces. Covers common workplace hazards, compliance with safety regulations, and efforts to create secure working environments.',
         'icon': Icons.work,
         'color': Colors.green,
       },
       {
         'title': 'Educational Space Safety',
         'summary':
-            'Schools maintain high safety standards. Bullying reports down 18%. New mental health programs show positive impact on campus safety metrics.',
+            'Focuses on safety in schools, colleges, and other educational institutions. Addresses physical security, bullying prevention, mental health support, and initiatives to create safe learning environments for students and staff.',
         'icon': Icons.school,
         'color': Colors.orange,
       },
       {
         'title': 'Public Transport Safety',
         'summary':
-            'Public transit safety score: 8/10. Rush hours see highest incident rates. New surveillance systems reduced pickpocketing by 25% in Q3.',
+            'Evaluates safety on buses, trains, metros and other public transportation. Includes information about security measures, common incidents, and safety tips for commuters using public transit throughout the city.',
         'icon': Icons.directions_bus,
         'color': Colors.teal,
       },

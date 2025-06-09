@@ -209,6 +209,7 @@ class _HomePageState extends State<HomePage> {
                   // Add SOS markers to the existing markers list
                   if (sosSnapshot.hasData) {
                     String? currentUid = FirebaseAuth.instance.currentUser?.uid;
+                    // Inside your StreamBuilder for SOS markers
                     for (var doc in sosSnapshot.data!.docs) {
                       var data = doc.data() as Map<String, dynamic>;
                       
@@ -220,37 +221,81 @@ class _HomePageState extends State<HomePage> {
                       
                       double? lat = data['latitude'] as double?;
                       double? lon = data['longitude'] as double?;
+                      String? userId = doc.id;
                       
                       if (lat == null || lon == null) continue;
                       
                       LatLng sosLocation = LatLng(lat, lon);
                       
+                      // Create a FutureBuilder marker that will load the name
                       markers.add(
                         Marker(
                           point: sosLocation,
                           width: 50,
-                          height: 50,
+                          height: 75, // Increased height to accommodate name
                           child: GestureDetector(
                             onTap: () => _showSOSDetails(context, data, doc.id),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.orange,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 3),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.orange.withOpacity(0.6),
-                                    spreadRadius: 3,
-                                    blurRadius: 7,
-                                    offset: const Offset(0, 0),
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 3),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.orange.withOpacity(0.6),
+                                        spreadRadius: 3,
+                                        blurRadius: 7,
+                                        offset: const Offset(0, 0),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: const Icon(
-                                Icons.emergency,
-                                color: Colors.white,
-                                size: 30,
-                              ),
+                                  child: const Icon(
+                                    Icons.emergency,
+                                    color: Colors.white,
+                                    size: 28,
+                                  ),
+                                ),
+                                FutureBuilder<DocumentSnapshot>(
+                                  future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
+                                  builder: (context, userSnapshot) {
+                                    String name = "SOS";
+                                    if (userSnapshot.hasData && userSnapshot.data!.exists) {
+                                      try {
+                                        final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                                        print("Marker userData for $userId: $userData"); // Debug log
+                                        name = userData['name'] ?? "SOS";
+                                        // Only show first name if full name is long
+                                        if (name.contains(" ") && name.length > 8) {
+                                          name = name.split(" ")[0];
+                                        }
+                                      } catch (e) {
+                                        print("Error extracting user data for marker: $e");
+                                      }
+                                    }
+                                    
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      margin: const EdgeInsets.only(top: 2),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black.withOpacity(0.6),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        name,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
                             ),
                           ),
                         ),
@@ -374,10 +419,31 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showSOSDetails(BuildContext context, Map<String, dynamic> sosData, String sosId) {
+  void _showSOSDetails(BuildContext context, Map<String, dynamic> sosData, String sosId) async {
     // Get latitude and longitude for Google Maps
     double? lat = sosData['latitude'] as double?;
     double? lon = sosData['longitude'] as double?;
+    String? userId = sosId;
+    
+    // Default values in case we can't fetch the user data
+    String userName = "Unknown";
+    String phoneNumber = "";
+    
+    // Fetch user data if we have a user ID
+    try {
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .get();
+            
+        if (userDoc.exists) {
+          final userData = userDoc.data() as Map<String, dynamic>;
+          userName = userData['name'] ?? "Unknown";
+          phoneNumber = userData['phone_no'] ?? "";
+        }
+      } catch (e) {
+        print("Error fetching user data: $e");
+      }
 
     showModalBottomSheet(
       context: context,
@@ -402,6 +468,15 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
             const SizedBox(height: 16),
+            // Add the person's name who triggered the alert
+            Text(
+              'From: $userName',
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 8),
             Text(
               'Location: ${sosData['location'] ?? 'Unknown'}',
               style: const TextStyle(fontSize: 16),
@@ -436,15 +511,20 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // Add call functionality
-                    },
+                    onPressed: phoneNumber.isEmpty 
+                        ? null  // Disable the button if no phone number
+                        : () {
+                            Navigator.pop(context);
+                            _makePhoneCall(phoneNumber);
+                          },
                     icon: const Icon(Icons.phone),
                     label: const Text('Call'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.red,
                       foregroundColor: Colors.white,
+                      // If phone number is empty, make button appear disabled
+                      disabledBackgroundColor: Colors.grey,
+                      disabledForegroundColor: Colors.white70,
                     ),
                   ),
                 ),
@@ -454,6 +534,37 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    print("Original phone number: $phoneNumber"); // Debug original
+    
+    // Clean the phone number
+    final String cleanPhone = phoneNumber.replaceAll(RegExp(r'\s+'), '');
+    print("Clean phone: $cleanPhone");
+    
+    try {
+      // Try direct dialing first
+      final Uri telUri = Uri(scheme: 'tel', path: cleanPhone);
+      print("Attempting to launch: ${telUri.toString()}");
+      
+      if (await canLaunchUrl(telUri)) {
+        print("Can launch - attempting to launch");
+        await launchUrl(telUri);
+      } else {
+        print("Cannot launch tel URI - trying dial intent");
+        // Try using the DIAL intent as fallback
+        final Uri dialUri = Uri.parse('tel:$cleanPhone');
+        if (await canLaunchUrl(dialUri)) {
+          await launchUrl(dialUri, mode: LaunchMode.externalApplication);
+        } else {
+          _showError("Could not launch phone dialer. Device may not support this feature.");
+        }
+      }
+    } catch (e) {
+      print("Error launching phone dialer: $e");
+      _showError("Error: ${e.toString()}");
+    }
   }
   
   String _formatTimestamp(dynamic timestamp) {
