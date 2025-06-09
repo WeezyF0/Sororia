@@ -177,7 +177,6 @@ class NavBar extends StatelessWidget {
                       route: "/news_map",
                       isDarkMode: isDarkMode,
                     ),
-      
 
                     // In your NavBar class, replace the Settings section with:
                     _buildDivider(isDarkMode),
@@ -211,85 +210,94 @@ class NavBar extends StatelessWidget {
     String userEmail,
     bool isDarkMode,
   ) {
-    return Container(
-      padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/images/bg.jpg'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(
-            Colors.black.withOpacity(0.6),
-            BlendMode.darken,
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).pop(); // close drawer
+        Navigator.pushNamed(context, '/profile_screen');
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/bg.jpg'),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(0.6),
+              BlendMode.darken,
+            ),
           ),
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // Logo and app name
-              Row(
-                children: [
-                  Image.asset('assets/images/logo2.png', height: 40, width: 40),
-                  SizedBox(width: 8),
-                  Text(
-                    "SORORIA",
-                    style: _poppinsStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                // Logo and app name
+                Row(
+                  children: [
+                    Image.asset(
+                      'assets/images/logo2.png',
+                      height: 40,
+                      width: 40,
                     ),
-                  ),
-                ],
-              ),
-
-              // Close button
-              IconButton(
-                onPressed: () => Navigator.of(context).pop(),
-                icon: Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.black26,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(Icons.close_rounded, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text(
+                      "SORORIA",
+                      style: _poppinsStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-
-          SizedBox(height: 16),
-
-          // User email
-          Text(
-            userEmail,
-            style: _poppinsStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+                // Close button
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.close_rounded, color: Colors.white),
+                  ),
+                ),
+              ],
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
 
-          SizedBox(height: 12),
+            SizedBox(height: 16),
 
-          // User initial avatar
-          CircleAvatar(
-            radius: 20,
-            backgroundColor: ColorPalette.primaryLight,
-            child: Text(
-              userInitial,
-              style: GoogleFonts.poppins(
-                color: Colors.white,
-                fontSize: 18,
+            // User email (clickable)
+            Text(
+              userEmail,
+              style: _poppinsStyle(
+                color: Colors.white.withOpacity(0.9),
+                fontSize: 14,
                 fontWeight: FontWeight.w500,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+
+            SizedBox(height: 12),
+
+            // User initial avatar (clickable)
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: ColorPalette.primaryLight,
+              child: Text(
+                userInitial,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
