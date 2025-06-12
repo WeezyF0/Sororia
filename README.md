@@ -1,4 +1,4 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg) ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0)
+![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg) ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0) [![Join us on Telegram](https://img.shields.io/badge/Telegram-Bot-blue?logo=telegram&logoColor=white)](https://t.me/SororiaBot)
 
 # <img src="assets/images/logo2.png" alt="Sororia Logo" width="20"> Sororia
 
@@ -17,7 +17,8 @@
 - 🎤 **Mobilization Hub** – Plan, promote, and organize rallies or protests directly within the app to drive actionable change.  
 - 🗺️ **Issue Heatmap** – Visualize community concerns on an interactive GPS-powered layer.  
 - 🛣️ **Safety Route Planner** – Navigate your world with confidence using AI-optimized, risk-aware routing.  
-- 🚨 **Panic SOS Blast** – Hit SOS and instantly ping your emergency contacts with your live location and a one-tap call option.
+- 🚨 **Panic SOS Blast** – Hit SOS and instantly ping your emergency contacts with your live location and a one-tap call option.  
+- 📲 **Telegram Bot** – Chat with Sororia’s features and get instant updates via Telegram: [@SororiaBot](https://t.me/SororiaBot)
 
 ---
 
@@ -31,3 +32,11 @@ Love the vision? Fork it, hack it, and send a PR—your creativity fuels our mis
 
 📥 **[Download the APK](https://drive.google.com/file/d/1GqR7grncvl9tcI-oOLbeQg9s_7ZwbPJt/view?usp=sharing)**  
 Test **Sororia** on Android today! *(iOS coming soon)*  
+
+---
+
+## 🤖 Telegram Bot
+
+Stay connected on the go!  
+- Share your experiences with us, directly through Telegram.  
+- Click here to start: [Link to bot](https://t.me/SororiaBot)
