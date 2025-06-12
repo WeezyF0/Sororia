@@ -18,7 +18,7 @@
 - 🗺️ **Issue Heatmap** – Visualize community concerns on an interactive GPS-powered layer.  
 - 🛣️ **Safety Route Planner** – Navigate your world with confidence using AI-optimized, risk-aware routing.  
 - 🚨 **Panic SOS Blast** – Hit SOS and instantly ping your emergency contacts with your live location and a one-tap call option.  
-- 📲 **Telegram Bot** – Chat with Sororia’s features and get instant updates via Telegram: [@SororiaBot](https://t.me/SororiaBot)
+- 📲 **Telegram Bot** – Share your experiences with us via Telegram: [@SororiaBot](https://t.me/SororiaBot)
 
 ---
 
@@ -34,9 +34,3 @@ Love the vision? Fork it, hack it, and send a PR—your creativity fuels our mis
 Test **Sororia** on Android today! *(iOS coming soon)*  
 
 ---
-
-## 🤖 Telegram Bot
-
-Stay connected on the go!  
-- Share your experiences with us, directly through Telegram.  
-- Click here to start: [Link to bot](https://t.me/SororiaBot)
