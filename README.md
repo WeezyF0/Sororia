@@ -1,4 +1,5 @@
-![License: MIT](https://img.shields.io/badge/License-MIT-purple.svg) ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0) [![Join us on Telegram](https://img.shields.io/badge/Telegram-Bot-blue?logo=telegram&logoColor=white)](https://t.me/SororiaBot)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
+ ![Platform](https://img.shields.io/badge/Platform-Android-blue.svg) ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg) [![Join us on Instagram](https://img.shields.io/badge/Follow-@soror.ia-E4405F?style=for-the-badge&logo=instagram&logoColor=white)](https://www.instagram.com/soror.ia?igsh=djRkYWJoZjlxNzF0) [![Join us on Telegram](https://img.shields.io/badge/Telegram-Bot-blue?logo=telegram&logoColor=white)](https://t.me/SororiaBot)
 
 # <img src="assets/images/logo2.png" alt="Sororia Logo" width="20"> Sororia
 
