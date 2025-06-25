@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../services/auth_service.dart';
-import 'complaint_list_screen.dart';
+import 'home.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -21,7 +21,7 @@ class LoginScreen extends StatelessWidget {
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => ComplaintListScreen()),
+        MaterialPageRoute(builder: (_) => HomePage()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -30,9 +30,22 @@ class LoginScreen extends StatelessWidget {
     }
   }
 
+  
   void _loginWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      // Create a new instance of GoogleSignIn with force selection option
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        // This forces the account selection dialog to appear every time
+        forceCodeForRefreshToken: true,
+      );
+      
+      // Sign out any existing Google sessions first
+      await googleSignIn.signOut();
+      
+      // Now try to sign in, which will always show the account chooser
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      
       if (googleUser == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Google Sign-In canceled")),
@@ -48,11 +61,16 @@ class LoginScreen extends StatelessWidget {
 
       final UserCredential userCredential =
           await FirebaseAuth.instance.signInWithCredential(credential);
+          
+      // Store user info in Firestore if needed
+      if (userCredential.user != null) {
+        await _auth.storeGoogleUserData(userCredential.user!);
+      }
 
-      // Always navigate to ComplaintListScreen regardless of new or existing user
+      // Navigate to Home
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => ComplaintListScreen()),
+        MaterialPageRoute(builder: (_) => HomePage()),
       );
     } catch (e) {
       print("Google Sign-In error: $e");

@@ -33,7 +33,7 @@ dependencies:
   firebase_core: ^3.11.0
   firebase_auth: any
   cloud_firestore: any
-  google_sign_in: any
+  google_sign_in: 6.1.6
   cupertino_icons: ^1.0.8
   google_maps_flutter: any
   flutter_map: ^8.0.0

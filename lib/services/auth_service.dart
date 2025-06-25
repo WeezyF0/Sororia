@@ -69,4 +69,17 @@ class AuthService {
   Future<void> logout() async {
     await _auth.signOut();
   }
+
+  Future<void> storeGoogleUserData(User user) async {
+    try {
+      await _db.collection("users").doc(user.uid).set({
+        "email": user.email,
+        "name": user.displayName,
+        "createdAt": FieldValue.serverTimestamp(),
+        // Add any additional fields you want to store
+      }, SetOptions(merge: true)); // merge: true will update fields without overwriting existing ones
+    } catch (e) {
+      print("Error storing Google user data: $e");
+    }
+  }
 }

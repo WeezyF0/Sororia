@@ -207,6 +207,7 @@ Future<void> setupNotificationHandlers() async {
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final stopwatch = Stopwatch()..start();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   // Set preferred orientations
@@ -230,16 +231,27 @@ void main() async {
         ChangeNotifierProvider(create: (context) => ThemeProvider()),
         ChangeNotifierProvider(create: (context) => ProtestProvider()),
       ],
-      child: MyApp(),
+      child: MyApp(stopwatch: stopwatch),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final Stopwatch stopwatch;
+  const MyApp({Key? key, required this.stopwatch}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (stopwatch.isRunning) {
+        stopwatch.stop();
+        debugPrint(
+          '📦 Cold-start & 1st-frame: ${stopwatch.elapsedMilliseconds} ms'
+        );
+      }
+    });
+
+
     final themeProvider = Provider.of<ThemeProvider>(context);
     return MaterialApp(
       navigatorKey: navigatorKey, // Set global navigator key
