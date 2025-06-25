@@ -4,6 +4,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import '../services/auth_service.dart';
 import 'home.dart';
 import 'signup_screen.dart';
+import 'phone_auth.dart';
 
 class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
@@ -167,6 +168,26 @@ class LoginScreen extends StatelessWidget {
                     elevation: 2,
                     side: BorderSide(color: Colors.grey.shade300),
                   ),
+                ),
+                
+                SizedBox(height: 12),
+                // Replace the phone authentication button with this:
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (_) => PhoneAuthScreen())
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: sororiaPink,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                  child: Text("Sign in with Phone Number"),
                 ),
                 TextButton(
                   onPressed: () => Navigator.push(
