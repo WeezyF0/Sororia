@@ -1,194 +1,125 @@
 import 'package:flutter/material.dart';
-import 'package:complaints_app/services/auth_service.dart';
-import 'signup_screen.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import '../services/auth_service.dart';
 import 'complaint_list_screen.dart';
+import 'signup_screen.dart';
 
-
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
-  @override
-  _LoginScreenState createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<LoginScreen> {
+class LoginScreen extends StatelessWidget {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final AuthService _auth = AuthService();
 
-  void _login() async {
-    String email = emailController.text.trim();
-    String password = passwordController.text.trim();
+  // Sororia pink color from logo
+  final Color sororiaPink = const Color(0xFFE91E63);
 
-    var user = await _auth.login(email, password);
+  void _login(BuildContext context) async {
+    final email = emailController.text.trim();
+    final password = passwordController.text.trim();
+
+    final user = await _auth.login(email, password);
     if (user != null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => ComplaintListScreen()),
+        MaterialPageRoute(builder: (_) => ComplaintListScreen()),
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Login failed"),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text("Login failed")),
+      );
+    }
+  }
+
+  void _loginWithGoogle(BuildContext context) async {
+    try {
+      final GoogleSignInAccount? googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Google Sign-In canceled")),
+        );
+        return;
+      }
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await FirebaseAuth.instance.signInWithCredential(credential);
+
+      // Always navigate to ComplaintListScreen regardless of new or existing user
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => ComplaintListScreen()),
+      );
+    } catch (e) {
+      print("Google Sign-In error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("An error occurred during Google Sign-In")),
       );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).primaryColor;
-    
-    
     return Scaffold(
-      appBar: PreferredSize(
-      preferredSize: const Size.fromHeight(80.0),
-      child: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text(
-          "LOGIN",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/appBar_bg.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          foregroundDecoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.withOpacity(0.3), 
-                Colors.purple.withOpacity(0.3)
-              ],
-            ),
-          ),
-        ),
-      ),
-    ),
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg.jpg'),
-            fit: BoxFit.cover,
-          ),
-        ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
         child: Center(
           child: SingleChildScrollView(
-            child: Card(
-              elevation: 8.0,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16.0),
-              ),
-              margin: EdgeInsets.symmetric(horizontal: 24.0),
-              color: isDarkMode 
-                ? Colors.grey[900]?.withOpacity(0.9) 
-                : Colors.white.withOpacity(0.9),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: emailController,
-                      decoration: InputDecoration(
-                        labelText: "Email",
-                        labelStyle: TextStyle(
-                          color: isDarkMode ? Colors.white70 : Colors.black87,
-                        ),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode ? Colors.white54 : Colors.black54,
-                          ),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: primaryColor,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    SizedBox(height: 16.0),
-                    TextField(
-                      controller: passwordController,
-                      decoration: InputDecoration(
-                        labelText: "Password",
-                        labelStyle: TextStyle(
-                          color: isDarkMode ? Colors.white70 : Colors.black87,
-                        ),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: isDarkMode ? Colors.white54 : Colors.black54,
-                          ),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(
-                            color: primaryColor,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      style: TextStyle(
-                        color: isDarkMode ? Colors.white : Colors.black87,
-                      ),
-                      obscureText: true,
-                    ),
-                    SizedBox(height: 24.0),
-                    ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8.0),
-                        ),
-                      ),
-                      child: Text("Login", 
-                        style: TextStyle(
-                          fontSize: 20, 
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 16.0),
-                    Column(
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => SignupScreen()),
-                            );
-                          },
-                          child: Text(
-                            "Don't have an account? Sign up",
-                            style: TextStyle(
-                              color: isDarkMode ? Colors.white70 : primaryColor,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Image.asset('assets/images/logo2.png', height: 120),
+                SizedBox(height: 24),
+                TextField(
+                  controller: emailController,
+                  decoration: InputDecoration(labelText: "Email"),
                 ),
-              ),
+                SizedBox(height: 16),
+                TextField(
+                  controller: passwordController,
+                  decoration: InputDecoration(labelText: "Password"),
+                  obscureText: true,
+                ),
+                SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: () => _login(context),
+                  child: Text("Login"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: sororiaPink,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12),
+                ElevatedButton.icon(
+                  icon: Image.asset('assets/images/google_icon.png', height: 20),
+                  label: Text("Sign in with Google"),
+                  onPressed: () => _loginWithGoogle(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    elevation: 2,
+                    side: BorderSide(color: Colors.grey.shade300),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => SignupScreen()),
+                  ),
+                  child: Text(
+                    "Don't have an account? Sign up",
+                    style: TextStyle(color: sororiaPink),
+                  ),
+                ),
+              ],
             ),
           ),
         ),

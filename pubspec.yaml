@@ -109,6 +109,8 @@ flutter:
     - assets/images/logo2.png
     - assets/images/home_bg_day.jpg
     - assets/images/home_bg_night.jpg
+    - assets/images/google_icon.png
+    - assets/images/logo2.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
