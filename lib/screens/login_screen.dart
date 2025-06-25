@@ -16,6 +16,20 @@ class LoginScreen extends StatelessWidget {
   void _login(BuildContext context) async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
+    
+    // Check if email is registered with Google
+    bool isGoogleAccount = await _auth.checkIfGoogleAccount(email);
+    
+    if (isGoogleAccount) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("This email is registered with Google. Please use 'Sign in with Google' instead."),
+          backgroundColor: Colors.red,
+          duration: Duration(seconds: 5),
+        ),
+      );
+      return;
+    }
 
     final user = await _auth.login(email, password);
     if (user != null) {
@@ -30,55 +44,82 @@ class LoginScreen extends StatelessWidget {
     }
   }
 
-  
   void _loginWithGoogle(BuildContext context) async {
     try {
-      // Create a new instance of GoogleSignIn with force selection option
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        scopes: ['email', 'profile'],
-        // This forces the account selection dialog to appear every time
-        forceCodeForRefreshToken: true,
-      );
-      
-      // Sign out any existing Google sessions first
-      await googleSignIn.signOut();
-      
-      // Now try to sign in, which will always show the account chooser
+      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      await googleSignIn.signOut(); // Ensure fresh sign-in
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      
       if (googleUser == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Google Sign-In canceled")),
-        );
+        print("Google Sign-In canceled by user");
         return;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      final OAuthCredential credential = GoogleAuthProvider.credential(
+      final email = googleUser.email;
+      print("Attempting Google Sign-In with email: $email");
+
+      // Check if this email already has a password account
+      final bool emailExistsWithPassword = await _auth.checkIfEmailExists(email);
+      if (emailExistsWithPassword) {
+        // Stop if it’s already registered under email/password
+        print("Email already exists with password - blocking Google sign-in");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              "This email is already registered with a password. Use your password to log in.",
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+        await googleSignIn.signOut();
+        return;
+      }
+
+      // Proceed to get Google credential
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      final UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithCredential(credential);
-          
-      // Store user info in Firestore if needed
-      if (userCredential.user != null) {
-        await _auth.storeGoogleUserData(userCredential.user!);
+      UserCredential userCredential;
+      try {
+        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+      } on FirebaseAuthException catch (e) {
+        // <-- Catch the special case “account-exists-with-different-credential”
+        if (e.code == "account-exists-with-different-credential") {
+          print("Attempt to sign in with Google failed: same email used by another provider");
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                "This email is already registered with a different sign-in method. Please use that method.",
+              ),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+          await googleSignIn.signOut();
+          return;
+        } else {
+          // Otherwise, rethrow to handle normally
+          rethrow;
+        }
       }
 
-      // Navigate to Home
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => HomePage()),
-      );
+      // If we reach here, sign-in succeeded
+      final user = userCredential.user;
+      if (user != null) {
+        await _auth.storeGoogleUserData(user);
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
+      }
     } catch (e) {
       print("Google Sign-In error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred during Google Sign-In")),
+        SnackBar(content: Text("An error occurred during Google Sign-In: ${e.toString()}")),
       );
     }
   }
+  
 
   @override
   Widget build(BuildContext context) {

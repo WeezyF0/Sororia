@@ -82,4 +82,41 @@ class AuthService {
       print("Error storing Google user data: $e");
     }
   }
+
+  /// Checks if an email exists in Firebase Auth with password provider
+  /// Checks if an email exists in Firebase Auth with password provider
+  Future<bool> checkIfEmailExists(String email) async {
+    try {
+      print("Checking if email exists with password auth: $email");
+      // Fetch sign-in methods for the email
+      List<String> methods = await _auth.fetchSignInMethodsForEmail(email);
+      print("Available auth methods for $email: $methods");
+      
+      // If email/password is in the list of methods, the email exists with password auth
+      bool exists = methods.contains('password');
+      print("Email exists with password auth: $exists");
+      return exists;
+    } catch (e) {
+      print("Error checking email existence: $e");
+      return false;
+    }
+  }
+
+  /// Checks if an email is registered with Google provider
+  Future<bool> checkIfGoogleAccount(String email) async {
+    try {
+      print("Checking if email exists with Google auth: $email");
+      // Fetch sign-in methods for the email
+      List<String> methods = await _auth.fetchSignInMethodsForEmail(email);
+      print("Available auth methods for $email: $methods");
+      
+      // Check if Google is in the list of providers
+      bool isGoogle = methods.contains('google.com');
+      print("Email exists with Google auth: $isGoogle");
+      return isGoogle;
+    } catch (e) {
+      print("Error checking Google account: $e");
+      return false;
+    }
+  }
 }
