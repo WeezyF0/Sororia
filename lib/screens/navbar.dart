@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class NavBar extends StatelessWidget {
   const NavBar({super.key});
@@ -30,184 +31,219 @@ class NavBar extends StatelessWidget {
 
     // Get current user details if available
     final user = FirebaseAuth.instance.currentUser;
-    final String userEmail = user?.email ?? 'Guest User';
-    final String userInitial =
-        userEmail.isNotEmpty ? userEmail[0].toUpperCase() : 'G';
-
-    return Drawer(
-      elevation: 0,
-      backgroundColor: Colors.transparent,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors:
-                isDarkMode
-                    ? [ColorPalette.backgroundDark, ColorPalette.surfaceDark]
-                    : [ColorPalette.backgroundLight, ColorPalette.surfaceLight],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isDarkMode ? Colors.black26 : Colors.black12,
-              blurRadius: 8,
-              offset: Offset(2, 0),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Header section
-              _buildDrawerHeader(context, userInitial, userEmail, isDarkMode),
-
-              // Options list
-              Expanded(
-                child: ListView(
-                  padding: EdgeInsets.only(top: 8),
-                  physics: BouncingScrollPhysics(),
-                  children: [
-                    //Home Page
-                    _buildSectionTitle('HOME', isDarkMode),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.home,
-                      iconColor: ColorPalette.info,
-                      title: "Home Page",
-                      route: "/home",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildDivider(isDarkMode),
-                    // Complaints section
-                    _buildSectionTitle('EXPERIENCES', isDarkMode),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.doc_text_search,
-                      iconColor: ColorPalette.info,
-                      title: "View Experiences",
-                      route: "/complaints",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.doc_text_search,
-                      iconColor: ColorPalette.info,
-                      title: "My Experiences",
-                      route: "/my_complaints",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.search,
-                      iconColor: ColorPalette.warning,
-                      title: "Search Experiences",
-                      route: "/test",
-                      isDarkMode: isDarkMode,
-                    ),
-
-                    _buildDivider(isDarkMode),
-
-                    // Petitions section
-                    _buildSectionTitle('PETITIONS', isDarkMode),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.collections,
-                      iconColor: ColorPalette.primaryLight,
-                      title: "All Petitions",
-                      route: "/petitions",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon:
-                          CupertinoIcons
-                              .person_crop_circle_fill_badge_checkmark,
-                      iconColor: Color(0xFF9575CD),
-                      title: "My Petitions",
-                      route: "/my_petitions",
-                      isDarkMode: isDarkMode,
-                    ),
-
-                    _buildDivider(isDarkMode),
-
-                    // safety
-                    _buildSectionTitle('SAFETY', isDarkMode),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.news_solid,
-                      iconColor: ColorPalette.primaryLight,
-                      title: "Find Safest Route",
-                      route: "/safest_route",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.exclamationmark_triangle_fill,
-                      iconColor: Colors.red,
-                      title: "Emergency SOS",
-                      route: "/sos",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.chart_bar_square_fill,
-                      iconColor: ColorPalette.primaryLight,
-                      title: "Safety Summary",
-                      route: "/summary_screen",
-                      isDarkMode: isDarkMode,
-                    ),
-
-                    _buildDivider(isDarkMode),
-
-                    // news
-                    _buildSectionTitle('NEWS', isDarkMode),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.news_solid,
-                      iconColor: ColorPalette.primaryLight,
-                      title: "View Gov Schemes in your area",
-                      route: "/news",
-                      isDarkMode: isDarkMode,
-                    ),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.news,
-                      iconColor: ColorPalette.primaryLight,
-                      title: "News Map",
-                      route: "/news_map",
-                      isDarkMode: isDarkMode,
-                    ),
-
-                    // In your NavBar class, replace the Settings section with:
-                    _buildDivider(isDarkMode),
-
-                    // Settings section
-                    _buildSectionTitle('SETTINGS', isDarkMode),
-                    _buildNavigationTile(
-                      context: context,
-                      icon: CupertinoIcons.settings,
-                      iconColor: Colors.blueGrey,
-                      title: "Settings",
-                      route: "/settings_screen",
-                      isDarkMode: isDarkMode,
-                    ),
-                  ],
-                ),
+    return FutureBuilder<DocumentSnapshot>(
+      // Only fetch from Firestore if we have a user but no email
+      future: (user != null && (user.email == null || user.email!.isEmpty)) 
+          ? FirebaseFirestore.instance.collection('users').doc(user.uid).get()
+          : null,
+      builder: (context, snapshot) {
+        String userIdentifier;
+        String userInitial;
+        
+        // First priority: Email if available
+        if (user != null && user.email != null && user.email!.isNotEmpty) {
+          userIdentifier = user.email!;
+          userInitial = userIdentifier[0].toUpperCase();
+        }
+        // Second priority: Phone number from Firestore if available
+        else if (user != null && snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+          final userData = snapshot.data!.data() as Map<String, dynamic>?;
+          final String? phoneNo = userData?['phone_no'] as String?;
+          
+          if (phoneNo != null && phoneNo.isNotEmpty) {
+            userIdentifier = phoneNo;
+            // Use first character after "+" if it exists, otherwise first character
+            userInitial = phoneNo.contains('+') 
+                ? phoneNo[phoneNo.indexOf('+') + 1].toUpperCase() 
+                : phoneNo[0].toUpperCase();
+          } else {
+            // Fallback to guest if no phone number found
+            userIdentifier = 'Guest User';
+            userInitial = 'G';
+          }
+        }
+        // Last resort: Guest User
+        else {
+          userIdentifier = 'Guest User';
+          userInitial = 'G';
+        }
+        
+        return Drawer(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors:
+                    isDarkMode
+                        ? [ColorPalette.backgroundDark, ColorPalette.surfaceDark]
+                        : [ColorPalette.backgroundLight, ColorPalette.surfaceLight],
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDarkMode ? Colors.black26 : Colors.black12,
+                  blurRadius: 8,
+                  offset: Offset(2, 0),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  // Header section
+                  _buildDrawerHeader(context, userInitial, userIdentifier, isDarkMode),
 
-              // App version footer
-              _buildAppVersionFooter(isDarkMode),
-            ],
+                  // Options list
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.only(top: 8),
+                      physics: BouncingScrollPhysics(),
+                      children: [
+                        //Home Page
+                        _buildSectionTitle('HOME', isDarkMode),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.home,
+                          iconColor: ColorPalette.info,
+                          title: "Home Page",
+                          route: "/home",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildDivider(isDarkMode),
+                        // Complaints section
+                        _buildSectionTitle('EXPERIENCES', isDarkMode),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.doc_text_search,
+                          iconColor: ColorPalette.info,
+                          title: "View Experiences",
+                          route: "/complaints",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.doc_text_search,
+                          iconColor: ColorPalette.info,
+                          title: "My Experiences",
+                          route: "/my_complaints",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.search,
+                          iconColor: ColorPalette.warning,
+                          title: "Search Experiences",
+                          route: "/test",
+                          isDarkMode: isDarkMode,
+                        ),
+
+                        _buildDivider(isDarkMode),
+
+                        // Petitions section
+                        _buildSectionTitle('PETITIONS', isDarkMode),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.collections,
+                          iconColor: ColorPalette.primaryLight,
+                          title: "All Petitions",
+                          route: "/petitions",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildNavigationTile(
+                          context: context,
+                          icon:
+                              CupertinoIcons
+                                  .person_crop_circle_fill_badge_checkmark,
+                          iconColor: Color(0xFF9575CD),
+                          title: "My Petitions",
+                          route: "/my_petitions",
+                          isDarkMode: isDarkMode,
+                        ),
+
+                        _buildDivider(isDarkMode),
+
+                        // safety
+                        _buildSectionTitle('SAFETY', isDarkMode),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.news_solid,
+                          iconColor: ColorPalette.primaryLight,
+                          title: "Find Safest Route",
+                          route: "/safest_route",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.exclamationmark_triangle_fill,
+                          iconColor: Colors.red,
+                          title: "Emergency SOS",
+                          route: "/sos",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.chart_bar_square_fill,
+                          iconColor: ColorPalette.primaryLight,
+                          title: "Safety Summary",
+                          route: "/summary_screen",
+                          isDarkMode: isDarkMode,
+                        ),
+
+                        _buildDivider(isDarkMode),
+
+                        // news
+                        _buildSectionTitle('NEWS', isDarkMode),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.news_solid,
+                          iconColor: ColorPalette.primaryLight,
+                          title: "View Gov Schemes in your area",
+                          route: "/news",
+                          isDarkMode: isDarkMode,
+                        ),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.news,
+                          iconColor: ColorPalette.primaryLight,
+                          title: "News Map",
+                          route: "/news_map",
+                          isDarkMode: isDarkMode,
+                        ),
+
+                        // In your NavBar class, replace the Settings section with:
+                        _buildDivider(isDarkMode),
+
+                        // Settings section
+                        _buildSectionTitle('SETTINGS', isDarkMode),
+                        _buildNavigationTile(
+                          context: context,
+                          icon: CupertinoIcons.settings,
+                          iconColor: Colors.blueGrey,
+                          title: "Settings",
+                          route: "/settings_screen",
+                          isDarkMode: isDarkMode,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // App version footer
+                  _buildAppVersionFooter(isDarkMode),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildDrawerHeader(
     BuildContext context,
     String userInitial,
-    String userEmail,
+    String userIdentifier,
     bool isDarkMode,
   ) {
     return GestureDetector(
@@ -269,9 +305,9 @@ class NavBar extends StatelessWidget {
 
             SizedBox(height: 16),
 
-            // User email (clickable)
+            // User identifier (clickable) - FIXED: changed from userEmail to userIdentifier
             Text(
-              userEmail,
+              userIdentifier,
               style: _poppinsStyle(
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 14,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:pinput/pinput.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PhoneAuthScreen extends StatefulWidget {
   const PhoneAuthScreen({super.key});
@@ -69,6 +70,10 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
 
   void signInWithCredential() async {
     if (otpController.text.length == 6) {
+      setState(() {
+        isLoading = true;
+      });
+      
       try {
         // Create a PhoneAuthCredential with the code
         PhoneAuthCredential credential = PhoneAuthProvider.credential(
@@ -77,10 +82,23 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
         );
         
         // Sign the user in (or link) with the credential
-        await auth.signInWithCredential(credential);
+        UserCredential userCredential = await auth.signInWithCredential(credential);
+        User? user = userCredential.user;
+        
+        // Store the phone number in Firestore
+        if (user != null) {
+          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+            'phone_no': '${phoneController.text.trim()}',
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+        
         navigateToHome();
         
       } catch (e) {
+        setState(() {
+          isLoading = false;
+        });
         showSnackBar('Invalid OTP');
         otpController.clear();
       }
