@@ -26,10 +26,36 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
     super.dispose();
   }
 
+  Future<bool> _isPhoneNumberAlreadyInUse() async {
+    try {
+      // Query for any users with this phone number
+      final QuerySnapshot result = await FirebaseFirestore.instance
+          .collection('users')
+          .where('phone_no', isEqualTo: phoneController.text.trim())
+          .get();
+      
+      // If any documents found, the phone is already in use
+      return result.docs.isNotEmpty;
+    } catch (e) {
+      print("Error checking phone number uniqueness: $e");
+      // If there's an error, assume it might be in use to be safe
+      return true;
+    }
+  }
+
   void verifyPhoneNumber() async {
     setState(() {
       isLoading = true;
     });
+
+    final bool isInUse = await _isPhoneNumberAlreadyInUse();
+    if (isInUse) {
+      setState(() {
+        isLoading = false;
+      });
+      showSnackBar('This phone number is already registered with an email. Please use a different number or sign in using that email.');
+      return;
+    }
 
     await auth.verifyPhoneNumber(
       phoneNumber: '+91${phoneController.text.trim()}',

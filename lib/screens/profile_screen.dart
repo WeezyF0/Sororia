@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
 import 'navbar.dart';
+import 'package:complaints_app/screens/verify_phone_update.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -308,12 +309,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _editPhoneNumber() async {
     final TextEditingController controller = TextEditingController(
-      text: userData?['phone_no']?.toString().replaceFirst('+91', ''),
+      text: userData?['phone_no']?.toString().replaceAll('+91', ''),
     );
 
     final formKey = GlobalKey<FormState>();
 
-    await showDialog(
+    // First show dialog to get the new phone number
+    final result = await showDialog<String>(
       context: context,
       builder: (context) {
         return AlertDialog(
@@ -326,6 +328,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               maxLength: 10,
               decoration: const InputDecoration(
                 labelText: "Phone Number",
+                prefixText: '+91 ',
                 counterText: "", // Hide character counter
               ),
               validator: (value) {
@@ -346,27 +349,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: const Text("Cancel"),
             ),
             ElevatedButton(
-              onPressed: () async {
+              onPressed: () {
                 if (formKey.currentState?.validate() ?? false) {
-                  final phone = controller.text.trim();
-                  await _firestore
-                      .collection('users')
-                      .doc(_auth.currentUser!.uid)
-                      .update({'phone_no': phone});
-
-                  setState(() {
-                    userData?['phone_no'] = phone;
-                  });
-
-                  Navigator.pop(context);
+                  Navigator.pop(context, controller.text.trim());
                 }
               },
-              child: const Text("Save"),
+              child: const Text("Continue"),
             ),
           ],
         );
       },
     );
+    
+    // If user canceled, return early
+    if (result == null) return;
+    
+    // Now launch the verification screen
+    final verified = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => VerifyPhoneUpdate(
+          userId: _auth.currentUser!.uid,
+          phoneNumber: result,
+        ),
+      ),
+    );
+    
+    // If verification was successful, update the UI
+    if (verified == true) {
+      setState(() {
+        userData?['phone_no'] = result;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Phone number updated successfully")),
+      );
+    }
   }
 
   void _editName() async {
