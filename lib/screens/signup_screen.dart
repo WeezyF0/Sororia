@@ -48,9 +48,8 @@ class _SignupScreenState extends State<SignupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-
     return Scaffold(
+      backgroundColor: const Color(0xFFF7F7F9), // subtle light grey
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -64,6 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16.0),
                 ),
+                color: Colors.white, // keep card white for contrast
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
                   child: Column(
@@ -82,6 +82,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         controller: emailController,
                         decoration: const InputDecoration(
                           labelText: "Email",
+                          border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                         ),
                       ),
                       const SizedBox(height: 16.0),
@@ -90,6 +91,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         obscureText: _obscureText,
                         decoration: InputDecoration(
                           labelText: "Password",
+                          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                         ),
                       ),
                       const SizedBox(height: 16.0),
@@ -98,10 +100,9 @@ class _SignupScreenState extends State<SignupScreen> {
                         obscureText: _obscureText,
                         decoration: InputDecoration(
                           labelText: "Confirm Password",
+                          border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                           suffixIcon: IconButton(
-                            icon: Icon(_obscureText
-                                ? Icons.visibility_off
-                                : Icons.visibility),
+                            icon: Icon(_obscureText ? Icons.visibility_off : Icons.visibility, color: sororiaPink),
                             onPressed: () {
                               setState(() {
                                 _obscureText = !_obscureText;
@@ -111,20 +112,20 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                       ),
                       const SizedBox(height: 24.0),
-                      ElevatedButton(
-                        onPressed: _signUp,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: sororiaPink,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 32.0, vertical: 12.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8.0),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _signUp,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: sororiaPink,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 14.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                            textStyle: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                           ),
-                        ),
-                        child: const Text(
-                          "Sign Up",
-                          style: TextStyle(fontSize: 20),
+                          child: const Text("Sign Up"),
                         ),
                       ),
                       const SizedBox(height: 16.0),
@@ -135,7 +136,8 @@ class _SignupScreenState extends State<SignupScreen> {
                         child: Text(
                           "Already have an account? Login",
                           style: TextStyle(
-                            color: isDarkMode ? Colors.black : sororiaPink,
+                            color: sororiaPink,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ),

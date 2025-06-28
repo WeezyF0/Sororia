@@ -29,45 +29,48 @@ class NavBar extends StatelessWidget {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final themeProvider = Provider.of<ThemeProvider>(context);
 
-    // Get current user details if available
+    // Always fetch user profile from Firestore if user is logged in
     final user = FirebaseAuth.instance.currentUser;
     return FutureBuilder<DocumentSnapshot>(
-      // Only fetch from Firestore if we have a user but no email
-      future: (user != null && (user.email == null || user.email!.isEmpty)) 
-          ? FirebaseFirestore.instance.collection('users').doc(user.uid).get()
-          : null,
+      future:
+          user != null
+              ? FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .get()
+              : null,
       builder: (context, snapshot) {
         String userIdentifier;
         String userInitial;
-        
-        // First priority: Email if available
-        if (user != null && user.email != null && user.email!.isNotEmpty) {
-          userIdentifier = user.email!;
-          userInitial = userIdentifier[0].toUpperCase();
-        }
-        // Second priority: Phone number from Firestore if available
-        else if (user != null && snapshot.hasData && snapshot.data != null && snapshot.data!.exists) {
+        String? userName;
+        String? phoneNo;
+        // Use Firestore profile if available
+        if (user != null &&
+            snapshot.hasData &&
+            snapshot.data != null &&
+            snapshot.data!.exists) {
           final userData = snapshot.data!.data() as Map<String, dynamic>?;
-          final String? phoneNo = userData?['phone_no'] as String?;
-          
-          if (phoneNo != null && phoneNo.isNotEmpty) {
+          userName = userData?['name'] as String?;
+          phoneNo = userData?['phone_no'] as String?;
+          if (userName != null && userName.isNotEmpty) {
+            userIdentifier = userName;
+            userInitial = userName[0].toUpperCase();
+          } else if (phoneNo != null && phoneNo.isNotEmpty) {
             userIdentifier = phoneNo;
-            // Use first character after "+" if it exists, otherwise first character
-            userInitial = phoneNo.contains('+') 
-                ? phoneNo[phoneNo.indexOf('+') + 1].toUpperCase() 
-                : phoneNo[0].toUpperCase();
+            userInitial =
+                phoneNo.contains('+')
+                    ? phoneNo[phoneNo.indexOf('+') + 1].toUpperCase()
+                    : phoneNo[0].toUpperCase();
           } else {
-            // Fallback to guest if no phone number found
             userIdentifier = 'Guest User';
             userInitial = 'G';
           }
-        }
-        // Last resort: Guest User
-        else {
+        } else {
+          // Not logged in or no Firestore profile
           userIdentifier = 'Guest User';
           userInitial = 'G';
         }
-        
+
         return Drawer(
           elevation: 0,
           backgroundColor: Colors.transparent,
@@ -78,8 +81,14 @@ class NavBar extends StatelessWidget {
                 end: Alignment.bottomRight,
                 colors:
                     isDarkMode
-                        ? [ColorPalette.backgroundDark, ColorPalette.surfaceDark]
-                        : [ColorPalette.backgroundLight, ColorPalette.surfaceLight],
+                        ? [
+                          ColorPalette.backgroundDark,
+                          ColorPalette.surfaceDark,
+                        ]
+                        : [
+                          ColorPalette.backgroundLight,
+                          ColorPalette.surfaceLight,
+                        ],
               ),
               boxShadow: [
                 BoxShadow(
@@ -93,7 +102,12 @@ class NavBar extends StatelessWidget {
               child: Column(
                 children: [
                   // Header section
-                  _buildDrawerHeader(context, userInitial, userIdentifier, isDarkMode),
+                  _buildDrawerHeader(
+                    context,
+                    userInitial,
+                    userIdentifier,
+                    isDarkMode,
+                  ),
 
                   // Options list
                   Expanded(
@@ -252,85 +266,73 @@ class NavBar extends StatelessWidget {
         Navigator.pushNamed(context, '/profile_screen');
       },
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        padding: EdgeInsets.symmetric(vertical: 32, horizontal: 16),
         decoration: BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/images/bg.jpg'),
-            fit: BoxFit.cover,
-            colorFilter: ColorFilter.mode(
-              Colors.black.withOpacity(0.6),
-              BlendMode.darken,
-            ),
+          color: Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(0),
+            topRight: Radius.circular(0),
+            bottomLeft: Radius.circular(24),
+            bottomRight: Radius.circular(24),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo and app name
-                Row(
-                  children: [
-                    Image.asset(
-                      'assets/images/logo2.png',
-                      height: 40,
-                      width: 40,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      "SORORIA",
-                      style: _poppinsStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
+                SizedBox(
+                  height: 38 * 0.85, // Decrease logo height
+                  child: Image.asset(
+                    'assets/images/logo2.png',
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                // Close button
-                IconButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  icon: Container(
-                    padding: EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.black26,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.close_rounded, color: Colors.white),
+                SizedBox(width: 10 * 0.85),
+                Text(
+                  "SORORIA",
+                  style: _poppinsStyle(
+                    color: Color(0xFFE91E63),
+                    fontSize: 22 * 0.85, // Decrease font size
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
                   ),
                 ),
               ],
             ),
-
             SizedBox(height: 16),
-
-            // User identifier (clickable) - FIXED: changed from userEmail to userIdentifier
-            Text(
-              userIdentifier,
-              style: _poppinsStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-
-            SizedBox(height: 12),
-
-            // User initial avatar (clickable)
+            // User initial avatar
             CircleAvatar(
-              radius: 20,
-              backgroundColor: ColorPalette.primaryLight,
+              radius: 22,
+              backgroundColor: Color(0xFFE91E63),
               child: Text(
                 userInitial,
                 style: GoogleFonts.poppins(
                   color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
+            ),
+            SizedBox(height: 10),
+            // User identifier
+            Text(
+              userIdentifier,
+              style: _poppinsStyle(
+                color: Colors.black87,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
