@@ -28,11 +28,11 @@ class _StatsScreenState extends State<StatsScreen> {
 
   // Map categories to their corresponding issue types
   final Map<String, List<String>> categoryMapping = {
-    'Nightlife Safety': ['Night', 'Safety', 'Social'],
-    'City Wide Safety': ['City', 'Public', 'Safety'],
-    'Workspace Safety': ['Workplace', 'Professional', 'Safety'],
-    'Educational Space Safety': ['Education', 'Institutional', 'Safety'],
-    'Public Transport Safety': ['Transport', 'Public', 'Safety'],
+    'Nightlife Safety': ['Night'],
+    'City Wide Safety': ['City'],
+    'Workspace Safety': ['Workplace', 'Professional'],
+    'Educational Space Safety': ['Education', 'Institutional'],
+    'Public Transport Safety': ['Transport'],
   };
 
   @override
