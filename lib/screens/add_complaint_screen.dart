@@ -63,7 +63,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
     ];
 
     final model = GenerativeModel(
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       apiKey: apiKey!,
       generationConfig: GenerationConfig(
         temperature: 1,
@@ -88,7 +88,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
                 SchemaType.string,
                 enumValues: allowedTags, // Only allow tags from the predefined list
               ),
-              description: "The 4 most relevant tags for this complaint, in order of relevance",
+              description: "The 3 most relevant tags for this complaint, in order of relevance",
             ),
             "Text_description": Schema(
               SchemaType.string,
@@ -101,7 +101,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         'Analyze it carefully and do the following:\n'
         '1. Formalize it into a brief but precise description\n'
         '2. Mark all applicable issue types as true\n'
-        '3. Select ONLY the 4 MOST RELEVANT tags from this list ONLY: ${allowedTags.join(", ")}\n'
+        '3. Select ONLY the 3 MOST RELEVANT tags from this list ONLY: ${allowedTags.join(", ")}\n'
         '4. List them in the Primary_tags array in order of relevance\n'
         '5. Be honest and accurate in your assessment without altering the core issue\n'
         '6. Be sensitive to the serious nature of these reports and prioritize tags that best categorize the experience'
