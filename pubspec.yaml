@@ -112,6 +112,7 @@ flutter:
     - assets/images/google_icon.png
     - assets/images/logo2.png
     - assets/images/phone_icon.png
+    - assets/images/sororia.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

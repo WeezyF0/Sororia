@@ -55,22 +55,16 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
   Widget buildIssueTagsDisplay(Map<String, dynamic> data) {
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
-    
+
     // Get the issue type
     String issueType = data['issue_type'] ?? 'General';
-    
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: primaryColor.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: primaryColor.withOpacity(0.25),
-          width: 1,
-        ),
+        border: Border.all(color: primaryColor.withOpacity(0.25), width: 1),
       ),
       child: Text(
         issueType,
@@ -82,111 +76,355 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
     );
   }
 
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = theme.primaryColor;
-    final surfaceColor = theme.colorScheme.surface;
     final textSecondary = theme.colorScheme.onSurface.withOpacity(0.6);
+    const sororiaPink = Color(0xFFE91E63);
+    const accentBlue = Color(0xFF1976D2); // Material blue 700
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          titleSpacing: 0, // Remove default title spacing
-          title: Padding(
-            padding: EdgeInsets.only(
-              left: 16.0,
-            ), // Add padding to offset from drawer icon
-            child: Text(
-              "ALL EXPERIENCES",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+      // Bluish-white gradient background
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFFF7F7F9), Color(0xFFE3F0FF), Color(0xFFD0E6FF)],
           ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // White AppBar with pink title
+              AppBar(
+                backgroundColor: Colors.white,
+                elevation: 2,
+                centerTitle: true,
+                title: const Text(
+                  "SORORIA",
+                  style: TextStyle(
+                    color: sororiaPink,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                iconTheme: const IconThemeData(color: sororiaPink),
+                actions: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 16.0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.7),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Color(0xFFD0E6FF), width: 1),
+                      ),
+                      child: DropdownButton<String>(
+                        value: selectedSort,
+                        icon: const Icon(
+                          Icons.arrow_drop_down,
+                          color: sororiaPink,
+                        ),
+                        dropdownColor: Colors.white,
+                        underline: const SizedBox(),
+                        style: const TextStyle(color: sororiaPink),
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              selectedSort = newValue;
+                            });
+                          }
+                        },
+                        items:
+                            sortOptions.map<DropdownMenuItem<String>>((
+                              String value,
+                            ) {
+                              return DropdownMenuItem<String>(
+                                value: value,
+                                child: Text(value),
+                              );
+                            }).toList(),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-          ),
-          actions: [
-            // Sort dropdown in the actions area
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButton<String>(
-                  value: selectedSort,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                  dropdownColor: theme.primaryColor,
-                  underline: const SizedBox(),
-                  style: const TextStyle(color: Colors.white),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        selectedSort = newValue;
-                      });
+              // Main content
+              Expanded(
+                child: StreamBuilder(
+                  stream:
+                      selectedSort == 'Recent'
+                          ? FirebaseFirestore.instance
+                              .collection('complaints')
+                              .orderBy('timestamp_ms', descending: true)
+                              .snapshots()
+                          : FirebaseFirestore.instance
+                              .collection('complaints')
+                              .orderBy('upvotes', descending: true)
+                              .snapshots(),
+                  builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return Center(
+                        child: CircularProgressIndicator(color: sororiaPink),
+                      );
                     }
+
+                    if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              size: 64,
+                              color: sororiaPink.withOpacity(0.5),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No experiences found',
+                              style: theme.textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Share an experience to get started',
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16.0),
+                      physics: const BouncingScrollPhysics(),
+                      itemCount: snapshot.data!.docs.length,
+                      itemBuilder: (context, index) {
+                        var doc = snapshot.data!.docs[index];
+                        final Map<String, dynamic> data =
+                            doc.data() as Map<String, dynamic>;
+
+                        // Get the actual or optimistic upvote count
+                        final upvotes =
+                            _optimisticUpvotes.containsKey(doc.id)
+                                ? _optimisticUpvotes[doc.id]!
+                                : (data['upvotes'] ?? 0);
+
+                        // Format the timestamp as "time ago"
+                        String timeAgoText = "Unknown date";
+                        if (data.containsKey('timestamp') &&
+                            data['timestamp'] != null) {
+                          try {
+                            // Parse the timestamp string
+                            DateTime? dateTime = parseTimestamp(
+                              data['timestamp'],
+                            );
+                            if (dateTime != null) {
+                              timeAgoText = timeAgo(dateTime);
+                            }
+                          } catch (e) {
+                            timeAgoText = "Unknown date";
+                          }
+                        }
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16.0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 12,
+                                offset: Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Card(
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.pushNamed(
+                                  context,
+                                  '/open_complaint',
+                                  arguments: {
+                                    'complaintData': data,
+                                    'complaintId': doc.id,
+                                  },
+                                );
+                              },
+                              borderRadius: BorderRadius.circular(16),
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Header row with issue type and date
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        buildIssueTagsDisplay(data),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            SaveButton(complaintId: doc.id),
+                                            const SizedBox(width: 8),
+                                            UpvoteButton(
+                                              complaintId: doc.id,
+                                              theme: theme,
+                                              currentUpvotes: upvotes,
+                                              isLoading:
+                                                  _upvoteInProgress[doc.id] ??
+                                                  false,
+                                              onUpvote:
+                                                  () => _handleUpvote(
+                                                    doc.id,
+                                                    upvotes,
+                                                  ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 8,
+                                                    vertical: 6,
+                                                  ),
+                                              decoration: BoxDecoration(
+                                                color: textSecondary
+                                                    .withOpacity(0.12),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.access_time_rounded,
+                                                    size: 12,
+                                                    color: textSecondary,
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Flexible(
+                                                    child: Text(
+                                                      timeAgoText,
+                                                      style: theme
+                                                          .textTheme
+                                                          .labelSmall
+                                                          ?.copyWith(
+                                                            color:
+                                                                textSecondary,
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                      maxLines: 1,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      data['original_text'] ??
+                                          'No details available',
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                            height: 1.4,
+                                            letterSpacing: 0.2,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 18),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 8,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: textSecondary.withOpacity(0.08),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: textSecondary.withOpacity(
+                                            0.15,
+                                          ),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.location_on_rounded,
+                                            size: 16,
+                                            color: textSecondary,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Expanded(
+                                            child: Text(
+                                              data['location'] ??
+                                                  'Unknown location',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.labelMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ), // End of location row
+                                  ],
+                                ), // End of Column (card content)
+                              ), // End of Padding
+                            ), // End of InkWell
+                          ), // End of Card
+                        ); // End of Container (card shadow)
+                      },
+                    ); // End of ListView.builder
                   },
-                  items:
-                      sortOptions.map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+                ), // End of StreamBuilder
+              ), // End of Expanded
+            ],
+          ), // End of Column
+        ), // End of SafeArea
+      ), // End of Container (gradient bg)
       drawer: NavBar(),
       floatingActionButton: Container(
         height: 56,
-        padding: EdgeInsets.symmetric(horizontal: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         child: FloatingActionButton.extended(
           onPressed: () async {
             await Navigator.pushNamed(context, '/add_complaint');
           },
-          backgroundColor: theme.primaryColor,
+          backgroundColor: accentBlue,
           elevation: 4,
-          icon: Icon(
+          icon: const Icon(
             Icons.add_circle_outline,
-            color: theme.colorScheme.onPrimary,
+            color: Colors.white,
             size: 24,
           ),
-          label: Text(
+          label: const Text(
             'Share an Experience',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onPrimary,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
           shape: RoundedRectangleBorder(
@@ -194,238 +432,7 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
           ),
         ),
       ),
-      body: StreamBuilder(
-        stream:
-            selectedSort == 'Recent'
-                ? FirebaseFirestore.instance
-                    .collection('complaints')
-                    .orderBy('timestamp_ms', descending: true)
-                    .snapshots()
-                : FirebaseFirestore.instance
-                    .collection('complaints')
-                    .orderBy('upvotes', descending: true)
-                    .snapshots(),
-        builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(color: theme.primaryColor),
-            );
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.warning_amber_rounded,
-                    size: 64,
-                    color: theme.primaryColor.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No experiences found',
-                    style: theme.textTheme.titleMedium,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Share an experience to get started',
-                    style: theme.textTheme.bodyMedium,
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: EdgeInsets.all(16.0),
-            physics: const BouncingScrollPhysics(),
-            itemCount: snapshot.data!.docs.length,
-            itemBuilder: (context, index) {
-              var doc = snapshot.data!.docs[index];
-              final Map<String, dynamic> data =
-                  doc.data() as Map<String, dynamic>;
-
-              // Get the actual or optimistic upvote count
-              final upvotes =
-                  _optimisticUpvotes.containsKey(doc.id)
-                      ? _optimisticUpvotes[doc.id]!
-                      : (data['upvotes'] ?? 0);
-
-              // Format the timestamp as "time ago"
-              String timeAgoText = "Unknown date";
-              if (data.containsKey('timestamp') && data['timestamp'] != null) {
-                try {
-                  // Parse the timestamp string
-                  DateTime? dateTime = parseTimestamp(data['timestamp']);
-                  if (dateTime != null) {
-                    timeAgoText = timeAgo(dateTime);
-                  }
-                } catch (e) {
-                  timeAgoText = "Unknown date";
-                }
-              }
-
-              return Container(
-                margin: EdgeInsets.only(bottom: 16.0),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          isDark
-                              ? Colors.black.withOpacity(0.3)
-                              : Colors.black.withOpacity(0.1),
-                      blurRadius: 12,
-                      spreadRadius: 1,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Material(
-                    color: surfaceColor,
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/open_complaint',
-                          arguments: {
-                            'complaintData': data,
-                            'complaintId': doc.id,
-                          },
-                        );
-                      },
-                      child: Padding(
-                        padding: EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Header row with issue type and date
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // First row: Issue type tags (using our new helper method)
-                                buildIssueTagsDisplay(data),
-                                const SizedBox(height: 8),
-                                // Second row: Save button, upvote button and timeago display in one row
-                                Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    SaveButton(complaintId: doc.id),
-                                    const SizedBox(width: 8),
-                                    UpvoteButton(
-                                      complaintId: doc.id,
-                                      theme: theme,
-                                      currentUpvotes: upvotes,
-                                      isLoading:
-                                          _upvoteInProgress[doc.id] ?? false,
-                                      onUpvote:
-                                          () => _handleUpvote(doc.id, upvotes),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: textSecondary.withOpacity(0.12),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.access_time_rounded,
-                                            size: 12,
-                                            color: textSecondary,
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Flexible(
-                                            child: Text(
-                                              timeAgoText,
-                                              style: theme.textTheme.labelSmall
-                                                  ?.copyWith(
-                                                    color: textSecondary,
-                                                    fontWeight: FontWeight.w500,
-                                                  ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            SizedBox(height: 16),
-
-                            // Complaint text with better styling
-                            Text(
-                              data['original_text'] ?? 'No details available',
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodyLarge?.copyWith(
-                                fontWeight: FontWeight.w500,
-                                height: 1.4,
-                                letterSpacing: 0.2,
-                              ),
-                            ),
-                            SizedBox(height: 18),
-
-                            // Footer with location only
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: textSecondary.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                  color: textSecondary.withOpacity(0.15),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.location_on_rounded,
-                                    size: 16,
-                                    color: textSecondary,
-                                  ),
-                                  SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      data['location'] ?? 'Unknown location',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.labelMedium
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-      ),
-    );
+    ); // End of Scaffold
   }
 
   Future<void> _handleUpvote(String complaintId, int currentUpvotes) async {
