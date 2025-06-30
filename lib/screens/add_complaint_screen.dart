@@ -56,10 +56,26 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
     // Define the allowed tags explicitly
     final List<String> allowedTags = [
-      "Workplace", "Family", "Safety", "Social", "Others", 
-      "Severe", "Institutional", "Discrimination", "Harassment", 
-      "Healthcare", "Education", "Legal", "Domestic", "Public", 
-      "Online", "Financial", "Professional", "Transport", "City", "Night"
+      "Workplace",
+      "Family",
+      "Safety",
+      "Social",
+      "Others",
+      "Severe",
+      "Institutional",
+      "Discrimination",
+      "Harassment",
+      "Healthcare",
+      "Education",
+      "Legal",
+      "Domestic",
+      "Public",
+      "Online",
+      "Financial",
+      "Professional",
+      "Transport",
+      "City",
+      "Night",
     ];
 
     final model = GenerativeModel(
@@ -73,26 +89,32 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         responseMimeType: 'application/json',
         responseSchema: Schema(
           SchemaType.object,
-          requiredProperties: ["Issue Type", "Text_description", "Primary_tags"],
+          requiredProperties: [
+            "Issue Type",
+            "Text_description",
+            "Primary_tags",
+          ],
           properties: {
             "Issue Type": Schema(
               SchemaType.object,
               requiredProperties: allowedTags,
               properties: Map.fromEntries(
-                allowedTags.map((tag) => MapEntry(tag, Schema(SchemaType.boolean)))
+                allowedTags.map(
+                  (tag) => MapEntry(tag, Schema(SchemaType.boolean)),
+                ),
               ),
             ),
             "Primary_tags": Schema(
               SchemaType.array,
               items: Schema(
                 SchemaType.string,
-                enumValues: allowedTags, // Only allow tags from the predefined list
+                enumValues:
+                    allowedTags, // Only allow tags from the predefined list
               ),
-              description: "The 3 most relevant tags for this complaint, in order of relevance",
+              description:
+                  "The 3 most relevant tags for this complaint, in order of relevance",
             ),
-            "Text_description": Schema(
-              SchemaType.string,
-            ),
+            "Text_description": Schema(SchemaType.string),
           },
         ),
       ),
@@ -104,7 +126,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         '3. Select ONLY the 3 MOST RELEVANT tags from this list ONLY: ${allowedTags.join(", ")}\n'
         '4. List them in the Primary_tags array in order of relevance\n'
         '5. Be honest and accurate in your assessment without altering the core issue\n'
-        '6. Be sensitive to the serious nature of these reports and prioritize tags that best categorize the experience'
+        '6. Be sensitive to the serious nature of these reports and prioritize tags that best categorize the experience',
       ),
     );
 
@@ -161,20 +183,18 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
       // Use primary tags if available, otherwise fall back to issue types
       List<String> issueTypes = [];
-      
+
       if (structuredComplaint != null) {
-        if (structuredComplaint.containsKey("Primary_tags") && 
+        if (structuredComplaint.containsKey("Primary_tags") &&
             structuredComplaint["Primary_tags"] is List) {
-            
           // Use the AI-selected primary tags (limited to 4)
           issueTypes = List<String>.from(structuredComplaint["Primary_tags"]);
         } else if (structuredComplaint.containsKey("Issue Type")) {
           // Fall back to old method: get all true tags
           Map<String, dynamic> allTags = structuredComplaint["Issue Type"];
-          List<MapEntry<String, dynamic>> sortedTags = allTags.entries.where(
-            (entry) => entry.value == true
-          ).toList();
-          
+          List<MapEntry<String, dynamic>> sortedTags =
+              allTags.entries.where((entry) => entry.value == true).toList();
+
           // Limit to 4 tags
           sortedTags = sortedTags.take(4).toList();
           issueTypes = sortedTags.map((e) => e.key).toList();
@@ -187,8 +207,9 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         "latitude": position.latitude,
         "longitude": position.longitude,
         "location": locationName,
-        "original_text": complaintText, 
-        "processed_text": structuredComplaint?["Text_description"] ?? complaintText,
+        "original_text": complaintText,
+        "processed_text":
+            structuredComplaint?["Text_description"] ?? complaintText,
         "timestamp": timestamp,
         "timestamp_ms": DateTime.now().millisecondsSinceEpoch,
         "user_id": userId,
@@ -208,15 +229,17 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Your experience has been shared successfully"))
+          const SnackBar(
+            content: Text("Your experience has been shared successfully"),
+          ),
         );
         Navigator.pop(context);
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${error.toString()}"))
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${error.toString()}")));
       }
     }
 
@@ -229,38 +252,24 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
-          title: const Text(
-            "Share Experience",
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          titleSpacing: 0,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 28,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ),
@@ -287,15 +296,12 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-                    onPressed: () => _submitComplaint(context),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                    ),
-                    child: const Text(
-                      "Submit",
-                      style: TextStyle(fontSize: 16),
-                    ),
+                  onPressed: () => _submitComplaint(context),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 15),
                   ),
+                  child: const Text("Submit", style: TextStyle(fontSize: 16)),
+                ),
           ],
         ),
       ),

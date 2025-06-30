@@ -8,9 +8,9 @@ class VerifyPhoneUpdate extends StatefulWidget {
   final String phoneNumber;
 
   const VerifyPhoneUpdate({
-    super.key, 
-    required this.userId, 
-    required this.phoneNumber
+    super.key,
+    required this.userId,
+    required this.phoneNumber,
   });
 
   @override
@@ -39,11 +39,12 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
   Future<bool> _isPhoneNumberAlreadyInUse() async {
     try {
       // Query for any users with this phone number who are NOT the current user
-      final QuerySnapshot result = await FirebaseFirestore.instance
-          .collection('users')
-          .where('phone_no', isEqualTo: widget.phoneNumber)
-          .get();
-      
+      final QuerySnapshot result =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('phone_no', isEqualTo: widget.phoneNumber)
+              .get();
+
       // Check if any documents were found
       if (result.docs.isNotEmpty) {
         // For each document found, check if it belongs to another user
@@ -54,7 +55,7 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
           }
         }
       }
-      
+
       // Phone number is not used by any other user
       return false;
     } catch (e) {
@@ -83,17 +84,17 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
 
     await auth.verifyPhoneNumber(
       phoneNumber: '+91${widget.phoneNumber}',
-      
+
       verificationCompleted: (PhoneAuthCredential credential) async {
         // ANDROID ONLY - Auto verification
         try {
           setState(() {
             isLoading = true;
           });
-          
+
           // Update user's phone number in Firestore
           await updateUserPhoneNumber();
-          
+
           // Navigate back with success
           if (mounted) {
             Navigator.pop(context, true);
@@ -105,19 +106,19 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
           showSnackBar('Verification failed: ${e.toString()}');
         }
       },
-      
+
       verificationFailed: (FirebaseAuthException e) {
         setState(() {
           isLoading = false;
         });
-        
+
         if (e.code == 'invalid-phone-number') {
           showSnackBar('The provided phone number is not valid.');
         } else {
           showSnackBar('Verification failed: ${e.message}');
         }
       },
-      
+
       codeSent: (String verificationId, int? resendToken) {
         setState(() {
           this.verificationId = verificationId;
@@ -125,7 +126,7 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
         });
         showSnackBar('SMS code sent!');
       },
-      
+
       codeAutoRetrievalTimeout: (String verificationId) {
         this.verificationId = verificationId;
       },
@@ -137,9 +138,7 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
     await FirebaseFirestore.instance
         .collection('users')
         .doc(widget.userId)
-        .update({
-          'phone_no': widget.phoneNumber,
-        });
+        .update({'phone_no': widget.phoneNumber});
   }
 
   // Replace the verifyOTP method with this:
@@ -148,25 +147,25 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
       setState(() {
         isLoading = true;
       });
-      
+
       try {
         // Create a credential
         PhoneAuthCredential credential = PhoneAuthProvider.credential(
           verificationId: verificationId,
           smsCode: otpController.text.trim(),
         );
-        
-        // CRITICAL FIX: Don't sign in with the credential! 
+
+        // CRITICAL FIX: Don't sign in with the credential!
         // Just verify the OTP is correct by using FirebaseAuth's PhoneAuthProvider
         // This approach validates the OTP but doesn't sign the user out
-        
+
         try {
           // Check if this OTP is valid (throws an exception if invalid)
           PhoneAuthProvider.credential(
             verificationId: verificationId,
             smsCode: otpController.text.trim(),
           );
-          
+
           // If no exception was thrown, the OTP is valid
           // Update user's phone number directly in Firestore
           await updateUserPhoneNumber();
@@ -175,7 +174,6 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
         } catch (e) {
           throw e; // Throw to the outer catch block
         }
-        
       } catch (e) {
         setState(() {
           isLoading = false;
@@ -189,91 +187,142 @@ class _VerifyPhoneUpdateState extends State<VerifyPhoneUpdate> {
 
   void showSnackBar(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verify Phone Number'),
+        backgroundColor: theme.colorScheme.background,
+        elevation: 4,
+        shadowColor:
+            isDark
+                ? Colors.purple.withOpacity(0.2)
+                : Colors.pink.withOpacity(0.2),
+        centerTitle: true,
+        title: Text(
+          'Verify Phone Number',
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onBackground,
+            letterSpacing: 1.2,
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              'Verifying +91 ${widget.phoneNumber}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'Enter the 6-digit code sent to your phone',
-              style: TextStyle(fontSize: 16),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            
-            // OTP Input using Pinput
-            Pinput(
-              controller: otpController,
-              length: 6,
-              onCompleted: (pin) => verifyOTP(),
-              defaultPinTheme: PinTheme(
-                width: 56,
-                height: 56,
-                textStyle: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+        child: Center(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Verifying +91 ${widget.phoneNumber}',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                    color: theme.colorScheme.primary,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 16),
+                Text(
+                  'Enter the 6-digit code sent to your phone',
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontFamily: 'Poppins',
+                    color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
-              focusedPinTheme: PinTheme(
-                width: 56,
-                height: 56,
-                textStyle: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(height: 32),
+                Pinput(
+                  controller: otpController,
+                  length: 6,
+                  onCompleted: (pin) => verifyOTP(),
+                  defaultPinTheme: PinTheme(
+                    width: 56,
+                    height: 56,
+                    textStyle: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Poppins',
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: theme.dividerColor),
+                      borderRadius: BorderRadius.circular(12),
+                      color: theme.colorScheme.surface,
+                    ),
+                  ),
+                  focusedPinTheme: PinTheme(
+                    width: 56,
+                    height: 56,
+                    textStyle: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Poppins',
+                      color: theme.colorScheme.primary,
+                    ),
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: theme.colorScheme.primary,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      color: theme.colorScheme.surface,
+                    ),
+                  ),
                 ),
-                decoration: BoxDecoration(
-                  border: Border.all(color: Theme.of(context).primaryColor),
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: isLoading ? null : verifyOTP,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      textStyle: theme.textTheme.titleMedium?.copyWith(
+                        fontFamily: 'Poppins',
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child:
+                        isLoading
+                            ? const SizedBox(
+                              height: 22,
+                              width: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Text('Verify OTP'),
+                  ),
                 ),
-              ),
+                const SizedBox(height: 16),
+                TextButton(
+                  onPressed: isLoading ? null : verifyPhoneNumber,
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    textStyle: theme.textTheme.bodyMedium?.copyWith(
+                      fontFamily: 'Poppins',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: const Text('Resend OTP'),
+                ),
+              ],
             ),
-            const SizedBox(height: 24),
-            
-            // Verify Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : verifyOTP,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Verify OTP', style: TextStyle(fontSize: 16)),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            TextButton(
-              onPressed: isLoading ? null : verifyPhoneNumber,
-              child: const Text('Resend OTP'),
-            ),
-          ],
+          ),
         ),
       ),
     );

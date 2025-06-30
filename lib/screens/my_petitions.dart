@@ -25,48 +25,36 @@ class MyPetitionScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: PreferredSize(
-      preferredSize: Size.fromHeight(80.0),
-      child: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: theme.appBarTheme.iconTheme?.color ?? Colors.white,
-          ),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          "SIGNED PETITIONS",
-          style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-        ),
-        titleSpacing: 0,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/appBar_bg.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          foregroundDecoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.withOpacity(0.3), 
-                Colors.purple.withOpacity(0.3)
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 28,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
               ],
             ),
           ),
         ),
       ),
-    ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('users')
+                .doc(userId)
+                .snapshots(),
         builder: (context, userSnapshot) {
           if (userSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -93,10 +81,11 @@ class MyPetitionScreen extends StatelessWidget {
           }
 
           return StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('petitions')
-                .where('petition_id', whereIn: signedPetitions)
-                .snapshots(),
+            stream:
+                FirebaseFirestore.instance
+                    .collection('petitions')
+                    .where('petition_id', whereIn: signedPetitions)
+                    .snapshots(),
             builder: (context, petitionSnapshot) {
               if (petitionSnapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -113,50 +102,52 @@ class MyPetitionScreen extends StatelessWidget {
 
               return ListView(
                 padding: const EdgeInsets.all(16.0),
-                children: petitionSnapshot.data!.docs.map((doc) {
-                  final petitionData = doc.data() as Map<String, dynamic>;
-                  final petitionOwner = petitionData['owner'];
-                  final Color cardColor = (petitionOwner == null || petitionOwner == userId)
-                      ? ColorPalette.success.withOpacity(0.3)
-                      : theme.cardTheme.color ?? Colors.white;
+                children:
+                    petitionSnapshot.data!.docs.map((doc) {
+                      final petitionData = doc.data() as Map<String, dynamic>;
+                      final petitionOwner = petitionData['owner'];
+                      final Color cardColor =
+                          (petitionOwner == null || petitionOwner == userId)
+                              ? ColorPalette.success.withOpacity(0.3)
+                              : theme.cardTheme.color ?? Colors.white;
 
-                  return Card(
-                    color: cardColor,
-                    margin: const EdgeInsets.only(bottom: 12.0),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8.0),
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(8.0),
-                      onTap: () {
-                        Navigator.pushNamed(
-                          context,
-                          '/open_petition',
-                          arguments: petitionData['petition_id'],
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              petitionData['title'],
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              petitionData['description'],
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ],
+                      return Card(
+                        color: cardColor,
+                        margin: const EdgeInsets.only(bottom: 12.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.0),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(8.0),
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              '/open_petition',
+                              arguments: petitionData['petition_id'],
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  petitionData['title'],
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  petitionData['description'],
+                                  style: theme.textTheme.bodyMedium,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
               );
             },
           );

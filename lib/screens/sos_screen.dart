@@ -28,11 +28,12 @@ class _SOSScreenState extends State<SOSScreen> {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        DocumentSnapshot doc = await FirebaseFirestore.instance
-            .collection('sos')
-            .doc(user.uid)
-            .get();
-        
+        DocumentSnapshot doc =
+            await FirebaseFirestore.instance
+                .collection('sos')
+                .doc(user.uid)
+                .get();
+
         if (doc.exists) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
           setState(() {
@@ -88,47 +89,52 @@ class _SOSScreenState extends State<SOSScreen> {
             await _getLocationName(position.latitude, position.longitude) ??
             "Unknown";
         String timestamp = DateTime.now().toIso8601String();
-        
+
         // Get emergency contact tokens
-        List<String> tokens = await sosService.getEmergencyContactTokens(userId);
-        
+        List<String> tokens = await sosService.getEmergencyContactTokens(
+          userId,
+        );
+
         // Send SOS notification
         await sosService.sendSosNotification(
           senderUid: userId,
           recipientTokens: tokens,
           title: "EMERGENCY SOS ALERT!",
-          body: "Emergency alert from ${user.displayName ?? 'a user'} at $locationName",
+          body:
+              "Emergency alert from ${user.displayName ?? 'a user'} at $locationName",
         );
-        
+
         List<String> uids = await sosService.getEmergencyContactUserIds(userId);
 
         Map<String, dynamic> formattedSOS = {
           "latitude": position.latitude,
           "longitude": position.longitude,
           "location": locationName,
-          "active": true, 
+          "active": true,
           "timestamp": timestamp,
           "timestamp_ms": DateTime.now().millisecondsSinceEpoch,
           "related_users": uids,
         };
 
-        await FirebaseFirestore.instance.collection('sos').doc(userId).set(formattedSOS);
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("SOS alert activated"))
-          );
-        }
-      } else {
-        // Deactivate SOS
         await FirebaseFirestore.instance
             .collection('sos')
             .doc(userId)
-            .update({'active': false});
-        
+            .set(formattedSOS);
+
+        if (mounted) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text("SOS alert activated")));
+        }
+      } else {
+        // Deactivate SOS
+        await FirebaseFirestore.instance.collection('sos').doc(userId).update({
+          'active': false,
+        });
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("SOS alert deactivated"))
+            const SnackBar(content: Text("SOS alert deactivated")),
           );
         }
       }
@@ -136,9 +142,9 @@ class _SOSScreenState extends State<SOSScreen> {
       setState(() => _sosActive = value);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error: ${error.toString()}"))
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Error: ${error.toString()}")));
       }
     } finally {
       if (mounted) {
@@ -150,9 +156,30 @@ class _SOSScreenState extends State<SOSScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Emergency SOS'),
-        backgroundColor: Colors.red,
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 28,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: Center(
         child: Column(
@@ -169,9 +196,9 @@ class _SOSScreenState extends State<SOSScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              _sosActive 
-                ? 'Your emergency contacts have been notified'
-                : 'Toggle to activate emergency alert',
+              _sosActive
+                  ? 'Your emergency contacts have been notified'
+                  : 'Toggle to activate emergency alert',
               style: const TextStyle(fontSize: 16),
               textAlign: TextAlign.center,
             ),
@@ -179,48 +206,49 @@ class _SOSScreenState extends State<SOSScreen> {
             _isLoading
                 ? const CircularProgressIndicator(color: Colors.red)
                 : GestureDetector(
-                    onTap: _isLoading ? null : () => _toggleSOS(!_sosActive),
-                    child: Container(
-                      width: 200,
-                      height: 200,
-                      decoration: BoxDecoration(
-                        color: _sosActive ? Colors.red : Colors.grey,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: (_sosActive ? Colors.red : Colors.grey).withOpacity(0.5),
-                            spreadRadius: 5,
-                            blurRadius: 7,
-                            offset: const Offset(0, 3),
+                  onTap: _isLoading ? null : () => _toggleSOS(!_sosActive),
+                  child: Container(
+                    width: 200,
+                    height: 200,
+                    decoration: BoxDecoration(
+                      color: _sosActive ? Colors.red : Colors.grey,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: (_sosActive ? Colors.red : Colors.grey)
+                              .withOpacity(0.5),
+                          spreadRadius: 5,
+                          blurRadius: 7,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'SOS',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            _sosActive ? 'ACTIVE' : 'INACTIVE',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ],
                       ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'SOS',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              _sosActive ? 'ACTIVE' : 'INACTIVE',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
                     ),
                   ),
+                ),
             const SizedBox(height: 30),
             // Alternative switch UI
             Row(

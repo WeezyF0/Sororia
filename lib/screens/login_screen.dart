@@ -17,14 +17,16 @@ class LoginScreen extends StatelessWidget {
   void _login(BuildContext context) async {
     final email = emailController.text.trim();
     final password = passwordController.text.trim();
-    
+
     // Check if email is registered with Google
     bool isGoogleAccount = await _auth.checkIfGoogleAccount(email);
-    
+
     if (isGoogleAccount) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("This email is registered with Google. Please use 'Sign in with Google' instead."),
+          content: Text(
+            "This email is registered with Google. Please use 'Sign in with Google' instead.",
+          ),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 5),
         ),
@@ -39,15 +41,17 @@ class LoginScreen extends StatelessWidget {
         MaterialPageRoute(builder: (_) => HomePage()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Login failed")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Login failed")));
     }
   }
 
   void _loginWithGoogle(BuildContext context) async {
     try {
-      final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+      );
       await googleSignIn.signOut(); // Ensure fresh sign-in
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
@@ -59,7 +63,9 @@ class LoginScreen extends StatelessWidget {
       print("Attempting Google Sign-In with email: $email");
 
       // Check if this email already has a password account
-      final bool emailExistsWithPassword = await _auth.checkIfEmailExists(email);
+      final bool emailExistsWithPassword = await _auth.checkIfEmailExists(
+        email,
+      );
       if (emailExistsWithPassword) {
         // Stop if it’s already registered under email/password
         print("Email already exists with password - blocking Google sign-in");
@@ -85,11 +91,15 @@ class LoginScreen extends StatelessWidget {
 
       UserCredential userCredential;
       try {
-        userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        userCredential = await FirebaseAuth.instance.signInWithCredential(
+          credential,
+        );
       } on FirebaseAuthException catch (e) {
         // <-- Catch the special case “account-exists-with-different-credential”
         if (e.code == "account-exists-with-different-credential") {
-          print("Attempt to sign in with Google failed: same email used by another provider");
+          print(
+            "Attempt to sign in with Google failed: same email used by another provider",
+          );
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
@@ -111,20 +121,51 @@ class LoginScreen extends StatelessWidget {
       final user = userCredential.user;
       if (user != null) {
         await _auth.storeGoogleUserData(user);
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => HomePage()));
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => HomePage()),
+        );
       }
     } catch (e) {
       print("Google Sign-In error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred during Google Sign-In: ${e.toString()}")),
+        SnackBar(
+          content: Text(
+            "An error occurred during Google Sign-In: ${e.toString()}",
+          ),
+        ),
       );
     }
   }
-  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 28,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Center(
@@ -151,7 +192,10 @@ class LoginScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: sororiaPink,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32.0,
+                      vertical: 12.0,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -159,7 +203,10 @@ class LoginScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 12),
                 ElevatedButton.icon(
-                  icon: Image.asset('assets/images/google_icon.png', height: 20),
+                  icon: Image.asset(
+                    'assets/images/google_icon.png',
+                    height: 20,
+                  ),
                   label: Text("Sign in with Google"),
                   onPressed: () => _loginWithGoogle(context),
                   style: ElevatedButton.styleFrom(
@@ -169,20 +216,23 @@ class LoginScreen extends StatelessWidget {
                     side: BorderSide(color: Colors.grey.shade300),
                   ),
                 ),
-                
+
                 SizedBox(height: 12),
                 // Replace the phone authentication button with this:
                 ElevatedButton(
                   onPressed: () {
                     Navigator.push(
-                      context, 
-                      MaterialPageRoute(builder: (_) => PhoneAuthScreen())
+                      context,
+                      MaterialPageRoute(builder: (_) => PhoneAuthScreen()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: sororiaPink,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32.0,
+                      vertical: 12.0,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -190,10 +240,11 @@ class LoginScreen extends StatelessWidget {
                   child: Text("Sign in with Phone Number"),
                 ),
                 TextButton(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => SignupScreen()),
-                  ),
+                  onPressed:
+                      () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => SignupScreen()),
+                      ),
                   child: Text(
                     "Don't have an account? Sign up",
                     style: TextStyle(color: sororiaPink),

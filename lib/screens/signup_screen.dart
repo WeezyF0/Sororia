@@ -11,7 +11,8 @@ class SignupScreen extends StatefulWidget {
 class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
   final AuthService _auth = AuthService();
 
   final Color sororiaPink = const Color(0xFFE91E63);
@@ -51,6 +52,31 @@ class _SignupScreenState extends State<SignupScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 28,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -80,17 +106,13 @@ class _SignupScreenState extends State<SignupScreen> {
                       const SizedBox(height: 24),
                       TextField(
                         controller: emailController,
-                        decoration: const InputDecoration(
-                          labelText: "Email",
-                        ),
+                        decoration: const InputDecoration(labelText: "Email"),
                       ),
                       const SizedBox(height: 16.0),
                       TextField(
                         controller: passwordController,
                         obscureText: _obscureText,
-                        decoration: InputDecoration(
-                          labelText: "Password",
-                        ),
+                        decoration: InputDecoration(labelText: "Password"),
                       ),
                       const SizedBox(height: 16.0),
                       TextField(
@@ -99,9 +121,11 @@ class _SignupScreenState extends State<SignupScreen> {
                         decoration: InputDecoration(
                           labelText: "Confirm Password",
                           suffixIcon: IconButton(
-                            icon: Icon(_obscureText
-                                ? Icons.visibility_off
-                                : Icons.visibility),
+                            icon: Icon(
+                              _obscureText
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                            ),
                             onPressed: () {
                               setState(() {
                                 _obscureText = !_obscureText;
@@ -117,7 +141,9 @@ class _SignupScreenState extends State<SignupScreen> {
                           backgroundColor: sororiaPink,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 32.0, vertical: 12.0),
+                            horizontal: 32.0,
+                            vertical: 12.0,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8.0),
                           ),

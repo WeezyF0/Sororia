@@ -20,7 +20,7 @@ class _NewsScreenState extends State<NewsScreen> {
   String currentState = "";
 
   late SerperService serperService;
-  
+
   @override
   void initState() {
     super.initState();
@@ -38,8 +38,12 @@ class _NewsScreenState extends State<NewsScreen> {
       }
     }
 
-    Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    String locationName = await _getLocationName(position.latitude, position.longitude) ?? "Unknown";
+    Position position = await Geolocator.getCurrentPosition(
+      desiredAccuracy: LocationAccuracy.high,
+    );
+    String locationName =
+        await _getLocationName(position.latitude, position.longitude) ??
+        "Unknown";
     setState(() {
       currentState = locationName;
     });
@@ -48,8 +52,13 @@ class _NewsScreenState extends State<NewsScreen> {
 
   Future<String?> _getLocationName(double latitude, double longitude) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(latitude, longitude);
-      return placemarks.isNotEmpty ? placemarks.first.administrativeArea ?? "Unknown Location" : "Unknown Location";
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        latitude,
+        longitude,
+      );
+      return placemarks.isNotEmpty
+          ? placemarks.first.administrativeArea ?? "Unknown Location"
+          : "Unknown Location";
     } catch (_) {
       return "Unknown Location";
     }
@@ -60,8 +69,12 @@ class _NewsScreenState extends State<NewsScreen> {
 
     setState(() => isLoading = true);
 
-    final centralNewsFuture = serperService.fetchSerperNews("Latest central government woman scheme site:.gov.in");
-    final stateNewsFuture = serperService.fetchSerperNews("Latest $state state woman schemes site:.gov.in");
+    final centralNewsFuture = serperService.fetchSerperNews(
+      "Latest central government woman scheme site:.gov.in",
+    );
+    final stateNewsFuture = serperService.fetchSerperNews(
+      "Latest $state state woman schemes site:.gov.in",
+    );
 
     final results = await Future.wait([centralNewsFuture, stateNewsFuture]);
 
@@ -79,39 +92,32 @@ class _NewsScreenState extends State<NewsScreen> {
 
     return Scaffold(
       appBar: PreferredSize(
-      preferredSize: Size.fromHeight(80.0),
-      child: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          "State & Central News - $currentState",
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/appBar_bg.png'),
-              fit: BoxFit.cover,
-            ),
-          ),
-          foregroundDecoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.withOpacity(0.3),
-                Colors.purple.withOpacity(0.3),
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            "State & Central News${currentState.isNotEmpty ? ' - $currentState' : ''}",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              fontSize: 24,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
               ],
             ),
           ),
         ),
       ),
-    ),
-    drawer: NavBar(),
+      drawer: NavBar(),
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
@@ -128,27 +134,28 @@ class _NewsScreenState extends State<NewsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              isLoading
-                  ? Center(child: CircularProgressIndicator())
-                  : Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(height: 24),
-                            _buildNewsSection(
-                              "Central Government Schemes",
-                              centralNews,
-                            ),
-                            SizedBox(height: 24),
-                            _buildNewsSection(
-                              "State Government Schemes",
-                              stateNews,
-                            ),
-                          ],
+              if (isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 24),
+                        _buildNewsSection(
+                          "Central Government Schemes",
+                          centralNews,
                         ),
-                      ),
+                        const SizedBox(height: 24),
+                        _buildNewsSection(
+                          "State Government Schemes",
+                          stateNews,
+                        ),
+                      ],
                     ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -162,9 +169,9 @@ class _NewsScreenState extends State<NewsScreen> {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-          fontWeight: FontWeight.w600,
-        ),
+          style: Theme.of(
+            context,
+          ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         SizedBox(height: 12),
         if (newsList.isEmpty)

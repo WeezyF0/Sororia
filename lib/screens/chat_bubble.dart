@@ -9,7 +9,12 @@ class ChatBubble extends StatefulWidget {
   final bool isUser;
   final bool isLoading;
 
-  const ChatBubble({super.key, required this.text, required this.isUser, this.isLoading = false});
+  const ChatBubble({
+    super.key,
+    required this.text,
+    required this.isUser,
+    this.isLoading = false,
+  });
 
   @override
   _ChatBubbleState createState() => _ChatBubbleState();
@@ -34,11 +39,12 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
         )..repeat(reverse: true),
       );
 
-      _animations = _controllers.map((controller) {
-        return Tween<double>(begin: 6.0, end: 10.0).animate(
-          CurvedAnimation(parent: controller, curve: Curves.easeInOut),
-        );
-      }).toList();
+      _animations =
+          _controllers.map((controller) {
+            return Tween<double>(begin: 6.0, end: 10.0).animate(
+              CurvedAnimation(parent: controller, curve: Curves.easeInOut),
+            );
+          }).toList();
 
       // Change the active dot every 300ms in sequence
       _colorTimer = Timer.periodic(Duration(milliseconds: 300), (timer) {
@@ -63,7 +69,6 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
     }
     super.dispose();
   }
-
 
   Widget _buildWobblingDots() {
     return Row(
@@ -103,7 +108,11 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
       },
       styleSheet: MarkdownStyleSheet(
         p: TextStyle(color: Colors.black, fontSize: 15),
-        a: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold, decoration: TextDecoration.underline),
+        a: TextStyle(
+          color: Colors.blue,
+          fontWeight: FontWeight.bold,
+          decoration: TextDecoration.underline,
+        ),
       ),
     );
   }
@@ -124,21 +133,27 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
               decoration: TextDecoration.underline,
               fontWeight: FontWeight.bold,
             ),
-            recognizer: TapGestureRecognizer()
-              ..onTap = () async {
-                final Uri uri = Uri.parse(url);
-                if (await canLaunchUrl(uri)) {
-                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                } else {
-                  debugPrint("Could not launch URL: $url");
-                }
-              },
+            recognizer:
+                TapGestureRecognizer()
+                  ..onTap = () async {
+                    final Uri uri = Uri.parse(url);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    } else {
+                      debugPrint("Could not launch URL: $url");
+                    }
+                  },
           ),
         );
         return url;
       },
       onNonMatch: (nonMatch) {
-        spans.add(TextSpan(text: nonMatch, style: TextStyle(color: Colors.black)));
+        spans.add(
+          TextSpan(text: nonMatch, style: TextStyle(color: Colors.black)),
+        );
         return nonMatch;
       },
     );
@@ -154,15 +169,43 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
     return Align(
       alignment: widget.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-        decoration: BoxDecoration(
-          color: widget.isUser ? Colors.blue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(15),
+        margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 18),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.8,
         ),
-        child: widget.isLoading
-            ? _buildWobblingDots()
-            : widget.text.contains("http") // Check if text contains links
+        decoration: BoxDecoration(
+          color:
+              widget.isUser
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.9)
+                  : Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[850]
+                  : Colors.white,
+          borderRadius: BorderRadius.only(
+            topLeft: Radius.circular(widget.isUser ? 18 : 6),
+            topRight: Radius.circular(widget.isUser ? 6 : 18),
+            bottomLeft: const Radius.circular(18),
+            bottomRight: const Radius.circular(18),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.07),
+              blurRadius: 8,
+              offset: Offset(0, 2),
+            ),
+          ],
+          border:
+              widget.isUser
+                  ? Border.all(
+                    color: Theme.of(context).colorScheme.primary,
+                    width: 1.2,
+                  )
+                  : Border.all(color: Colors.grey[300]!, width: 1),
+        ),
+        child:
+            widget.isLoading
+                ? _buildWobblingDots()
+                : widget.text.contains("http")
                 ? _buildRichTextWithLinks(widget.text)
                 : _buildMarkdownText(widget.text),
       ),
