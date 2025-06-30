@@ -35,12 +35,12 @@ dependencies:
   cloud_firestore: any
   google_sign_in: 6.1.6
   cupertino_icons: ^1.0.8
-  google_maps_flutter: any
+  google_maps_flutter: ^2.5.0
   flutter_map: ^8.0.0
   latlong2: ^0.9.1
   flutter_map_cancellable_tile_provider: ^3.1.0
   geolocator: ^13.0.2
-  http: any
+  http: ^1.0.0
   flutter_dotenv: ^5.2.1
   google_generative_ai: ^0.4.6
   geocoding: ^2.1.1
@@ -64,6 +64,7 @@ dependencies:
   google_polyline_algorithm: ^3.1.0
   firebase_messaging: ^15.2.6
   share_plus: ^7.0.0
+  flutter_polyline_points: ^2.0.0
 
 dev_dependencies:
   flutter_native_splash: ^2.3.4

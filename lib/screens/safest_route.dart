@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart' as geo;
 import 'package:geolocator/geolocator.dart';
 import 'dart:math';
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:complaints_app/services/unpack_polyline.dart';
+import 'package:complaints_app/services/google_directions_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_polyline_points/flutter_polyline_points.dart' hide TravelMode;
+import 'package:complaints_app/models/travel_mode.dart';
+import 'dart:async';
 
 class SafestRoutePage extends StatefulWidget {
   const SafestRoutePage({super.key});
@@ -20,11 +23,17 @@ class SafestRoutePage extends StatefulWidget {
 }
 
 class _SafestRoutePageState extends State<SafestRoutePage> {
-  final TextEditingController _destSearchController = TextEditingController(); // Renamed from _searchController
-  final TextEditingController _sourceSearchController = TextEditingController(); // New controller for source
-  final MapController _mapController = MapController();
-  final FocusNode _destFocusNode = FocusNode(); // Renamed from _searchFocusNode
+  final TextEditingController _destSearchController = TextEditingController();
+  final TextEditingController _sourceSearchController = TextEditingController();
+  final FocusNode _destFocusNode = FocusNode();
   final FocusNode _sourceFocusNode = FocusNode();
+  
+  // Google Maps controller
+  gmaps.GoogleMapController? _mapController;
+  final GoogleDirectionsService _directionsService = GoogleDirectionsService();
+  
+  // Travel mode selection
+  TravelMode _selectedTravelMode = TravelMode.driving;
   
   // Routing variables
   LatLng? _currentLocation;
@@ -35,7 +44,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   List<List<LatLng>> _alternativeRoutes = [];
   bool _isRouteVisible = false;
   bool _isLoading = false;
-  List<LatLng> _newsMarkers = []; // Store news marker locations for safety calculation
+  List<LatLng> _newsMarkers = [];
   
   // Marker visibility toggles
   bool _showNews = true;
@@ -49,6 +58,10 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   List<double> _routeOverallScores = [];
   int _bestRouteIndex = 0;
 
+  // Google Maps variables
+  Set<gmaps.Marker> _gMapMarkers = {};
+  Set<gmaps.Polyline> _gMapPolylines = {};
+  
   // Constants
   static const double _earthRadius = 6371000; // Earth radius in meters
   static const double _safetyWeight = 0.6;
@@ -61,7 +74,35 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     _sourceSearchController.dispose();
     _destFocusNode.dispose();
     _sourceFocusNode.dispose();
+    _mapController?.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Load map without waiting for location first
+    _fetchMarkerData();
+    
+    // Try to get location in the background
+    Future.delayed(Duration.zero, () {
+      _getCurrentLocationCoordinates().then((_) {
+        // If we got location, update map
+        if (_currentLocation != null && _mapController != null && mounted) {
+          setState(() {
+            // Just update state to refresh
+          });
+          
+          _mapController!.animateCamera(
+            gmaps.CameraUpdate.newLatLngZoom(
+              gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+              14.0,
+            ),
+          );
+        }
+      });
+    });
   }
 
   Future<void> _getCurrentLocationCoordinates() async {
@@ -122,7 +163,15 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
           _useCurrentLocationAsSource = false;
         });
         
-        _mapController.move(source, 14.0);
+        // Move camera to source location
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            gmaps.CameraUpdate.newLatLngZoom(
+              gmaps.LatLng(source.latitude, source.longitude),
+              14.0,
+            ),
+          );
+        }
         
         // If destination is already set, recalculate route
         if (_destinationLocation != null) {
@@ -140,8 +189,8 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }
   }
 
-  Future<void> _searchDestinationLocation() async { // Renamed from _searchLocation
-    final placeName = _destSearchController.text.trim(); // Changed from _searchController
+  Future<void> _searchDestinationLocation() async {
+    final placeName = _destSearchController.text.trim();
     if (placeName.isEmpty) {
       _showMessage("Please enter a destination location", isError: true);
       return;
@@ -163,7 +212,15 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
           _destinationLocation = destination;
         });
         
-        _mapController.move(destination, 14.0);
+        // Move camera to destination
+        if (_mapController != null) {
+          _mapController!.animateCamera(
+            gmaps.CameraUpdate.newLatLngZoom(
+              gmaps.LatLng(destination.latitude, destination.longitude),
+              14.0,
+            ),
+          );
+        }
         
         // If we don't have a source yet, get current location
         if (_useCurrentLocationAsSource && _currentLocation == null) {
@@ -264,7 +321,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     return (normalizedSafety * _safetyWeight) + (normalizedDistance * _distanceWeight);
   }
 
-  // Improved route fetching with better error handling
+  // Get routes using Google Directions API
   Future<List<List<LatLng>>> _getAlternativeRoutes(LatLng sourceLocation) async {
     if (sourceLocation == null || _destinationLocation == null) return [];
     
@@ -272,9 +329,33 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     final routes = <List<LatLng>>[];
     
     try {
-      // Get OSRM routes
-      await _fetchOSRMRoutes(routes, sourceLocation);
-      // Generate additional waypoint routes if needed
+      // Get Google directions routes
+      final directionsRoutes = await _directionsService.getRoutes(
+        origin: sourceLocation,
+        destination: _destinationLocation!,
+        travelMode: _selectedTravelMode,
+        alternatives: true,
+      );
+      
+      // Process each route
+      for (final route in directionsRoutes) {
+        final points = _decodeRoutePath(route);
+        if (points.isNotEmpty) {
+          routes.add(points);
+          
+          // Calculate metrics
+          final distance = route.legs.fold(0.0, (sum, leg) => sum + (leg.distance?.value?.toDouble() ?? 0.0));
+          final duration = route.legs.fold(0.0, (sum, leg) => sum + (leg.duration?.value?.toDouble() ?? 0.0));
+          
+          _routeDistances.add(distance);
+          _routeDurations.add(duration);
+          
+          final safetyScore = _calculateRouteSafety(points);
+          _routeSafetyScores.add(safetyScore);
+        }
+      }
+      
+      // Generate additional routes with waypoints if needed
       if (routes.length < 3) {
         await _generateWaypointRoutes(routes, sourceLocation);
       }
@@ -296,44 +377,24 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     _routeOverallScores.clear();
   }
 
-  Future<void> _fetchOSRMRoutes(List<List<LatLng>> routes, LatLng sourceLocation) async {
-    final coordinates = "${sourceLocation.longitude},${sourceLocation.latitude};"
-                     "${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
-    final url = "http://router.project-osrm.org/route/v1/driving/$coordinates"
-             "?overview=full&geometries=polyline&alternatives=true";
-    
-    final response = await http.get(Uri.parse(url));
-    
-    if (response.statusCode == 200) {
-      final data = json.decode(response.body) as Map<String, dynamic>;
-      
-      if (data['code'] == 'Ok' && data['routes'] != null) {
-        for (final route in data['routes'] as List) {
-          _processRoute(route, routes);
-        }
+  // Add to your _SafestRoutePageState class
+  void _refreshMarkers() {
+    // Check if marker data has been loaded
+    _fetchMarkerData().then((snapshots) {
+      if (snapshots.isNotEmpty && mounted) {
+        _updateMapMarkers(snapshots[0], snapshots[1], snapshots[2]);
       }
-    }
+    });
   }
 
-  void _processRoute(Map<String, dynamic> route, List<List<LatLng>> routes) {
-    final encodedPolyline = route['geometry'] as String?;
-    final distance = (route['distance'] as num?)?.toDouble() ?? 0.0;
-    final duration = (route['duration'] as num?)?.toDouble() ?? 0.0;
+  // Helper to decode the polyline from a Google DirectionsRoute
+  List<LatLng> _decodeRoutePath(DirectionsRoute route) {
+    if (route.overviewPolyline?.points == null) return [];
     
-    if (encodedPolyline != null) {
-      final routePoints = decodePolyline(encodedPolyline).unpackPolyline();
-      if (routePoints.isNotEmpty) {
-        routes.add(routePoints);
-        _routeDistances.add(distance);
-        _routeDurations.add(duration);
-        
-        final safetyScore = _calculateRouteSafety(routePoints);
-        _routeSafetyScores.add(safetyScore);
-      }
-    }
+    return _directionsService.decodePolyline(route.overviewPolyline!.points!);
   }
 
-  // Optimized waypoint generation
+  // Generate additional routes using waypoints
   Future<void> _generateWaypointRoutes(List<List<LatLng>> existingRoutes, LatLng sourceLocation) async {
     if (sourceLocation == null || _destinationLocation == null) return;
   
@@ -350,36 +411,40 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     for (final waypoint in waypoints) {
       if (existingRoutes.length >= _maxRoutes) break;
       
-      await _fetchWaypointRoute(waypoint, existingRoutes, sourceLocation);
-    }
-  }
-
-  Future<void> _fetchWaypointRoute(LatLng waypoint, List<List<LatLng>> routes, LatLng sourceLocation) async {
-    try {
-      final coordinates = "${sourceLocation.longitude},${sourceLocation.latitude};"
-                       "${waypoint.longitude},${waypoint.latitude};"
-                       "${_destinationLocation!.longitude},${_destinationLocation!.latitude}";
-      final url = "http://router.project-osrm.org/route/v1/driving/$coordinates"
-                 "?overview=full&geometries=polyline";
-      
-      final response = await http.get(Uri.parse(url));
-      
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
+      // Get route through waypoint
+      try {
+        final waypointRoutes = await _directionsService.getRoutes(
+          origin: sourceLocation,
+          destination: _destinationLocation!,
+          waypoints: [waypoint],
+          travelMode: _selectedTravelMode,
+          alternatives: false,
+        );
         
-        if (data['code'] == 'Ok' && data['routes'] != null) {
-          final routeList = data['routes'] as List;
-          if (routeList.isNotEmpty) {
-            _processRoute(routeList[0] as Map<String, dynamic>, routes);
+        for (final route in waypointRoutes) {
+          final points = _decodeRoutePath(route);
+          if (points.isNotEmpty) {
+            existingRoutes.add(points);
+            
+            // Calculate metrics
+            final distance = route.legs.fold(0.0, (sum, leg) => sum + (leg.distance?.value?.toDouble() ?? 0.0));
+            final duration = route.legs.fold(0.0, (sum, leg) => sum + (leg.duration?.value?.toDouble() ?? 0.0));
+            
+            _routeDistances.add(distance);
+            _routeDurations.add(duration);
+            
+            final safetyScore = _calculateRouteSafety(points);
+            _routeSafetyScores.add(safetyScore);
           }
         }
+      } catch (e) {
+        print("Error generating waypoint route: $e");
       }
-    } catch (e) {
-      debugPrint("Error generating waypoint route: $e");
     }
   }
 
   void _calculateAllOverallScores(List<List<LatLng>> routes) {
+    _routeOverallScores = [];
     for (int i = 0; i < routes.length; i++) {
       final overallScore = _calculateOverallScore(_routeSafetyScores[i], _routeDistances[i]);
       _routeOverallScores.add(overallScore);
@@ -393,11 +458,17 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
     try {
       _showMessage("Finding best route...", isError: false);
+      setState(() {
+        _isLoading = true;
+      });
       
       final routes = await _getAlternativeRoutes(sourceLocation);
       
       if (routes.isEmpty) {
         _showMessage("No routes found", isError: true);
+        setState(() {
+          _isLoading = false;
+        });
         return;
       }
       
@@ -416,20 +487,29 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
         _bestRoutePoints = routes[_bestRouteIndex];
         _alternativeRoutes = alternativeRoutes;
         _isRouteVisible = true;
+        _isLoading = false;
+        
+        // Update the polylines on Google Map
+        _updateMapPolylines();
       });
 
       if (_bestRoutePoints.isNotEmpty) {
-        _fitMapToRoute(_bestRoutePoints);
+        _fitMapToRoute();
       }
       
       _showMessage("Best route found (${routes.length} alternatives analyzed)", isError: false);
       
     } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
       _showMessage("Failed to get best route: ${e.toString()}", isError: true);
     }
   }
 
   int _findBestRouteIndex() {
+    if (_routeOverallScores.isEmpty) return 0;
+    
     int bestIndex = 0;
     double maxScore = _routeOverallScores[0];
     
@@ -443,7 +523,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     return bestIndex;
   }
 
-  // Improved formatting methods
+  // UI Formatting helpers
   String _formatDistance(double meters) {
     return meters < 1000 
         ? "${meters.round()}m"
@@ -461,22 +541,37 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     return "${(score * 100).toStringAsFixed(1)}%";
   }
 
-  void _fitMapToRoute(List<LatLng> points) {
-    if (points.isEmpty) return;
-
-    final lats = points.map((p) => p.latitude);
-    final lngs = points.map((p) => p.longitude);
+  // Fit map to the route bounds
+  void _fitMapToRoute() {
+    if (_bestRoutePoints.isEmpty || _mapController == null) return;
     
-    final bounds = LatLngBounds(
-      LatLng(lats.reduce(min), lngs.reduce(min)),
-      LatLng(lats.reduce(max), lngs.reduce(max)),
+    // Calculate bounds
+    double minLat = double.infinity;
+    double maxLat = -double.infinity;
+    double minLng = double.infinity;
+    double maxLng = -double.infinity;
+    
+    // Add source and destination points to bounds calculation
+    List<LatLng> allPoints = [..._bestRoutePoints];
+    if (_sourceLocation != null) allPoints.add(_sourceLocation!);
+    if (_destinationLocation != null) allPoints.add(_destinationLocation!);
+    
+    for (final point in allPoints) {
+      minLat = min(minLat, point.latitude);
+      maxLat = max(maxLat, point.latitude);
+      minLng = min(minLng, point.longitude);
+      maxLng = max(maxLng, point.longitude);
+    }
+    
+    // Convert to Google's LatLngBounds
+    final bounds = gmaps.LatLngBounds(
+      southwest: gmaps.LatLng(minLat, minLng),
+      northeast: gmaps.LatLng(maxLat, maxLng),
     );
-
-    _mapController.fitCamera(
-      CameraFit.bounds(
-        bounds: bounds,
-        padding: const EdgeInsets.all(50),
-      ),
+    
+    // Add some padding
+    _mapController!.animateCamera(
+      gmaps.CameraUpdate.newLatLngBounds(bounds, 50.0),
     );
   }
 
@@ -485,6 +580,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       _bestRoutePoints = [];
       _alternativeRoutes = [];
       _isRouteVisible = false;
+      _gMapPolylines = {};
       _destinationLocation = null;
       _routeDistances.clear();
       _routeDurations.clear();
@@ -498,7 +594,15 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   Future<void> _getCurrentLocation() async {
     await _getCurrentLocationCoordinates();
     if (_currentLocation != null) {
-      _mapController.move(_currentLocation!, 14.0);
+      if (_mapController != null) {
+        _mapController!.animateCamera(
+          gmaps.CameraUpdate.newLatLngZoom(
+            gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+            14.0,
+          ),
+        );
+      }
+      
       setState(() {
         _useCurrentLocationAsSource = true;
         _sourceSearchController.clear(); // Clear the source search field
@@ -509,6 +613,14 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
         await _drawBestRoute();
       }
     }
+  }
+
+  // Add this method to your _SafestRoutePageState class
+  Future<List<QuerySnapshot>> _fetchMarkerData() async {
+    final news = await FirebaseFirestore.instance.collection('news_markers').get();
+    final ngos = await FirebaseFirestore.instance.collection('ngos').get();
+    final police = await FirebaseFirestore.instance.collection('police_stations').get();
+    return [news, ngos, police];
   }
 
   void _showMessage(String message, {required bool isError}) {
@@ -523,7 +635,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     );
   }
 
-  // URL launching logic from NewsMapScreen
+  // URL launching logic 
   Future<void> _launchNewsUrl(String? url) async {
     if (url == null || url.isEmpty) {
       _showMessage("No news article URL available", isError: true);
@@ -575,6 +687,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }
   }
 
+  // Combine Firestore streams for map data
   Stream<List<QuerySnapshot>> _combineStreams() {
     return Stream.periodic(const Duration(seconds: 1), (count) async {
       final news = await FirebaseFirestore.instance.collection('news_markers').get();
@@ -584,38 +697,31 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }).asyncMap((future) => future);
   }
 
-  List<Marker> _buildMarkers(QuerySnapshot newsSnapshot, QuerySnapshot ngosSnapshot, QuerySnapshot policeSnapshot) {
-    final markers = <Marker>[];
+  // Update markers for Google Maps
+  void _updateMapMarkers(QuerySnapshot newsSnapshot, QuerySnapshot ngosSnapshot, QuerySnapshot policeSnapshot) {
+    final markers = <gmaps.Marker>{};
     final newsMarkers = <LatLng>[];
-
-    // Add current location marker if using it as source
+    
+    // Add current location marker
     if (_useCurrentLocationAsSource && _currentLocation != null) {
       markers.add(
-        Marker(
-          point: _currentLocation!,
-          width: 40,
-          height: 40,
-          child: const Icon(
-            Icons.my_location,
-            color: Colors.blue,
-            size: 36,
-          ),
+        gmaps.Marker(
+          markerId: gmaps.MarkerId('current_location'),
+          position: gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+          infoWindow: gmaps.InfoWindow(title: 'Current Location'),
+          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueBlue),
         ),
       );
     }
 
-    // Add custom source location marker if set
+    // Add custom source location marker
     if (!_useCurrentLocationAsSource && _sourceLocation != null) {
       markers.add(
-        Marker(
-          point: _sourceLocation!,
-          width: 40,
-          height: 40,
-          child: const Icon(
-            Icons.trip_origin,
-            color: Colors.blue,
-            size: 36,
-          ),
+        gmaps.Marker(
+          markerId: gmaps.MarkerId('source'),
+          position: gmaps.LatLng(_sourceLocation!.latitude, _sourceLocation!.longitude),
+          infoWindow: gmaps.InfoWindow(title: 'Starting Point'),
+          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueBlue),
         ),
       );
     }
@@ -623,21 +729,18 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     // Add destination marker
     if (_destinationLocation != null) {
       markers.add(
-        Marker(
-          point: _destinationLocation!,
-          width: 40,
-          height: 40,
-          child: const Icon(
-            Icons.location_on,
-            color: Colors.green,
-            size: 36,
-          ),
+        gmaps.Marker(
+          markerId: gmaps.MarkerId('destination'),
+          position: gmaps.LatLng(_destinationLocation!.latitude, _destinationLocation!.longitude),
+          infoWindow: gmaps.InfoWindow(title: 'Destination'),
+          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueGreen),
         ),
       );
     }
-
+    
     // Add news markers
     if (_showNews) {
+      int index = 0;
       for (final doc in newsSnapshot.docs) {
         try {
           final data = doc.data() as Map<String, dynamic>;
@@ -651,36 +754,34 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
           final newsLocation = LatLng(lat, lon);
           newsMarkers.add(newsLocation);
-
+          
           markers.add(
-            Marker(
-              point: newsLocation,
-              width: 40,
-              height: 40,
-              child: GestureDetector(
+            gmaps.Marker(
+              markerId: gmaps.MarkerId('news_$index'),
+              position: gmaps.LatLng(lat, lon),
+              infoWindow: gmaps.InfoWindow(
+                title: title,
+                snippet: 'Click for more information',
                 onTap: () => _showNewsDetails(context, title, description, sourceUrl),
-                child: const Icon(
-                  CupertinoIcons.exclamationmark_shield_fill,
-                  color: Color.fromARGB(255, 31, 134, 178),
-                  size: 36,
-                ),
               ),
+              icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueAzure),
             ),
           );
+          index++;
         } catch (e) {
           print("Error processing news marker: $e");
           continue;
         }
       }
     }
-
+    
     // Add NGO markers
     if (_showNGOs) {
+      int index = 0;
       for (final doc in ngosSnapshot.docs) {
         try {
           final data = doc.data() as Map<String, dynamic>;
           
-          // Handle location field safely
           final locationData = data['location'];
           if (locationData == null) continue;
           
@@ -702,32 +803,29 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
             sectors = sectorsData.map((e) => e.toString()).toList();
           }
 
-          final ngoLocation = LatLng(lat, lon);
-
           markers.add(
-            Marker(
-              point: ngoLocation,
-              width: 40,
-              height: 40,
-              child: GestureDetector(
+            gmaps.Marker(
+              markerId: gmaps.MarkerId('ngo_$index'),
+              position: gmaps.LatLng(lat, lon),
+              infoWindow: gmaps.InfoWindow(
+                title: name,
+                snippet: 'NGO Services',
                 onTap: () => _showNGODetails(context, name, sectors),
-                child: const Icon(
-                  Icons.volunteer_activism,
-                  color: Colors.orange,
-                  size: 36,
-                ),
               ),
+              icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueOrange),
             ),
           );
+          index++;
         } catch (e) {
           print("Error processing NGO marker: $e");
           continue;
         }
       }
     }
-
+    
     // Add Police Station markers
     if (_showPoliceStations) {
+      int index = 0;
       for (final doc in policeSnapshot.docs) {
         try {
           final data = doc.data() as Map<String, dynamic>;
@@ -737,66 +835,126 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
           if (lat == null || lon == null) continue;
 
-          final policeLocation = LatLng(lat, lon);
-
           markers.add(
-            Marker(
-              point: policeLocation,
-              width: 40,
-              height: 40,
-              child: GestureDetector(
+            gmaps.Marker(
+              markerId: gmaps.MarkerId('police_$index'),
+              position: gmaps.LatLng(lat, lon),
+              infoWindow: gmaps.InfoWindow(
+                title: name,
+                snippet: 'Police Station',
                 onTap: () => _showPoliceStationDetails(context, name),
-                child: const Icon(
-                  Icons.local_police,
-                  color: Colors.red,
-                  size: 36,
-                ),
               ),
+              icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueRed),
             ),
           );
+          index++;
         } catch (e) {
           print("Error processing police marker: $e");
           continue;
         }
       }
     }
-
+    
     // Update news markers for safety calculation
     _newsMarkers = newsMarkers;
-
-    return markers;
+    
+    // Update the state
+    setState(() {
+      _gMapMarkers = markers;
+    });
   }
-
-  List<Polyline> _buildPolylines() {
-    if (!_isRouteVisible) return [];
-
-    final polylines = <Polyline>[];
-
+  
+  // Update polylines for Google Maps
+  void _updateMapPolylines() {
+    final polylines = <gmaps.Polyline>{};
+    
     // Add alternative routes first
-    for (final route in _alternativeRoutes) {
+    for (int i = 0; i < _alternativeRoutes.length; i++) {
+      final route = _alternativeRoutes[i];
       if (route.isNotEmpty) {
         polylines.add(
-          Polyline(
-            points: route,
-            strokeWidth: 3.0,
+          gmaps.Polyline(
+            polylineId: gmaps.PolylineId('alternative_$i'),
+            points: route.map((point) => gmaps.LatLng(point.latitude, point.longitude)).toList(),
+            width: 3,
             color: Colors.red.withOpacity(0.6),
           ),
         );
       }
     }
-
+    
     // Add best route on top
     if (_bestRoutePoints.isNotEmpty) {
       polylines.add(
-        Polyline(
-          points: _bestRoutePoints,
-          strokeWidth: 5.0,
+        gmaps.Polyline(
+          polylineId: gmaps.PolylineId('best_route'),
+          points: _bestRoutePoints.map((point) => gmaps.LatLng(point.latitude, point.longitude)).toList(),
+          width: 5,
           color: Colors.green,
         ),
       );
     }
+    
+    setState(() {
+      _gMapPolylines = polylines;
+    });
+  }
 
-    return polylines;
+  // Build travel mode selector
+  Widget _buildTravelModeSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5, offset: Offset(0, 2))],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: TravelModeInfo.allModes.map((modeInfo) => 
+          _buildTravelModeButton(
+            icon: modeInfo.icon,
+            mode: modeInfo.mode,
+            tooltip: modeInfo.name,
+          ),
+        ).toList(),
+      ),
+    );
+  }
+  
+  Widget _buildTravelModeButton({
+    required IconData icon,
+    required TravelMode mode,
+    required String tooltip,
+  }) {
+    final isSelected = _selectedTravelMode == mode;
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () {
+          setState(() {
+            _selectedTravelMode = mode;
+          });
+          // Recalculate route if visible
+          if (_isRouteVisible) {
+            _drawBestRoute();
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: isSelected ? Colors.blue.withOpacity(0.2) : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Icon(
+            icon,
+            color: isSelected ? Colors.blue : Colors.grey,
+            size: 24,
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildMarkerToggle(String label, IconData icon, Color color, bool value, Function(bool) onChanged) {
@@ -1040,7 +1198,8 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   }
 
   Future<void> _openMapsDirections(double sourceLat, double sourceLng, double destLat, double destLng) async {
-    final url = "https://www.google.com/maps/dir/?api=1&origin=$sourceLat,$sourceLng&destination=$destLat,$destLng";
+    final modeParam = _selectedTravelMode.value;
+    final url = "https://www.google.com/maps/dir/?api=1&origin=$sourceLat,$sourceLng&destination=$destLat,$destLng&travelmode=$modeParam";
     final uri = Uri.parse(url);
     
     if (await canLaunchUrl(uri)) {
@@ -1048,359 +1207,6 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     } else {
       _showMessage("Could not open maps application", isError: true);
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: const Text(
-            "SAFEST ROUTE",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-      drawer: const NavBar(),
-      body: Stack(
-        children: [
-          StreamBuilder<List<QuerySnapshot>>(
-            stream: _combineStreams(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (!snapshot.hasData || snapshot.data!.length < 3) {
-                return const Center(child: Text("Loading map data..."));
-              }
-
-              final newsSnapshot = snapshot.data![0];
-              final ngosSnapshot = snapshot.data![1];
-              final policeSnapshot = snapshot.data![2];
-
-              final markers = _buildMarkers(newsSnapshot, ngosSnapshot, policeSnapshot);
-              final polylines = _buildPolylines();
-
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter: markers.isNotEmpty
-                      ? markers.first.point
-                      : const LatLng(20.5937, 78.9629),
-                  initialZoom: 10,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
-                    userAgentPackageName: 'com.complaints.app',
-                  ),
-                  if (polylines.isNotEmpty) PolylineLayer(polylines: polylines),
-                  MarkerLayer(markers: markers),
-                ],
-              );
-            },
-          ),
-
-          // Search Bar
-          Positioned(
-            top: 30,
-            left: 20,
-            right: 20,
-            child: Column(
-              children: [
-                // Source Location Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
-                  ),
-                  child: TextField(
-                    controller: _sourceSearchController,
-                    focusNode: _sourceFocusNode,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: _useCurrentLocationAsSource 
-                          ? "Current Location (tap to change)" 
-                          : "Source Location",
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      border: InputBorder.none,
-                      prefixIcon: Icon(
-                        Icons.trip_origin,
-                        color: Colors.blue,
-                        size: 20,
-                      ),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!_useCurrentLocationAsSource)
-                            IconButton(
-                              icon: const Icon(Icons.my_location, color: Colors.blue),
-                              onPressed: _getCurrentLocation,
-                              tooltip: "Use current location",
-                            ),
-                          IconButton(
-                            icon: _isLoading 
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.search, color: Colors.blue),
-                            onPressed: _isLoading ? null : _searchSourceLocation,
-                          ),
-                        ],
-                      ),
-                    ),
-                    onTap: () {
-                      if (_useCurrentLocationAsSource) {
-                        setState(() {
-                          _useCurrentLocationAsSource = false;
-                        });
-                      }
-                    },
-                  ),
-                ),
-                
-                const SizedBox(height: 8), // Space between search bars
-                
-                // Destination Location Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
-                  ),
-                  child: TextField(
-                    controller: _destSearchController,
-                    focusNode: _destFocusNode,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText: "Search for a destination...",
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      border: InputBorder.none,
-                      prefixIcon: Icon(
-                        Icons.location_on,
-                        color: Colors.green,
-                        size: 20,
-                      ),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (_isRouteVisible)
-                            IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.red),
-                              onPressed: _clearRoute,
-                            ),
-                          IconButton(
-                            icon: _isLoading 
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.search, color: Colors.blue),
-                            onPressed: _isLoading ? null : _searchDestinationLocation,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Marker Filter Panel
-          Positioned(
-            top: 150,
-            left: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Show Markers",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMarkerToggle(
-                    "News", 
-                    CupertinoIcons.exclamationmark_shield_fill, 
-                    Colors.blue, 
-                    _showNews, 
-                    (value) => setState(() => _showNews = value)
-                  ),
-                  _buildMarkerToggle(
-                    "NGOs", 
-                    Icons.volunteer_activism, 
-                    Colors.orange, 
-                    _showNGOs, 
-                    (value) => setState(() => _showNGOs = value)
-                  ),
-                  _buildMarkerToggle(
-                    "Police", 
-                    Icons.local_police, 
-                    Colors.red, 
-                    _showPoliceStations, 
-                    (value) => setState(() => _showPoliceStations = value)
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Route Information Panel
-          if (_isRouteVisible && _routeDistances.isNotEmpty)
-            Positioned(
-              top: 150,
-              right: 20,
-              child: Container(
-                width: 200, // Add explicit width constraint
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 4,
-                          color: Colors.green,
-                        ),
-                        const SizedBox(width: 8),
-                        const Flexible( // Wrap with Flexible to prevent overflow
-                          child: Text("Best Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "${_formatDistance(_routeDistances[_bestRouteIndex])} • ${_formatDuration(_routeDurations[_bestRouteIndex])}",
-                            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                          ),
-                          Text(
-                            "Score: ${_formatScore(_routeOverallScores[_bestRouteIndex])}",
-                            style: TextStyle(fontSize: 10, color: Colors.green[700]),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 4,
-                          color: Colors.red.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 8),
-                        const Flexible( // Wrap with Flexible to prevent overflow
-                          child: Text("Alternative Routes", style: TextStyle(fontSize: 12)),
-                        ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 28),
-                      child: Text(
-                        "Based on safety + distance",
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    // Open in Google Maps Button - Remove SizedBox wrapper
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        LatLng? sourceLocation = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
-                        if (sourceLocation != null && _destinationLocation != null) {
-                          _openMapsDirections(
-                            sourceLocation.latitude,
-                            sourceLocation.longitude,
-                            _destinationLocation!.latitude,
-                            _destinationLocation!.longitude,
-                          );
-                        } else {
-                          _showMessage("Source or destination location not available", isError: true);
-                        }
-                      },
-                      icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text(
-                        "Open in Maps",
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        minimumSize: const Size(double.infinity, 36), // Use minimumSize instead
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-          // Current Location Button
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: FloatingActionButton(
-              onPressed: _getCurrentLocation,
-              backgroundColor: Colors.white,
-              child: const Icon(Icons.my_location, color: Colors.blue),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   void _showNewsDetails(
@@ -1547,6 +1353,369 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          title: const Text(
+            "SAFEST ROUTE",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          flexibleSpace: Container(
+            decoration: const BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage('assets/images/appBar_bg.png'),
+                fit: BoxFit.cover,
+              ),
+            ),
+            foregroundDecoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.blue.withOpacity(0.3),
+                  Colors.purple.withOpacity(0.3),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      drawer: const NavBar(),
+      body: Stack(
+        children: [
+          // Replace the entire StreamBuilder in your build method with this:
+          gmaps.GoogleMap(
+            initialCameraPosition: gmaps.CameraPosition(
+              target: _currentLocation != null
+                ? gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude)
+                : gmaps.LatLng(20.5937, 78.9629), // Default to India center
+              zoom: 14.0,
+            ),
+            onMapCreated: (controller) {
+              _mapController = controller;
+              
+              // Load markers after map is created
+              _fetchMarkerData().then((snapshots) {
+                if (snapshots.isNotEmpty && mounted) {
+                  _updateMapMarkers(snapshots[0], snapshots[1], snapshots[2]);
+                }
+              });
+            },
+            markers: _gMapMarkers,
+            polylines: _gMapPolylines,
+            myLocationEnabled: true,
+            myLocationButtonEnabled: false,
+            mapType: gmaps.MapType.normal,
+            zoomControlsEnabled: false,
+          ),
+          // Add before the Current Location Button's Positioned widget
+          Positioned(
+            bottom: 90,  // Position above the navigation bar
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                width: double.infinity,
+                child: _buildTravelModeSelector(),
+              ),
+            ),
+          ),
+          // Search Bar
+          Positioned(
+            top: 30,
+            left: 20,
+            right: 20,
+            child: Column(
+              children: [
+                // Source Location Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                  ),
+                  child: TextField(
+                    controller: _sourceSearchController,
+                    focusNode: _sourceFocusNode,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      hintText: _useCurrentLocationAsSource 
+                          ? "Current Location (tap to change)" 
+                          : "Source Location",
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        Icons.trip_origin,
+                        color: Colors.blue,
+                        size: 20,
+                      ),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (!_useCurrentLocationAsSource)
+                            IconButton(
+                              icon: const Icon(Icons.my_location, color: Colors.blue),
+                              onPressed: _getCurrentLocation,
+                              tooltip: "Use current location",
+                            ),
+                          IconButton(
+                            icon: _isLoading 
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.search, color: Colors.blue),
+                            onPressed: _isLoading ? null : _searchSourceLocation,
+                          ),
+                        ],
+                      ),
+                    ),
+                    onTap: () {
+                      if (_useCurrentLocationAsSource) {
+                        setState(() {
+                          _useCurrentLocationAsSource = false;
+                        });
+                      }
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 8), // Space between search bars
+                
+                // Destination Location Search Bar
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                  ),
+                  child: TextField(
+                    controller: _destSearchController,
+                    focusNode: _destFocusNode,
+                    enabled: !_isLoading,
+                    decoration: InputDecoration(
+                      hintText: "Search for a destination...",
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: InputBorder.none,
+                      prefixIcon: Icon(
+                        Icons.location_on,
+                        color: Colors.green,
+                        size: 20,
+                      ),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (_isRouteVisible)
+                            IconButton(
+                              icon: const Icon(Icons.clear, color: Colors.red),
+                              onPressed: _clearRoute,
+                            ),
+                          IconButton(
+                            icon: _isLoading 
+                                ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.search, color: Colors.blue),
+                            onPressed: _isLoading ? null : _searchDestinationLocation,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Marker Filter Panel
+          Positioned(
+            top: 180, // Adjusted for travel mode selector
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Show Markers",
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  // In the marker panel section in your build method
+                  _buildMarkerToggle(
+                    "News", 
+                    CupertinoIcons.exclamationmark_shield_fill, 
+                    Colors.blue, 
+                    _showNews, 
+                    (value) {
+                      setState(() => _showNews = value);
+                      _refreshMarkers();
+                    }
+                  ),
+                  _buildMarkerToggle(
+                    "NGOs", 
+                    Icons.volunteer_activism, 
+                    Colors.orange, 
+                    _showNGOs, 
+                    (value) {
+                      setState(() => _showNGOs = value);
+                      _refreshMarkers();
+                    }
+                  ),
+                  _buildMarkerToggle(
+                    "Police", 
+                    Icons.local_police, 
+                    Colors.red, 
+                    _showPoliceStations, 
+                    (value) {
+                      setState(() => _showPoliceStations = value);
+                      _refreshMarkers();
+                    }
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Route Information Panel
+          if (_isRouteVisible && _routeDistances.isNotEmpty)
+            Positioned(
+              top: 180, // Adjusted for travel mode selector
+              right: 20,
+              child: Container(
+                width: 200,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 4,
+                          color: Colors.green,
+                        ),
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text("Best Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 28),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "${_formatDistance(_routeDistances[_bestRouteIndex])} • ${_formatDuration(_routeDurations[_bestRouteIndex])}",
+                            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                          ),
+                          Text(
+                            "Score: ${_formatScore(_routeOverallScores[_bestRouteIndex])}",
+                            style: TextStyle(fontSize: 10, color: Colors.green[700]),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 20,
+                          height: 4,
+                          color: Colors.red.withOpacity(0.6),
+                        ),
+                        const SizedBox(width: 8),
+                        const Flexible(
+                          child: Text("Alternative Routes", style: TextStyle(fontSize: 12)),
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(left: 28),
+                      child: Text(
+                        "Based on safety + distance",
+                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    // Open in Google Maps Button
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        LatLng? sourceLocation = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
+                        if (sourceLocation != null && _destinationLocation != null) {
+                          _openMapsDirections(
+                            sourceLocation.latitude,
+                            sourceLocation.longitude,
+                            _destinationLocation!.latitude,
+                            _destinationLocation!.longitude,
+                          );
+                        } else {
+                          _showMessage("Source or destination location not available", isError: true);
+                        }
+                      },
+                      icon: const Icon(Icons.open_in_new, size: 16),
+                      label: const Text(
+                        "Open in Maps",
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        minimumSize: const Size(double.infinity, 36),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Current Location Button
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: FloatingActionButton(
+              onPressed: _getCurrentLocation,
+              backgroundColor: Colors.white,
+              child: const Icon(Icons.my_location, color: Colors.blue),
+            ),
+          ),
+        ],
       ),
     );
   }

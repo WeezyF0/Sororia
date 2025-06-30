@@ -1,8 +1,12 @@
+// Add these imports at the top of your file
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.application")
-    id("kotlin-android")  // Remove the version from here
-    id("dev.flutter.flutter-gradle-plugin") // Flutter Gradle Plugin must be after Android & Kotlin
-    id("com.google.gms.google-services") // Google Services for Firebase
+    id("kotlin-android")
+    id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -23,8 +27,9 @@ android {
         applicationId = "com.complaints.app"
         minSdk = 23
         targetSdk = 33
-        versionCode = 1 // Replace `flutter.versionCode` with a manual value
-        versionName = "1.0" // Replace `flutter.versionName` with a manual value
+        versionCode = 1
+        versionName = "1.0"
+        manifestPlaceholders["MAPS_API_KEY"] = getApiKey()
     }
 
     buildTypes {
@@ -38,7 +43,6 @@ android {
             signingConfig = signingConfigs.getByName("debug") 
         }
     }
-
 }
 
 flutter {
@@ -48,4 +52,11 @@ flutter {
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:32.7.1")) 
     implementation("com.google.firebase:firebase-auth") 
+}
+
+// Modified to use the imported classes
+fun getApiKey(): String {
+    val properties = Properties()
+    properties.load(FileInputStream(project.rootProject.file("local.properties")))
+    return properties.getProperty("MAPS_API_KEY", "")
 }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math';
@@ -9,7 +9,6 @@ import 'package:complaints_app/screens/open_complaint.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
-// Remove geocoding import
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,17 +18,18 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final MapController _mapController = MapController();
+  // Replace MapController with GoogleMapController
+  gmaps.GoogleMapController? _mapController;
   LatLng? _currentLocation;
-  // Remove search controller and focus node declarations
-
+  
+  // Set of Google Map markers
+  Set<gmaps.Marker> _gMapMarkers = {};
+  
   @override
   void dispose() {
-    // Remove disposal of search controller and focus node
+    _mapController?.dispose();
     super.dispose();
   }
-
-  // Remove _searchLocation() method
 
   Future<void> _getCurrentLocationCoordinates() async {
     try {
@@ -64,8 +64,13 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _getCurrentLocation() async {
     await _getCurrentLocationCoordinates();
-    if (_currentLocation != null) {
-      _mapController.move(_currentLocation!, 14.0);
+    if (_currentLocation != null && _mapController != null) {
+      _mapController!.animateCamera(
+        gmaps.CameraUpdate.newLatLngZoom(
+          gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+          14.0,
+        ),
+      );
     }
   }
 
@@ -85,6 +90,11 @@ class _HomePageState extends State<HomePage> {
     } else {
       _showError("Could not open maps application");
     }
+  }
+  
+  // Helper method to convert LatLng to Google Maps LatLng
+  gmaps.LatLng _toGoogleMapsLatLng(LatLng point) {
+    return gmaps.LatLng(point.latitude, point.longitude);
   }
 
   @override
@@ -140,22 +150,22 @@ class _HomePageState extends State<HomePage> {
 
               final random = Random();
               Set<String> uniqueCoordinates = {};
-              List<Marker> markers = [];
+              Set<gmaps.Marker> markers = {};
+              gmaps.LatLng initialPosition = gmaps.LatLng(20.5937, 78.9629);
               
               // Add current location marker if available
               if (_currentLocation != null) {
                 markers.add(
-                  Marker(
-                    point: _currentLocation!,
-                    width: 40,
-                    height: 40,
-                    child: const Icon(
-                      Icons.my_location,
-                      color: Colors.blue,
-                      size: 36,
+                  gmaps.Marker(
+                    markerId: gmaps.MarkerId('current_location'),
+                    position: gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
+                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueBlue),
+                    infoWindow: gmaps.InfoWindow(
+                      title: 'My Location',
                     ),
                   ),
                 );
+                initialPosition = gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
               }
 
               // Add complaint markers
@@ -179,12 +189,15 @@ class _HomePageState extends State<HomePage> {
                 }
                 uniqueCoordinates.add(coordKey);
 
+                // Add Google Maps Marker
                 markers.add(
-                  Marker(
-                    point: LatLng(newLat, newLon),
-                    width: 40,
-                    height: 40,
-                    child: GestureDetector(
+                  gmaps.Marker(
+                    markerId: gmaps.MarkerId('complaint_${doc.id}'),
+                    position: gmaps.LatLng(newLat, newLon),
+                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueRed),
+                    infoWindow: gmaps.InfoWindow(
+                      title: title,
+                      snippet: description.length > 30 ? '${description.substring(0, 30)}...' : description,
                       onTap: () => showComplaintDetails(
                         context, 
                         title, 
@@ -192,14 +205,14 @@ class _HomePageState extends State<HomePage> {
                         data,
                         doc.id,
                       ),
-                      child: const Icon(
-                        Icons.place_rounded,
-                        color: Colors.red,
-                        size: 36,
-                      ),
                     ),
                   ),
                 );
+
+                // Set initial position to first marker if no current location
+                if (_currentLocation == null && markers.length == 1) {
+                  initialPosition = gmaps.LatLng(newLat, newLon);
+                }
               }
 
               // Add SOS markers using StreamBuilder data
@@ -225,106 +238,45 @@ class _HomePageState extends State<HomePage> {
                       
                       if (lat == null || lon == null) continue;
                       
-                      LatLng sosLocation = LatLng(lat, lon);
-                      
-                      // Create a FutureBuilder marker that will load the name
+                      // Add SOS marker
                       markers.add(
-                        Marker(
-                          point: sosLocation,
-                          width: 50,
-                          height: 75, // Increased height to accommodate name
-                          child: GestureDetector(
+                        gmaps.Marker(
+                          markerId: gmaps.MarkerId('sos_$userId'),
+                          position: gmaps.LatLng(lat, lon),
+                          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueOrange),
+                          infoWindow: gmaps.InfoWindow(
+                            title: 'SOS Alert',
+                            snippet: 'Click for details',
                             onTap: () => _showSOSDetails(context, data, doc.id),
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Colors.orange,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: Colors.white, width: 3),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.orange.withOpacity(0.6),
-                                        spreadRadius: 3,
-                                        blurRadius: 7,
-                                        offset: const Offset(0, 0),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Icon(
-                                    Icons.emergency,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                                FutureBuilder<DocumentSnapshot>(
-                                  future: FirebaseFirestore.instance.collection('users').doc(userId).get(),
-                                  builder: (context, userSnapshot) {
-                                    String name = "SOS";
-                                    if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                                      try {
-                                        final userData = userSnapshot.data!.data() as Map<String, dynamic>;
-                                        print("Marker userData for $userId: $userData"); // Debug log
-                                        name = userData['name'] ?? "SOS";
-                                        // Only show first name if full name is long
-                                        if (name.contains(" ") && name.length > 8) {
-                                          name = name.split(" ")[0];
-                                        }
-                                      } catch (e) {
-                                        print("Error extracting user data for marker: $e");
-                                      }
-                                    }
-                                    
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                      margin: const EdgeInsets.only(top: 2),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.6),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
                           ),
                         ),
                       );
                     }
-                                    }
+                  }
 
-                  return FlutterMap(
-                    mapController: _mapController,
-                    options: MapOptions(
-                      initialCenter: markers.isNotEmpty
-                          ? markers.first.point
-                          : const LatLng(20.5937, 78.9629),
-                      initialZoom: 10,
+                  // Store updated markers in state
+                  _gMapMarkers = markers;
+
+                  // Return Google Map instead of FlutterMap
+                  return gmaps.GoogleMap(
+                    initialCameraPosition: gmaps.CameraPosition(
+                      target: initialPosition,
+                      zoom: 10,
                     ),
-                    children: [
-                      TileLayer(
-                        urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
-                        userAgentPackageName: 'com.complaints.app',
-                      ),
-                      MarkerLayer(markers: markers), // Single MarkerLayer with all markers
-                    ],
+                    markers: markers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    mapType: gmaps.MapType.normal,
+                    trafficEnabled: true,  // Enable traffic view
+                    onMapCreated: (gmaps.GoogleMapController controller) {
+                      _mapController = controller;
+                    },
                   );
                 },
               );
             },
           ),
-
-          // Remove search bar Positioned widget
 
           /// Current Location Button
           Positioned(
