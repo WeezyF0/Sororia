@@ -1359,38 +1359,21 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: const Text(
-            "SAFEST ROUTE",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.background,
+        elevation: 4,
+        shadowColor: isDark ? Colors.purple.withOpacity(0.2) : Colors.pink.withOpacity(0.2),
+        centerTitle: true,
+        title: Text(
+          "SAFEST ROUTE",
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onBackground,
+            letterSpacing: 1.2,
           ),
         ),
       ),
@@ -1422,9 +1405,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
             mapType: gmaps.MapType.normal,
             zoomControlsEnabled: false,
           ),
-          // Add before the Current Location Button's Positioned widget
+          // Travel Mode Selector
           Positioned(
-            bottom: 90,  // Position above the navigation bar
+            bottom: 90,
             left: 0,
             right: 0,
             child: Center(
@@ -1435,7 +1418,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
               ),
             ),
           ),
-          // Search Bar
+          // Search Bars
           Positioned(
             top: 30,
             left: 20,
@@ -1445,24 +1428,37 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                 // Source Location Search Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: TextField(
                     controller: _sourceSearchController,
                     focusNode: _sourceFocusNode,
                     enabled: !_isLoading,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontFamily: 'Poppins',
+                      color: theme.colorScheme.onSurface,
+                    ),
                     decoration: InputDecoration(
                       hintText: _useCurrentLocationAsSource 
                           ? "Current Location (tap to change)" 
                           : "Source Location",
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        fontFamily: 'Poppins',
+                      ),
                       border: InputBorder.none,
                       prefixIcon: Icon(
                         Icons.trip_origin,
-                        color: Colors.blue,
-                        size: 20,
+                        color: theme.colorScheme.primary,
+                        size: 22,
                       ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1474,17 +1470,12 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                               tooltip: "Use current location",
                             ),
                           IconButton(
-                            icon: _isLoading 
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.search, color: Colors.blue),
+                            icon: Icon(Icons.search, color: theme.colorScheme.primary),
                             onPressed: _isLoading ? null : _searchSourceLocation,
                           ),
                         ],
                       ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                     ),
                     onTap: () {
                       if (_useCurrentLocationAsSource) {
@@ -1495,28 +1486,39 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                     },
                   ),
                 ),
-                
-                const SizedBox(height: 8), // Space between search bars
-                
+                const SizedBox(height: 8),
                 // Destination Location Search Bar
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: TextField(
                     controller: _destSearchController,
                     focusNode: _destFocusNode,
                     enabled: !_isLoading,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      fontFamily: 'Poppins',
+                      color: theme.colorScheme.onSurface,
+                    ),
                     decoration: InputDecoration(
                       hintText: "Search for a destination...",
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        fontFamily: 'Poppins',
+                      ),
                       border: InputBorder.none,
                       prefixIcon: Icon(
                         Icons.location_on,
                         color: Colors.green,
-                        size: 20,
+                        size: 22,
                       ),
                       suffixIcon: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1525,46 +1527,50 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                             IconButton(
                               icon: const Icon(Icons.clear, color: Colors.red),
                               onPressed: _clearRoute,
+                              tooltip: "Clear route",
                             ),
                           IconButton(
-                            icon: _isLoading 
-                                ? const SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
-                                  )
-                                : const Icon(Icons.search, color: Colors.blue),
+                            icon: Icon(Icons.search, color: theme.colorScheme.primary),
                             onPressed: _isLoading ? null : _searchDestinationLocation,
                           ),
                         ],
                       ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-
           // Marker Filter Panel
           Positioned(
-            top: 180, // Adjusted for travel mode selector
+            top: 180,
             left: 20,
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
+                  Text(
                     "Show Markers",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Poppins',
+                      color: theme.colorScheme.primary,
+                    ),
                   ),
                   const SizedBox(height: 8),
-                  // In the marker panel section in your build method
                   _buildMarkerToggle(
                     "News", 
                     CupertinoIcons.exclamationmark_shield_fill, 
@@ -1599,112 +1605,93 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
               ),
             ),
           ),
-
           // Route Information Panel
           if (_isRouteVisible && _routeDistances.isNotEmpty)
             Positioned(
-              top: 180, // Adjusted for travel mode selector
+              top: 180,
               right: 20,
               child: Container(
-                width: 200,
-                padding: const EdgeInsets.all(12),
+                width: 220,
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                  color: theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
-                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        Container(
-                          width: 20,
-                          height: 4,
-                          color: Colors.green,
-                        ),
+                        Icon(Icons.route, color: Colors.green, size: 22),
                         const SizedBox(width: 8),
-                        const Flexible(
-                          child: Text("Best Route", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        Text(
+                          "Best Route",
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins',
+                            color: Colors.green[700],
+                          ),
                         ),
                       ],
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 28),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "${_formatDistance(_routeDistances[_bestRouteIndex])} • ${_formatDuration(_routeDurations[_bestRouteIndex])}",
-                            style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                          ),
-                          Text(
-                            "Score: ${_formatScore(_routeOverallScores[_bestRouteIndex])}",
-                            style: TextStyle(fontSize: 10, color: Colors.green[700]),
-                          ),
-                        ],
+                    const SizedBox(height: 10),
+                    Text(
+                      "Distance: ${_formatDistance(_routeDistances[_bestRouteIndex])}",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'Poppins',
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 4,
-                          color: Colors.red.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 8),
-                        const Flexible(
-                          child: Text("Alternative Routes", style: TextStyle(fontSize: 12)),
-                        ),
-                      ],
+                    Text(
+                      "Duration: ${_formatDuration(_routeDurations[_bestRouteIndex])}",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'Poppins',
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 28),
-                      child: Text(
-                        "Based on safety + distance",
-                        style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                    Text(
+                      "Safety: ${_formatScore(_routeSafetyScores[_bestRouteIndex])}",
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontFamily: 'Poppins',
+                        color: Colors.orange[700],
                       ),
                     ),
                     const SizedBox(height: 12),
-                    // Open in Google Maps Button
                     ElevatedButton.icon(
-                      onPressed: () {
-                        LatLng? sourceLocation = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
-                        if (sourceLocation != null && _destinationLocation != null) {
-                          _openMapsDirections(
-                            sourceLocation.latitude,
-                            sourceLocation.longitude,
-                            _destinationLocation!.latitude,
-                            _destinationLocation!.longitude,
-                          );
-                        } else {
-                          _showMessage("Source or destination location not available", isError: true);
+                      onPressed: () async {
+                        final src = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
+                        final dest = _destinationLocation;
+                        if (src != null && dest != null) {
+                          await _openMapsDirections(src.latitude, src.longitude, dest.latitude, dest.longitude);
                         }
                       },
-                      icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text(
-                        "Open in Maps",
-                        style: TextStyle(fontSize: 11),
-                      ),
+                      icon: const Icon(Icons.open_in_new, size: 18),
+                      label: const Text("Open in Google Maps"),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: theme.colorScheme.primary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        textStyle: theme.textTheme.bodyMedium?.copyWith(
+                          fontFamily: 'Poppins',
+                          fontWeight: FontWeight.w600,
                         ),
-                        minimumSize: const Size(double.infinity, 36),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-
           // Current Location Button
           Positioned(
             bottom: 20,

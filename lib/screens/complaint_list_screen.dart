@@ -55,22 +55,16 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
   Widget buildIssueTagsDisplay(Map<String, dynamic> data) {
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
-    
+
     // Get the issue type
     String issueType = data['issue_type'] ?? 'General';
-    
+
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 6,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: primaryColor.withOpacity(0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: primaryColor.withOpacity(0.25),
-          width: 1,
-        ),
+        border: Border.all(color: primaryColor.withOpacity(0.25), width: 1),
       ),
       child: Text(
         issueType,
@@ -81,7 +75,6 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -95,77 +88,26 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80.0),
         child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          titleSpacing: 0, // Remove default title spacing
-          title: Padding(
-            padding: EdgeInsets.only(
-              left: 16.0,
-            ), // Add padding to offset from drawer icon
-            child: Text(
-              "ALL EXPERIENCES",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
+          centerTitle: true,
+          title: Text(
+            "SORORIA",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 28,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
           ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            // Sort dropdown in the actions area
-            Padding(
-              padding: const EdgeInsets.only(right: 16.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: DropdownButton<String>(
-                  value: selectedSort,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                  dropdownColor: theme.primaryColor,
-                  underline: const SizedBox(),
-                  style: const TextStyle(color: Colors.white),
-                  onChanged: (String? newValue) {
-                    if (newValue != null) {
-                      setState(() {
-                        selectedSort = newValue;
-                      });
-                    }
-                  },
-                  items:
-                      sortOptions.map<DropdownMenuItem<String>>((String value) {
-                        return DropdownMenuItem<String>(
-                          value: value,
-                          child: Text(value),
-                        );
-                      }).toList(),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
       drawer: NavBar(),

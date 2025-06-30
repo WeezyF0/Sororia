@@ -37,7 +37,10 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
       List<Location> locations = await locationFromAddress(placeName);
       if (locations.isNotEmpty) {
         Location location = locations.first;
-        _mapController.move(LatLng(location.latitude, location.longitude), 14.0);
+        _mapController.move(
+          LatLng(location.latitude, location.longitude),
+          14.0,
+        );
       } else {
         _showError("Location not found");
       }
@@ -75,9 +78,9 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _launchNewsUrl(String? url) async {
@@ -89,38 +92,32 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
     try {
       // Clean the URL - remove any extra whitespace
       String cleanUrl = url.trim();
-      
+
       // Ensure URL has proper protocol
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
         cleanUrl = 'https://$cleanUrl';
       }
-      
+
       print("Attempting to launch URL: $cleanUrl"); // Debug log
-      
+
       final Uri uri = Uri.parse(cleanUrl);
-      
+
       // Try different launch modes
       if (await canLaunchUrl(uri)) {
         // Try external application first
         bool launched = await launchUrl(
-          uri, 
+          uri,
           mode: LaunchMode.externalApplication,
         );
-        
+
         if (!launched) {
           // Fallback to platform default
-          launched = await launchUrl(
-            uri, 
-            mode: LaunchMode.platformDefault,
-          );
+          launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
         }
-        
+
         if (!launched) {
           // Final fallback to in-app web view
-          await launchUrl(
-            uri, 
-            mode: LaunchMode.inAppWebView,
-          );
+          await launchUrl(uri, mode: LaunchMode.inAppWebView);
         }
       } else {
         _showError("Cannot open this URL on your device");
@@ -137,33 +134,25 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80.0),
         child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
           centerTitle: true,
           title: Text(
-            "News Map",
+            "NEWS MAP",
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              fontSize: 28,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ),
@@ -171,7 +160,10 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
       body: Stack(
         children: [
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('news_markers').snapshots(),
+            stream:
+                FirebaseFirestore.instance
+                    .collection('news_markers')
+                    .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -187,7 +179,8 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
                 var data = doc.data() as Map<String, dynamic>;
                 double? lat = data['latitude'] as double?;
                 double? lon = data['longitude'] as double?;
-                String originalText = data['original_text'] ?? 'No description available';
+                String originalText =
+                    data['original_text'] ?? 'No description available';
                 String? sourceUrl = data['source_url'] as String?;
 
                 if (lat == null || lon == null) continue;
@@ -198,11 +191,9 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
                     width: 40,
                     height: 40,
                     child: GestureDetector(
-                      onTap: () => showNewsDetails(
-                        context,
-                        originalText,
-                        sourceUrl,
-                      ),
+                      onTap:
+                          () =>
+                              showNewsDetails(context, originalText, sourceUrl),
                       child: const Icon(
                         CupertinoIcons.news_solid,
                         color: Colors.blue,
@@ -216,14 +207,19 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
               return FlutterMap(
                 mapController: _mapController,
                 options: MapOptions(
-                  initialCenter: markers.isNotEmpty
-                      ? markers.first.point
-                      : const LatLng(20.5937, 78.9629), // Default to India center
+                  initialCenter:
+                      markers.isNotEmpty
+                          ? markers.first.point
+                          : const LatLng(
+                            20.5937,
+                            78.9629,
+                          ), // Default to India center
                   initialZoom: 10,
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: 'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
+                    urlTemplate:
+                        'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
                     userAgentPackageName: 'com.complaints.app',
                   ),
                   MarkerLayer(markers: markers),
@@ -249,7 +245,10 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
                 focusNode: _searchFocusNode,
                 decoration: InputDecoration(
                   hintText: "Search for a location...",
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   border: InputBorder.none,
                   suffixIcon: IconButton(
                     icon: Icon(Icons.search, color: Colors.blue),
@@ -283,68 +282,72 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16.0),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.6,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(16.0),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.6,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(CupertinoIcons.news, color: Colors.blue, size: 24),
-                SizedBox(width: 8),
-                Text(
-                  "News Report",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                Row(
+                  children: [
+                    Icon(CupertinoIcons.news, color: Colors.blue, size: 24),
+                    SizedBox(width: 8),
+                    Text(
+                      "News Report",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Text(
+                      description,
+                      style: TextStyle(fontSize: 16, height: 1.4),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (sourceUrl != null && sourceUrl.isNotEmpty)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _launchNewsUrl(sourceUrl);
+                      },
+                      icon: Icon(Icons.open_in_new),
+                      label: Text("Read Full Article"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text("Close"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.grey,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: 12),
-            Flexible(
-              child: SingleChildScrollView(
-                child: Text(
-                  description,
-                  style: TextStyle(fontSize: 16, height: 1.4),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            if (sourceUrl != null && sourceUrl.isNotEmpty)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _launchNewsUrl(sourceUrl);
-                  },
-                  icon: Icon(Icons.open_in_new),
-                  label: Text("Read Full Article"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              )
-            else
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text("Close"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

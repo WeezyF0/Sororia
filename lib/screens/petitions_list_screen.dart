@@ -10,38 +10,30 @@ class PetitionListScreen extends StatelessWidget {
     final theme = Theme.of(context);
     final textTheme = theme.textTheme;
     final colorScheme = theme.colorScheme;
-    
+
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: Size.fromHeight(80.0),
         child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
           centerTitle: true,
           title: Text(
             "ACTIVE PETITIONS",
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              fontSize: 24,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
             ),
           ),
         ),
@@ -66,59 +58,57 @@ class PetitionListScreen extends StatelessWidget {
         ),
       ),
       body: StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('petitions')
-            .orderBy('timestamp', descending: true)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('petitions')
+                .orderBy('timestamp', descending: true)
+                .snapshots(),
         builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator(
-              color: colorScheme.primary,
-            ));
+            return Center(
+              child: CircularProgressIndicator(color: colorScheme.primary),
+            );
           }
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return Center(child: Text(
-              "No active petitions.",
-              style: textTheme.bodyLarge,
-            ));
+            return Center(
+              child: Text("No active petitions.", style: textTheme.bodyLarge),
+            );
           }
           return ListView(
             padding: const EdgeInsets.all(16.0),
             physics: const BouncingScrollPhysics(),
-            children: snapshot.data!.docs.map((doc) {
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12.0),
-                elevation: theme.cardTheme.elevation,
-                shape: theme.cardTheme.shape,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(8.0),
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/open_petition',
-                      arguments: doc['petition_id'],
-                    );
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          doc['title'],
-                          style: textTheme.titleMedium,
+            children:
+                snapshot.data!.docs.map((doc) {
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12.0),
+                    elevation: theme.cardTheme.elevation,
+                    shape: theme.cardTheme.shape,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(8.0),
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          '/open_petition',
+                          arguments: doc['petition_id'],
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(doc['title'], style: textTheme.titleMedium),
+                            const SizedBox(height: 4),
+                            Text(
+                              doc['description'],
+                              style: textTheme.bodyMedium,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          doc['description'],
-                          style: textTheme.bodyMedium,
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                ),
-              );
-            }).toList(),
+                  );
+                }).toList(),
           );
         },
       ),

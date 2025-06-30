@@ -28,6 +28,10 @@ class ColorPalette {
   static const Color warning = Color(0xFFF2C94C);
   static const Color error = Color(0xFFEB5757);
   static const Color info = Color(0xFF2D9CDB);
+
+  // Add custom brand colors
+  static const Color sororiaPink = Color(0xFFE91E63); // Pink
+  static const Color sororiaPurple = Color(0xFFE91E63); // Purple
 }
 
 class ThemeProvider extends ChangeNotifier {
@@ -90,6 +94,11 @@ class ThemeProvider extends ChangeNotifier {
             ? ColorPalette.textLightSecondary
             : ColorPalette.textDarkSecondary;
 
+    // AppBar customization for SORORIA branding
+    Color appBarBgColor = isDark ? Colors.black : Colors.white;
+    Color appBarTextColor =
+        isDark ? ColorPalette.sororiaPurple : ColorPalette.sororiaPink;
+
     return ThemeData(
       useMaterial3: true,
       brightness: brightness,
@@ -107,13 +116,16 @@ class ThemeProvider extends ChangeNotifier {
         onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: primaryColor,
-        foregroundColor: Colors.white,
+        backgroundColor: appBarBgColor,
+        foregroundColor: appBarTextColor,
         elevation: 0,
-        iconTheme: IconThemeData(color: Colors.white),
+        iconTheme: IconThemeData(color: appBarTextColor),
         titleTextStyle: _getTextTheme(isDark).titleLarge?.copyWith(
-          color: Colors.white,
+          color: appBarTextColor,
           fontWeight: FontWeight.bold,
+          fontFamily: 'Poppins',
+          letterSpacing: 2,
+          fontSize: 24,
         ),
       ),
       cardTheme: CardThemeData(

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'navbar.dart';
-import 'stats_screen.dart'; // We'll create this next
+import 'stats_screen.dart';
 
 class SummaryScreen extends StatelessWidget {
   const SummaryScreen({super.key});
@@ -8,6 +8,7 @@ class SummaryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     // Static summaries for demonstration
     const safetySummaries = [
@@ -49,63 +50,38 @@ class SummaryScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Text(
-                        "SAFETY SUMMARY",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.background,
+        elevation: 4,
+        shadowColor:
+            isDark
+                ? Colors.purple.withOpacity(0.2)
+                : Colors.pink.withOpacity(0.2),
+        centerTitle: true,
+        title: Text(
+          "SAFETY SUMMARY",
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onBackground,
+            letterSpacing: 1.2,
           ),
         ),
       ),
       drawer: const NavBar(),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Padding(
-              padding: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.only(bottom: 20),
               child: Text(
                 "Safety Overview by Category",
                 style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: theme.colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Poppins',
+                  color: theme.colorScheme.primary,
                 ),
               ),
             ),
@@ -135,8 +111,9 @@ class SummaryScreen extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 20),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -146,54 +123,70 @@ class SummaryScreen extends StatelessWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: color.withOpacity(isDark ? 0.2 : 0.1),
+                      color: color.withOpacity(isDark ? 0.18 : 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(icon, color: color, size: 28),
+                    child: Icon(icon, color: color, size: 30),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 18),
                   Expanded(
                     child: Text(
                       title,
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
+                        fontFamily: 'Poppins',
                         color: theme.colorScheme.onSurface,
+                        fontSize: 18,
                       ),
                     ),
                   ),
                   Icon(
                     Icons.chevron_right,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               Text(
                 summary,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.8),
+                  color: theme.colorScheme.onSurface.withOpacity(0.85),
+                  fontFamily: 'Poppins',
+                  fontWeight: FontWeight.w400,
+                  fontSize: 15,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Align(
                 alignment: Alignment.centerRight,
-                child: Text(
-                  "View detailed statistics →",
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.primaryColor,
-                    fontWeight: FontWeight.w500,
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: theme.colorScheme.primary,
+                    textStyle: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'Poppins',
+                    ),
                   ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => StatsScreen(category: title),
+                      ),
+                    );
+                  },
+                  child: const Text("View detailed statistics →"),
                 ),
               ),
             ],

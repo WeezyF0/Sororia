@@ -13,7 +13,7 @@ class PhoneAuthScreen extends StatefulWidget {
 class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController otpController = TextEditingController();
-  
+
   FirebaseAuth auth = FirebaseAuth.instance;
   String verificationId = "";
   bool otpSent = false;
@@ -29,11 +29,12 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   Future<bool> _isPhoneNumberAlreadyInUse() async {
     try {
       // Query for any users with this phone number
-      final QuerySnapshot result = await FirebaseFirestore.instance
-          .collection('users')
-          .where('phone_no', isEqualTo: phoneController.text.trim())
-          .get();
-      
+      final QuerySnapshot result =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .where('phone_no', isEqualTo: phoneController.text.trim())
+              .get();
+
       // If any documents found, the phone is already in use
       return result.docs.isNotEmpty;
     } catch (e) {
@@ -53,32 +54,34 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
       setState(() {
         isLoading = false;
       });
-      showSnackBar('This phone number is already registered with an email. Please use a different number or sign in using that email.');
+      showSnackBar(
+        'This phone number is already registered with an email. Please use a different number or sign in using that email.',
+      );
       return;
     }
 
     await auth.verifyPhoneNumber(
       phoneNumber: '+91${phoneController.text.trim()}',
-      
+
       verificationCompleted: (PhoneAuthCredential credential) async {
         // ANDROID ONLY!
         // Sign the user in (or link) with the auto-generated credential
         await auth.signInWithCredential(credential);
         navigateToHome();
       },
-      
+
       verificationFailed: (FirebaseAuthException e) {
         setState(() {
           isLoading = false;
         });
-        
+
         if (e.code == 'invalid-phone-number') {
           showSnackBar('The provided phone number is not valid.');
         } else {
           showSnackBar('Verification failed: ${e.message}');
         }
       },
-      
+
       codeSent: (String verificationId, int? resendToken) async {
         setState(() {
           this.verificationId = verificationId;
@@ -87,7 +90,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
         });
         showSnackBar('SMS code sent!');
       },
-      
+
       codeAutoRetrievalTimeout: (String verificationId) {
         this.verificationId = verificationId;
       },
@@ -99,28 +102,32 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
       setState(() {
         isLoading = true;
       });
-      
+
       try {
         // Create a PhoneAuthCredential with the code
         PhoneAuthCredential credential = PhoneAuthProvider.credential(
           verificationId: verificationId,
           smsCode: otpController.text.trim(),
         );
-        
+
         // Sign the user in (or link) with the credential
-        UserCredential userCredential = await auth.signInWithCredential(credential);
+        UserCredential userCredential = await auth.signInWithCredential(
+          credential,
+        );
         User? user = userCredential.user;
-        
+
         // Store the phone number in Firestore
         if (user != null) {
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-            'phone_no': '${phoneController.text.trim()}',
-            'createdAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .set({
+                'phone_no': '${phoneController.text.trim()}',
+                'createdAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
         }
-        
+
         navigateToHome();
-        
       } catch (e) {
         setState(() {
           isLoading = false;
@@ -132,30 +139,49 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
   }
 
   void showSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void navigateToHome() {
-    Navigator.pushReplacementNamed(
-      context,
-      '/profile_screen',
-    );
+    Navigator.pushReplacementNamed(context, '/profile_screen');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Phone Authentication'),
+      appBar: PreferredSize(
+        preferredSize: Size.fromHeight(80.0),
+        child: AppBar(
+          centerTitle: true,
+          title: Text(
+            'Phone Authentication',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              fontSize: 24,
+              color: Theme.of(context).appBarTheme.foregroundColor,
+              shadows: [
+                Shadow(
+                  color:
+                      Theme.of(context).brightness == Brightness.dark
+                          ? Colors.purple.withOpacity(0.2)
+                          : Colors.pink.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            
             if (!otpSent) ...[
               // Phone Number Input
               TextField(
@@ -170,15 +196,16 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 maxLength: 10,
               ),
               const SizedBox(height: 24),
-              
+
               // Send OTP Button
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: isLoading ? null : verifyPhoneNumber,
-                  child: isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Send OTP'),
+                  child:
+                      isLoading
+                          ? const CircularProgressIndicator()
+                          : const Text('Send OTP'),
                 ),
               ),
             ],
@@ -190,7 +217,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
-              
+
               // OTP Input using Pinput
               Pinput(
                 controller: otpController,
@@ -222,7 +249,7 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                 ),
               ),
               const SizedBox(height: 24),
-              
+
               // Verify Button
               SizedBox(
                 width: double.infinity,
@@ -231,9 +258,9 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
                   child: const Text('Verify OTP'),
                 ),
               ),
-              
+
               const SizedBox(height: 16),
-              
+
               // Back to phone input
               TextButton(
                 onPressed: () {

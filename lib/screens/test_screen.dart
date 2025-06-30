@@ -313,53 +313,37 @@ class _TestScreenState extends State<TestScreen> {
   @override
   Widget build(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).primaryColor;
+    final theme = Theme.of(context);
+    final primaryColor = theme.colorScheme.primary;
     
     return Scaffold(
       key: _mainScaffoldKey,
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
-        child: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          centerTitle: true,
-          title: Text(
-            "SEARCH EXPERIENCES",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20, 
-              fontWeight: FontWeight.bold,
-            ),
+      appBar: AppBar(
+        backgroundColor: theme.colorScheme.background,
+        elevation: 4,
+        shadowColor: isDarkMode ? Colors.purple.withOpacity(0.2) : Colors.pink.withOpacity(0.2),
+        centerTitle: true,
+        title: Text(
+          "SEARCH EXPERIENCES",
+          style: theme.textTheme.titleLarge?.copyWith(
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onBackground,
+            letterSpacing: 1.2,
           ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            IconButton(
-              onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
-              icon: const Icon(Icons.filter_list_sharp, color: Colors.white),
-            ),
-            IconButton(
-              onPressed: _syncComplaints,
-              icon: const Icon(Icons.sync, color: Colors.white),
-            ),
-          ],
         ),
+        actions: [
+          IconButton(
+            onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
+            icon: Icon(Icons.filter_list_sharp, color: theme.colorScheme.onBackground),
+            tooltip: 'Filters',
+          ),
+          IconButton(
+            onPressed: _syncComplaints,
+            icon: Icon(Icons.sync, color: theme.colorScheme.onBackground),
+            tooltip: 'Sync',
+          ),
+        ],
       ),
       drawer: NavBar(),
       endDrawer: Drawer(
@@ -369,29 +353,39 @@ class _TestScreenState extends State<TestScreen> {
         child: Column(
           children: <Widget>[
             Container(
-              margin: EdgeInsets.all(8),
+              margin: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(8),
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: isDarkMode ? Colors.black12 : Colors.grey.withOpacity(0.1),
-                    blurRadius: 4,
+                    color: isDarkMode ? Colors.black12 : Colors.grey.withOpacity(0.08),
+                    blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
               child: TextField(
                 controller: _searchTextController,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontFamily: 'Poppins',
+                  color: theme.colorScheme.onSurface,
+                ),
                 decoration: InputDecoration(
                   border: InputBorder.none,
-                  hintText: 'Enter a search term',
+                  hintText: 'Search by keyword, location, or tag...',
+                  hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.5),
+                    fontFamily: 'Poppins',
+                  ),
                   prefixIcon: Icon(
                     Icons.search,
                     color: primaryColor,
                   ),
-                  contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                 ),
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => FocusScope.of(context).unfocus(),
               ),
             ),
             StreamBuilder<SearchMetadata>(
@@ -403,9 +397,10 @@ class _TestScreenState extends State<TestScreen> {
                 return Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
-                    '${snapshot.data!.nbHits} hits',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                    '${snapshot.data!.nbHits} results',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                      fontFamily: 'Poppins',
                     ),
                   ),
                 );
