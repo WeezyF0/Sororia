@@ -65,8 +65,8 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
   // Constants
   static const double _earthRadius = 6371000; // Earth radius in meters
-  static const double _safetyWeight = 0.6;
-  static const double _distanceWeight = 0.4;
+  static const double _safetyWeight = 0.7;
+  static const double _distanceWeight = 0.3;
   static const int _maxRoutes = 5;
 
   @override
@@ -337,6 +337,22 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     }
 
     return segmentCount > 0 ? totalSafety / segmentCount : 1000.0;
+  }
+
+  String _formatSafetyScore(double rawScore) {
+    // Safety is measured in meters distance from danger
+    // Lower distance = less safe
+    if (rawScore <= 100) {
+      // Under 100m is considered high risk (0-20%)
+      return "${(rawScore / 5).toStringAsFixed(1)}%";
+    } else if (rawScore <= 500) {
+      // 100-500m is medium risk (20-70%)
+      return "${(20 + (rawScore - 100) / 500 * 50).toStringAsFixed(1)}%";
+    } else {
+      // Over 500m is relatively safe (70-95%)
+      double score = min(95.0, 70 + (rawScore - 500) / 500 * 25);
+      return "${score.toStringAsFixed(1)}%";
+    }
   }
 
   // Improved overall score calculation
@@ -1859,7 +1875,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                       ),
                     ),
                     Text(
-                      "Safety: ${_formatScore(_routeSafetyScores[_bestRouteIndex])}",
+                      "Safety: ${_formatSafetyScore(_routeSafetyScores[_bestRouteIndex])}",
                       style: theme.textTheme.bodyMedium?.copyWith(
                         fontFamily: 'Poppins',
                         color: Colors.orange[700],
