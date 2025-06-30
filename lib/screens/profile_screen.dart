@@ -101,7 +101,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("Cancel", style: TextStyle(color: Colors.grey)),
+                child: Text(
+                  "Cancel",
+                  style: TextStyle(color: Color(0xFFf88379)),
+                ),
               ),
               TextButton(
                 onPressed: () async {
@@ -225,7 +228,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text("Cancel", style: TextStyle(color: Colors.grey)),
+                child: Text(
+                  "Cancel",
+                  style: TextStyle(color: Color(0xFFf88379)),
+                ),
               ),
               TextButton(
                 onPressed: () async {
@@ -309,145 +315,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _editPhoneNumber() async {
-    final TextEditingController controller = TextEditingController(
-      text: userData?['phone_no']?.toString().replaceAll('+91', ''),
-    );
+  // Add these new variables for inline editing
+  bool isEditingName = false;
+  bool isEditingPhone = false;
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final GlobalKey<FormState> nameFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> phoneFormKey = GlobalKey<FormState>();
 
-    final formKey = GlobalKey<FormState>();
+  @override
+  void dispose() {
+    nameController.dispose();
+    phoneController.dispose();
+    super.dispose();
+  }
 
-    // First show dialog to get the new phone number
-    final result = await showDialog<String>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Edit Phone Number"),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              keyboardType: TextInputType.number,
-              maxLength: 10,
-              decoration: const InputDecoration(
-                labelText: "Phone Number",
-                prefixText: '+91 ',
-                counterText: "", // Hide character counter
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Phone number is required';
-                } else if (value.trim().length != 10) {
-                  return 'Must be exactly 10 digits';
-                } else if (!RegExp(r'^[0-9]+$').hasMatch(value.trim())) {
-                  return 'Digits only';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState?.validate() ?? false) {
-                  Navigator.pop(context, controller.text.trim());
-                }
-              },
-              child: const Text("Continue"),
-            ),
-          ],
-        );
-      },
-    );
+  // Replace _editName and _editPhoneNumber with these methods:
+  void _toggleNameEdit() {
+    if (isEditingName) {
+      // Save the changes
+      if (nameFormKey.currentState?.validate() ?? false) {
+        _saveName();
+      }
+    } else {
+      // Start editing
+      nameController.text = userData?['name'] ?? '';
+    }
+    setState(() => isEditingName = !isEditingName);
+  }
 
-    // If user canceled, return early
-    if (result == null) return;
+  Future<void> _saveName() async {
+    try {
+      await _firestore.collection('users').doc(_auth.currentUser!.uid).update({
+        'name': nameController.text.trim(),
+      });
+      setState(() {
+        userData?['name'] = nameController.text.trim();
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Error updating name")));
+    }
+  }
 
-    // Now launch the verification screen
+  void _togglePhoneEdit() {
+    if (isEditingPhone) {
+      // Save the changes
+      if (phoneFormKey.currentState?.validate() ?? false) {
+        _verifyPhoneNumber();
+      }
+    } else {
+      // Start editing
+      phoneController.text = userData?['phone_no']?.toString() ?? '';
+    }
+    setState(() => isEditingPhone = !isEditingPhone);
+  }
+
+  Future<void> _verifyPhoneNumber() async {
+    final phone = phoneController.text.trim();
     final verified = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder:
             (context) => VerifyPhoneUpdate(
               userId: _auth.currentUser!.uid,
-              phoneNumber: result,
+              phoneNumber: phone,
             ),
       ),
     );
 
-    // If verification was successful, update the UI
     if (verified == true) {
       setState(() {
-        userData?['phone_no'] = result;
+        userData?['phone_no'] = phone;
       });
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Phone number updated successfully")),
       );
+    } else {
+      // Reset to original value if verification failed
+      phoneController.text = userData?['phone_no']?.toString() ?? '';
     }
-  }
-
-  void _editName() async {
-    final TextEditingController controller = TextEditingController(
-      text: userData?['name']?.toString(),
-    );
-
-    final formKey = GlobalKey<FormState>();
-
-    await showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text("Edit Name"),
-          content: Form(
-            key: formKey,
-            child: TextFormField(
-              controller: controller,
-              keyboardType: TextInputType.text,
-              textCapitalization: TextCapitalization.words,
-              maxLength: 10,
-              decoration: const InputDecoration(
-                labelText: "Name",
-                counterText: "", // Hide character counter
-              ),
-              validator: (value) {
-                if (value == null || value.trim().isEmpty) {
-                  return 'Name is required';
-                }
-                return null;
-              },
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel"),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState?.validate() ?? false) {
-                  final phone = controller.text.trim();
-                  await _firestore
-                      .collection('users')
-                      .doc(_auth.currentUser!.uid)
-                      .update({'name': phone});
-
-                  setState(() {
-                    userData?['name'] = phone;
-                  });
-
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text("Save"),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   @override
@@ -529,51 +477,163 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               label: "Email",
                               value: user.email ?? "Not provided",
                             ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: _buildProfileItem(
-                                    icon: Icons.person,
-                                    label: "Name",
-                                    value:
-                                        userData?['name'] != null
-                                            ? "${userData!['name']}"
-                                            : "Not provided",
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.person,
+                                    size: 24,
+                                    color: Color(0xFFf88379),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.edit,
-                                    size: 20,
-                                    color: primaryColor,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "Name",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFFf88379),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        isEditingName
+                                            ? Form(
+                                              key: nameFormKey,
+                                              child: TextFormField(
+                                                controller: nameController,
+                                                decoration: InputDecoration(
+                                                  isDense: true,
+                                                  contentPadding:
+                                                      EdgeInsets.zero,
+                                                  border: InputBorder.none,
+                                                ),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.trim().isEmpty) {
+                                                    return 'Name is required';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            )
+                                            : Text(
+                                              userData?['name'] != null
+                                                  ? "${userData!['name']}"
+                                                  : "Not provided",
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                      ],
+                                    ),
                                   ),
-                                  onPressed: _editName,
-                                ),
-                              ],
+                                  IconButton(
+                                    icon: Icon(
+                                      isEditingName ? Icons.check : Icons.edit,
+                                      size: 20,
+                                      color: primaryColor,
+                                    ),
+                                    onPressed: _toggleNameEdit,
+                                  ),
+                                ],
+                              ),
                             ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: _buildProfileItem(
-                                    icon: Icons.phone,
-                                    label: "Phone",
-                                    value:
-                                        userData?['phone_no'] != null
-                                            ? "+91 ${userData!['phone_no']}"
-                                            : "Not provided",
+
+                            // Updated Phone Field with inline editing
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.phone,
+                                    size: 24,
+                                    color: Color(0xFFf88379),
                                   ),
-                                ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.edit,
-                                    size: 20,
-                                    color: primaryColor,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "Phone",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Color(0xFFf88379),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        isEditingPhone
+                                            ? Form(
+                                              key: phoneFormKey,
+                                              child: TextFormField(
+                                                controller: phoneController,
+                                                keyboardType:
+                                                    TextInputType.phone,
+                                                decoration: InputDecoration(
+                                                  isDense: true,
+                                                  contentPadding:
+                                                      EdgeInsets.zero,
+                                                  border: InputBorder.none,
+                                                  prefixText: '+91 ',
+                                                ),
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                validator: (value) {
+                                                  if (value == null ||
+                                                      value.trim().isEmpty) {
+                                                    return 'Phone is required';
+                                                  } else if (value
+                                                          .trim()
+                                                          .length !=
+                                                      10) {
+                                                    return 'Must be 10 digits';
+                                                  } else if (!RegExp(
+                                                    r'^[0-9]+$',
+                                                  ).hasMatch(value.trim())) {
+                                                    return 'Digits only';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            )
+                                            : Text(
+                                              userData?['phone_no'] != null
+                                                  ? "+91 ${userData!['phone_no']}"
+                                                  : "Not provided",
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                              maxLines: 1,
+                                            ),
+                                      ],
+                                    ),
                                   ),
-                                  onPressed: _editPhoneNumber,
-                                ),
-                              ],
+                                  IconButton(
+                                    icon: Icon(
+                                      isEditingPhone ? Icons.check : Icons.edit,
+                                      size: 20,
+                                      color: primaryColor,
+                                    ),
+                                    onPressed: _togglePhoneEdit,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -763,14 +823,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
-          Icon(icon, size: 24, color: Colors.grey),
+          Icon(icon, size: 24, color: Color(0xFFf88379)),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 label,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: const TextStyle(fontSize: 12, color: Color(0xFFf88379)),
               ),
               const SizedBox(height: 4),
               Text(
@@ -778,6 +838,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
