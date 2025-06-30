@@ -31,6 +31,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   // Routing variables
   LatLng? _currentLocation;
   LatLng? _sourceLocation;
+  bool _showSourceField = false;
   bool _useCurrentLocationAsSource = true;
   LatLng? _destinationLocation;
   List<LatLng> _bestRoutePoints = [];
@@ -150,9 +151,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   }
 
   Future<void> _searchDestinationLocation() async {
-    // Renamed from _searchLocation
-    final placeName =
-        _destSearchController.text.trim(); // Changed from _searchController
+    final placeName = _destSearchController.text.trim();
     if (placeName.isEmpty) {
       _showMessage("Please enter a destination location", isError: true);
       return;
@@ -168,24 +167,11 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       final locations = await geo.locationFromAddress(placeName);
       if (locations.isNotEmpty) {
         final location = locations.first;
-        final destination = LatLng(location.latitude, location.longitude);
-
         setState(() {
-          _destinationLocation = destination;
+          _destinationLocation = LatLng(location.latitude, location.longitude);
+          _isRouteVisible = false; // Ensure route is not shown yet
         });
-
-        _mapController.move(destination, 14.0);
-
-        // If we don't have a source yet, get current location
-        if (_useCurrentLocationAsSource && _currentLocation == null) {
-          await _getCurrentLocationCoordinates();
-        }
-
-        // Draw route if we have both source and destination
-        if ((_useCurrentLocationAsSource && _currentLocation != null) ||
-            (!_useCurrentLocationAsSource && _sourceLocation != null)) {
-          await _drawBestRoute();
-        }
+        _mapController.move(_destinationLocation!, 14.0);
       } else {
         _showMessage("Location not found", isError: true);
       }
@@ -1159,22 +1145,20 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
   @override
   Widget build(BuildContext context) {
-    final Color sororiaPink = const Color(
-      0xFFE91E63,
-    ); // Use same color as home.dart
+    final Color sororiaPink = const Color(0xFFE91E63);
     return Scaffold(
-      backgroundColor: Colors.white, // Match home.dart
+      backgroundColor: Colors.white,
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0), // Match home.dart
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          backgroundColor: Colors.white, // Match home.dart
-          elevation: 2, // Subtle shadow
+          backgroundColor: Colors.white,
+          elevation: 2,
           centerTitle: true,
           iconTheme: IconThemeData(color: sororiaPink),
           title: const Text(
             "SAFEST ROUTE",
             style: TextStyle(
-              color: Color(0xFFE91E63), // sororiaPink
+              color: Color(0xFFE91E63),
               fontSize: 24,
               fontWeight: FontWeight.bold,
               letterSpacing: 2,
@@ -1185,6 +1169,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       drawer: const NavBar(),
       body: Stack(
         children: [
+          // Map Layer
           StreamBuilder<List<QuerySnapshot>>(
             stream: _combineStreams(),
             builder: (context, snapshot) {
@@ -1229,80 +1214,82 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
             },
           ),
 
-          // Search Bar
+          // Search Bars
           Positioned(
             top: 30,
             left: 20,
             right: 20,
             child: Column(
               children: [
-                // Source Location Search Bar
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: const [
-                      BoxShadow(color: Colors.black12, blurRadius: 5),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _sourceSearchController,
-                    focusNode: _sourceFocusNode,
-                    enabled: !_isLoading,
-                    decoration: InputDecoration(
-                      hintText:
-                          _useCurrentLocationAsSource
-                              ? "Current Location (tap to change)"
-                              : "Source Location",
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      border: InputBorder.none,
-                      prefixIcon: Icon(
-                        Icons.trip_origin,
-                        color: sororiaPink,
-                        size: 20,
-                      ),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (!_useCurrentLocationAsSource)
-                            IconButton(
-                              icon: const Icon(
-                                Icons.my_location,
-                                color: Color(0xFFE91E63),
-                              ),
-                              onPressed: _getCurrentLocation,
-                              tooltip: "Use current location",
-                            ),
-                          IconButton(
-                            icon:
-                                _isLoading
-                                    ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    )
-                                    : Icon(Icons.search, color: sororiaPink),
-                            onPressed:
-                                _isLoading ? null : _searchSourceLocation,
-                          ),
-                        ],
-                      ),
+                // Source Location Search Bar (visible only when showing directions)
+                if (_showSourceField || _isRouteVisible)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: const [
+                        BoxShadow(color: Colors.black12, blurRadius: 5),
+                      ],
                     ),
-                    onTap: () {
-                      if (_useCurrentLocationAsSource) {
-                        setState(() {
-                          _useCurrentLocationAsSource = false;
-                        });
-                      }
-                    },
+                    child: TextField(
+                      controller: _sourceSearchController,
+                      focusNode: _sourceFocusNode,
+                      enabled: !_isLoading,
+                      decoration: InputDecoration(
+                        hintText:
+                            _useCurrentLocationAsSource
+                                ? "Current Location (tap to change)"
+                                : "Source Location",
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        border: InputBorder.none,
+                        prefixIcon: Icon(
+                          Icons.trip_origin,
+                          color: sororiaPink,
+                          size: 20,
+                        ),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!_useCurrentLocationAsSource)
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.my_location,
+                                  color: Color(0xFFE91E63),
+                                ),
+                                onPressed: _getCurrentLocation,
+                                tooltip: "Use current location",
+                              ),
+                            IconButton(
+                              icon:
+                                  _isLoading
+                                      ? const SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                      : Icon(Icons.search, color: sororiaPink),
+                              onPressed:
+                                  _isLoading ? null : _searchSourceLocation,
+                            ),
+                          ],
+                        ),
+                      ),
+                      onTap: () {
+                        if (_useCurrentLocationAsSource) {
+                          setState(() {
+                            _useCurrentLocationAsSource = false;
+                          });
+                        }
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+
                 // Destination Location Search Bar
                 Container(
                   decoration: BoxDecoration(
@@ -1359,57 +1346,10 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
             ),
           ),
 
-          // Marker Filter Panel
-          Positioned(
-            top: 150,
-            left: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const [
-                  BoxShadow(color: Colors.black12, blurRadius: 5),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    "Show Markers",
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  _buildMarkerToggle(
-                    "News",
-                    CupertinoIcons.exclamationmark_shield_fill,
-                    Colors.blue,
-                    _showNews,
-                    (value) => setState(() => _showNews = value),
-                  ),
-                  _buildMarkerToggle(
-                    "NGOs",
-                    Icons.volunteer_activism,
-                    Colors.orange,
-                    _showNGOs,
-                    (value) => setState(() => _showNGOs = value),
-                  ),
-                  _buildMarkerToggle(
-                    "Police",
-                    Icons.local_police,
-                    Colors.red,
-                    _showPoliceStations,
-                    (value) => setState(() => _showPoliceStations = value),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Route Information Panel styled as a card
+          // Route Information Panel
           if (_isRouteVisible && _routeDistances.isNotEmpty)
             Positioned(
-              top: 150,
+              top: _showSourceField || _isRouteVisible ? 150 : 100,
               right: 20,
               child: Container(
                 width: 220,
@@ -1500,72 +1440,158 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                         style: TextStyle(fontSize: 10, color: Colors.grey[600]),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        LatLng? sourceLocation =
-                            _useCurrentLocationAsSource
-                                ? _currentLocation
-                                : _sourceLocation;
-                        if (sourceLocation != null &&
-                            _destinationLocation != null) {
-                          _openMapsDirections(
-                            sourceLocation.latitude,
-                            sourceLocation.longitude,
-                            _destinationLocation!.latitude,
-                            _destinationLocation!.longitude,
-                          );
-                        } else {
-                          _showMessage(
-                            "Source or destination location not available",
-                            isError: true,
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.open_in_new, size: 16),
-                      label: const Text(
-                        "Open in Maps",
-                        style: TextStyle(fontSize: 11),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: sororiaPink,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 8,
-                          horizontal: 12,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        minimumSize: const Size(double.infinity, 36),
-                      ),
-                    ),
                   ],
                 ),
               ),
             ),
 
           // Current Location Button
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: Container(
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.10),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          Stack(
+            children: [
+              // Your map widget here
+
+              // Floating Action Buttons
+              Positioned(
+                bottom:
+                    (_destinationLocation != null && !_isRouteVisible)
+                        ? 80
+                        : 20,
+                left: 20,
+                child: Container(
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.10),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                ],
+                  child: FloatingActionButton(
+                    onPressed: _getCurrentLocation,
+                    backgroundColor: Colors.white,
+                    child: Icon(Icons.my_location, color: sororiaPink),
+                    elevation: 0,
+                  ),
+                ),
               ),
-              child: FloatingActionButton(
-                onPressed: _getCurrentLocation,
-                backgroundColor: Colors.white,
-                child: Icon(Icons.my_location, color: sororiaPink),
-                elevation: 0,
-              ),
-            ),
+
+              // Show DIRECTIONS button
+              if (_destinationLocation != null && !_isRouteVisible)
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      // This is where you add the step 2 code:
+                      if (_destinationLocation == null) {
+                        _showMessage(
+                          "Please set a destination first",
+                          isError: true,
+                        );
+                        return;
+                      }
+
+                      if (_useCurrentLocationAsSource &&
+                          _currentLocation == null) {
+                        await _getCurrentLocationCoordinates();
+                      }
+
+                      if ((_useCurrentLocationAsSource &&
+                              _currentLocation != null) ||
+                          (!_useCurrentLocationAsSource &&
+                              _sourceLocation != null)) {
+                        await _drawBestRoute();
+                      } else {
+                        _showMessage(
+                          "Please set your location first",
+                          isError: true,
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.directions),
+                    label: const Text("DIRECTIONS"),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: sororiaPink,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Show OPEN IN MAPS button
+              if (_isRouteVisible)
+                Positioned(
+                  bottom: 20,
+                  left: 20,
+                  right: 20,
+                  child: Row(
+                    children: [
+                      // Floating location button
+                      Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.10),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: FloatingActionButton(
+                          onPressed: _getCurrentLocation,
+                          backgroundColor: Colors.white,
+                          child: Icon(Icons.my_location, color: sororiaPink),
+                          elevation: 0,
+                        ),
+                      ),
+
+                      const SizedBox(width: 16),
+
+                      // Expanded "OPEN IN MAPS" or "DIRECTIONS" button
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            LatLng sourceLocation =
+                                _useCurrentLocationAsSource
+                                    ? _currentLocation!
+                                    : _sourceLocation!;
+                            if (sourceLocation != null &&
+                                _destinationLocation != null) {
+                              _openMapsDirections(
+                                sourceLocation.latitude,
+                                sourceLocation.longitude,
+                                _destinationLocation!.latitude,
+                                _destinationLocation!.longitude,
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.open_in_new, size: 24),
+                          label: const Text(
+                            "OPEN IN MAPS",
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -1720,4 +1746,40 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
           ),
     );
   }
+}
+
+Widget _buildMarkerButton({
+  required IconData icon,
+  required String label,
+  required bool isActive,
+  required Color activeColor,
+  required VoidCallback onPressed,
+}) {
+  return Material(
+    color:
+        isActive ? activeColor.withOpacity(0.2) : Colors.grey.withOpacity(0.1),
+    borderRadius: BorderRadius.circular(20),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: isActive ? activeColor : Colors.grey, size: 16),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: isActive ? activeColor : Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
