@@ -37,6 +37,7 @@ class ColorPalette {
 class ThemeProvider extends ChangeNotifier {
   ThemeMode _themeMode = ThemeMode.light;
   static const String _themePreferenceKey = 'theme_preference';
+  bool get isDark => _themeMode == ThemeMode.dark;
 
   ThemeProvider() {
     _loadThemePreference();

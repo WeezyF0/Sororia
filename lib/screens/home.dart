@@ -9,6 +9,9 @@ import 'package:complaints_app/screens/open_complaint.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:complaints_app/theme/theme_provider.dart';
+import 'package:provider/provider.dart';
+
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -18,7 +21,191 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // Replace MapController with GoogleMapController
+  // Dark mode map style
+  static const String _darkMapStyle = '''
+  [
+    {
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#212121"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.icon",
+      "stylers": [
+        {
+          "visibility": "off"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#212121"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.country",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#9e9e9e"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.locality",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#bdbdbd"
+        }
+      ]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#181818"
+        }
+      ]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#616161"
+        }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#2c2c2c"
+        }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#8a8a8a"
+        }
+      ]
+    },
+    {
+      "featureType": "road.arterial",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#373737"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#3c3c3c"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway.controlled_access",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#4e4e4e"
+        }
+      ]
+    },
+    {
+      "featureType": "road.local",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#616161"
+        }
+      ]
+    },
+    {
+      "featureType": "transit",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#000000"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#3d3d3d"
+        }
+      ]
+    }
+  ]
+  ''';
+
+  // Update map style based on current theme
+  void _updateMapStyle() {
+    if (_mapController == null) return;
+    
+    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDark;
+    
+    if (isDark) {
+      _mapController!.setMapStyle(_darkMapStyle);
+    } else {
+      _mapController!.setMapStyle(null); // Reset to default style
+    }
+  }
   gmaps.GoogleMapController? _mapController;
   LatLng? _currentLocation;
   
@@ -239,19 +426,34 @@ class _HomePageState extends State<HomePage> {
                   _gMapMarkers = markers;
 
                   // Return Google Map instead of FlutterMap
-                  return gmaps.GoogleMap(
-                    initialCameraPosition: gmaps.CameraPosition(
-                      target: initialPosition,
-                      zoom: 10,
-                    ),
-                    markers: markers,
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: false,
-                    zoomControlsEnabled: false,
-                    mapType: gmaps.MapType.normal,
-                    trafficEnabled: true,  // Enable traffic view
-                    onMapCreated: (gmaps.GoogleMapController controller) {
-                      _mapController = controller;
+                  // Modify your StreamBuilder that returns the Google Map
+                  return Consumer<ThemeProvider>(
+                    builder: (context, themeProvider, child) {
+                      // Update map style when theme changes
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _updateMapStyle();
+                      });
+                      
+                      return gmaps.GoogleMap(
+                        initialCameraPosition: gmaps.CameraPosition(
+                          target: initialPosition,
+                          zoom: 10,
+                        ),
+                        markers: markers,
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        mapType: gmaps.MapType.normal,
+                        trafficEnabled: true,
+                        onMapCreated: (gmaps.GoogleMapController controller) {
+                          _mapController = controller;
+                          
+                          // Apply initial style based on theme
+                          if (themeProvider.isDark) {
+                            controller.setMapStyle(_darkMapStyle);
+                          }
+                        },
+                      );
                     },
                   );
                 },
