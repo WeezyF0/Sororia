@@ -12,7 +12,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
 
-
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -197,21 +196,22 @@ class _HomePageState extends State<HomePage> {
   // Update map style based on current theme
   void _updateMapStyle() {
     if (_mapController == null) return;
-    
+
     final isDark = Provider.of<ThemeProvider>(context, listen: false).isDark;
-    
+
     if (isDark) {
       _mapController!.setMapStyle(_darkMapStyle);
     } else {
       _mapController!.setMapStyle(null); // Reset to default style
     }
   }
+
   gmaps.GoogleMapController? _mapController;
   LatLng? _currentLocation;
-  
+
   // Set of Google Map markers
   Set<gmaps.Marker> _gMapMarkers = {};
-  
+
   @override
   void dispose() {
     _mapController?.dispose();
@@ -262,23 +262,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // Open Google Maps for directions
   Future<void> _openMapsDirections(double lat, double lng) async {
     final url = 'https://www.google.com/maps/dir/?api=1&destination=$lat,$lng';
     final uri = Uri.parse(url);
-    
+
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
       _showError("Could not open maps application");
     }
   }
-  
+
   // Helper method to convert LatLng to Google Maps LatLng
   gmaps.LatLng _toGoogleMapsLatLng(LatLng point) {
     return gmaps.LatLng(point.latitude, point.longitude);
@@ -288,10 +288,11 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
+          toolbarHeight: 80,
           centerTitle: true,
-          title: Text(
+          title: const Text(
             "SORORIA",
             style: TextStyle(
               fontFamily: 'Poppins',
@@ -303,10 +304,12 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
       drawer: NavBar(),
+
       body: Stack(
         children: [
           StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
+            stream:
+                FirebaseFirestore.instance.collection('complaints').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -320,20 +323,26 @@ class _HomePageState extends State<HomePage> {
               Set<String> uniqueCoordinates = {};
               Set<gmaps.Marker> markers = {};
               gmaps.LatLng initialPosition = gmaps.LatLng(20.5937, 78.9629);
-              
+
               // Add current location marker if available
               if (_currentLocation != null) {
                 markers.add(
                   gmaps.Marker(
                     markerId: gmaps.MarkerId('current_location'),
-                    position: gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude),
-                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueBlue),
-                    infoWindow: gmaps.InfoWindow(
-                      title: 'My Location',
+                    position: gmaps.LatLng(
+                      _currentLocation!.latitude,
+                      _currentLocation!.longitude,
                     ),
+                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+                      gmaps.BitmapDescriptor.hueBlue,
+                    ),
+                    infoWindow: gmaps.InfoWindow(title: 'My Location'),
                   ),
                 );
-                initialPosition = gmaps.LatLng(_currentLocation!.latitude, _currentLocation!.longitude);
+                initialPosition = gmaps.LatLng(
+                  _currentLocation!.latitude,
+                  _currentLocation!.longitude,
+                );
               }
 
               // Add complaint markers
@@ -362,17 +371,23 @@ class _HomePageState extends State<HomePage> {
                   gmaps.Marker(
                     markerId: gmaps.MarkerId('complaint_${doc.id}'),
                     position: gmaps.LatLng(newLat, newLon),
-                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueRed),
+                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+                      gmaps.BitmapDescriptor.hueRed,
+                    ),
                     infoWindow: gmaps.InfoWindow(
                       title: title,
-                      snippet: description.length > 30 ? '${description.substring(0, 30)}...' : description,
-                      onTap: () => showComplaintDetails(
-                        context, 
-                        title, 
-                        description,
-                        data,
-                        doc.id,
-                      ),
+                      snippet:
+                          description.length > 30
+                              ? '${description.substring(0, 30)}...'
+                              : description,
+                      onTap:
+                          () => showComplaintDetails(
+                            context,
+                            title,
+                            description,
+                            data,
+                            doc.id,
+                          ),
                     ),
                   ),
                 );
@@ -385,7 +400,8 @@ class _HomePageState extends State<HomePage> {
 
               // Add SOS markers using StreamBuilder data
               return StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance.collection('sos').snapshots(),
+                stream:
+                    FirebaseFirestore.instance.collection('sos').snapshots(),
                 builder: (context, sosSnapshot) {
                   // Add SOS markers to the existing markers list
                   if (sosSnapshot.hasData) {
@@ -393,25 +409,27 @@ class _HomePageState extends State<HomePage> {
                     // Inside your StreamBuilder for SOS markers
                     for (var doc in sosSnapshot.data!.docs) {
                       var data = doc.data() as Map<String, dynamic>;
-                      
+
                       bool isActive = data['active'] == true;
                       List<dynamic> relatedUsers = data['related_users'] ?? [];
                       bool isUserRelated = relatedUsers.contains(currentUid);
-                      
+
                       if (!isActive || !isUserRelated) continue;
-                      
+
                       double? lat = data['latitude'] as double?;
                       double? lon = data['longitude'] as double?;
                       String? userId = doc.id;
-                      
+
                       if (lat == null || lon == null) continue;
-                      
+
                       // Add SOS marker
                       markers.add(
                         gmaps.Marker(
                           markerId: gmaps.MarkerId('sos_$userId'),
                           position: gmaps.LatLng(lat, lon),
-                          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueOrange),
+                          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+                            gmaps.BitmapDescriptor.hueOrange,
+                          ),
                           infoWindow: gmaps.InfoWindow(
                             title: 'SOS Alert',
                             snippet: 'Click for details',
@@ -433,7 +451,7 @@ class _HomePageState extends State<HomePage> {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
                         _updateMapStyle();
                       });
-                      
+
                       return gmaps.GoogleMap(
                         initialCameraPosition: gmaps.CameraPosition(
                           target: initialPosition,
@@ -447,7 +465,7 @@ class _HomePageState extends State<HomePage> {
                         trafficEnabled: true,
                         onMapCreated: (gmaps.GoogleMapController controller) {
                           _mapController = controller;
-                          
+
                           // Apply initial style based on theme
                           if (themeProvider.isDark) {
                             controller.setMapStyle(_darkMapStyle);
@@ -493,16 +511,40 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            _buildOptionTile(context, "View Experiences", CupertinoIcons.doc_text_search, Colors.orange, '/complaints'),
-            _buildOptionTile(context, "View Active Petitions", CupertinoIcons.collections, Colors.green, '/petitions'),
-            _buildOptionTile(context, "Local News", Icons.newspaper_outlined, Colors.purple, '/news'),
+            _buildOptionTile(
+              context,
+              "View Experiences",
+              CupertinoIcons.doc_text_search,
+              Colors.orange,
+              '/complaints',
+            ),
+            _buildOptionTile(
+              context,
+              "View Active Petitions",
+              CupertinoIcons.collections,
+              Colors.green,
+              '/petitions',
+            ),
+            _buildOptionTile(
+              context,
+              "Local News",
+              Icons.newspaper_outlined,
+              Colors.purple,
+              '/news',
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildOptionTile(BuildContext context, String title, IconData icon, Color color, String route) {
+  Widget _buildOptionTile(
+    BuildContext context,
+    String title,
+    IconData icon,
+    Color color,
+    String route,
+  ) {
     return ListTile(
       leading: Icon(icon, color: color, size: 32),
       title: Text(title, style: const TextStyle(fontSize: 16)),
@@ -513,176 +555,188 @@ class _HomePageState extends State<HomePage> {
   }
 
   void showComplaintDetails(
-    BuildContext context, 
-    String title, 
-    String description, 
+    BuildContext context,
+    String title,
+    String description,
     Map<String, dynamic> complaintData,
     String complaintId,
   ) {
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-            ),
-            const SizedBox(height: 8),
-            Text(description),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context); 
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OpenComplaintScreen(
-                      complaintData: complaintData,
-                      complaintId: complaintId,
-                    ),
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
-                );
-              },
-              child: const Text("View Details"),
+                ),
+                const SizedBox(height: 8),
+                Text(description),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder:
+                            (context) => OpenComplaintScreen(
+                              complaintData: complaintData,
+                              complaintId: complaintId,
+                            ),
+                      ),
+                    );
+                  },
+                  child: const Text("View Details"),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
-  void _showSOSDetails(BuildContext context, Map<String, dynamic> sosData, String sosId) async {
+  void _showSOSDetails(
+    BuildContext context,
+    Map<String, dynamic> sosData,
+    String sosId,
+  ) async {
     // Get latitude and longitude for Google Maps
     double? lat = sosData['latitude'] as double?;
     double? lon = sosData['longitude'] as double?;
     String? userId = sosId;
-    
+
     // Default values in case we can't fetch the user data
     String userName = "Unknown";
     String phoneNumber = "";
-    
+
     // Fetch user data if we have a user ID
     try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .get();
-            
-        if (userDoc.exists) {
-          final userData = userDoc.data() as Map<String, dynamic>;
-          userName = userData['name'] ?? "Unknown";
-          phoneNumber = userData['phone_no'] ?? "";
-        }
-      } catch (e) {
-        print("Error fetching user data: $e");
+      DocumentSnapshot userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .get();
+
+      if (userDoc.exists) {
+        final userData = userDoc.data() as Map<String, dynamic>;
+        userName = userData['name'] ?? "Unknown";
+        phoneNumber = userData['phone_no'] ?? "";
       }
+    } catch (e) {
+      print("Error fetching user data: $e");
+    }
 
     showModalBottomSheet(
       context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.emergency, color: Colors.orange, size: 24),
-                const SizedBox(width: 8),
-                const Text(
-                  'EMERGENCY SOS ALERT',
-                  style: TextStyle(
-                    fontSize: 18,
+                Row(
+                  children: [
+                    Icon(Icons.emergency, color: Colors.orange, size: 24),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'EMERGENCY SOS ALERT',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                // Add the person's name who triggered the alert
+                Text(
+                  'From: $userName',
+                  style: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange,
                   ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Location: ${sosData['location'] ?? 'Unknown'}',
+                  style: const TextStyle(fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Time: ${_formatTimestamp(sosData['timestamp'])}',
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          // Open Google Maps with the SOS location
+                          if (lat != null && lon != null) {
+                            _openMapsDirections(lat, lon);
+                          } else {
+                            _showError("Location coordinates not available");
+                          }
+                        },
+                        icon: const Icon(Icons.directions),
+                        label: const Text('Get Directions'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          foregroundColor: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed:
+                            phoneNumber.isEmpty
+                                ? null // Disable the button if no phone number
+                                : () {
+                                  Navigator.pop(context);
+                                  _makePhoneCall(phoneNumber);
+                                },
+                        icon: const Icon(Icons.phone),
+                        label: const Text('Call'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          // If phone number is empty, make button appear disabled
+                          disabledBackgroundColor: Colors.grey,
+                          disabledForegroundColor: Colors.white70,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            // Add the person's name who triggered the alert
-            Text(
-              'From: $userName',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Location: ${sosData['location'] ?? 'Unknown'}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Time: ${_formatTimestamp(sosData['timestamp'])}',
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      // Open Google Maps with the SOS location
-                      if (lat != null && lon != null) {
-                        _openMapsDirections(lat, lon);
-                      } else {
-                        _showError("Location coordinates not available");
-                      }
-                    },
-                    icon: const Icon(Icons.directions),
-                    label: const Text('Get Directions'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.orange,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: phoneNumber.isEmpty 
-                        ? null  // Disable the button if no phone number
-                        : () {
-                            Navigator.pop(context);
-                            _makePhoneCall(phoneNumber);
-                          },
-                    icon: const Icon(Icons.phone),
-                    label: const Text('Call'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
-                      // If phone number is empty, make button appear disabled
-                      disabledBackgroundColor: Colors.grey,
-                      disabledForegroundColor: Colors.white70,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 
   Future<void> _makePhoneCall(String phoneNumber) async {
     print("Original phone number: $phoneNumber"); // Debug original
-    
+
     // Clean the phone number
     final String cleanPhone = phoneNumber.replaceAll(RegExp(r'\s+'), '');
     print("Clean phone: $cleanPhone");
-    
+
     try {
       // Try direct dialing first
       final Uri telUri = Uri(scheme: 'tel', path: cleanPhone);
       print("Attempting to launch: ${telUri.toString()}");
-      
+
       if (await canLaunchUrl(telUri)) {
         print("Can launch - attempting to launch");
         await launchUrl(telUri);
@@ -693,7 +747,9 @@ class _HomePageState extends State<HomePage> {
         if (await canLaunchUrl(dialUri)) {
           await launchUrl(dialUri, mode: LaunchMode.externalApplication);
         } else {
-          _showError("Could not launch phone dialer. Device may not support this feature.");
+          _showError(
+            "Could not launch phone dialer. Device may not support this feature.",
+          );
         }
       }
     } catch (e) {
@@ -701,32 +757,32 @@ class _HomePageState extends State<HomePage> {
       _showError("Error: ${e.toString()}");
     }
   }
-  
+
   String _formatTimestamp(dynamic timestamp) {
     if (timestamp == null) return 'Unknown time';
     try {
       DateTime dateTime;
-        if (timestamp is String) {
-          dateTime = DateTime.parse(timestamp);
-        } else if (timestamp is int) {
-          dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
-        } else {
-          return 'Unknown time';
-        }
-        
-        Duration difference = DateTime.now().difference(dateTime);
-        
-        if (difference.inMinutes < 1) {
-          return 'Just now';
-        } else if (difference.inMinutes < 60) {
-          return '${difference.inMinutes} minutes ago';
-        } else if (difference.inHours < 24) {
-          return '${difference.inHours} hours ago';
-        } else {
-          return '${difference.inDays} days ago';
-        }
-      } catch (e) {
+      if (timestamp is String) {
+        dateTime = DateTime.parse(timestamp);
+      } else if (timestamp is int) {
+        dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+      } else {
         return 'Unknown time';
       }
+
+      Duration difference = DateTime.now().difference(dateTime);
+
+      if (difference.inMinutes < 1) {
+        return 'Just now';
+      } else if (difference.inMinutes < 60) {
+        return '${difference.inMinutes} minutes ago';
+      } else if (difference.inHours < 24) {
+        return '${difference.inHours} hours ago';
+      } else {
+        return '${difference.inDays} days ago';
+      }
+    } catch (e) {
+      return 'Unknown time';
     }
+  }
 }

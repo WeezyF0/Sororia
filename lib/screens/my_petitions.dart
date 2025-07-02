@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
+import 'navbar.dart';
 
 class MyPetitionScreen extends StatelessWidget {
   const MyPetitionScreen({super.key});
@@ -10,6 +11,8 @@ class MyPetitionScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     final theme = Theme.of(context);
+    final textTheme = theme.textTheme;
+    final colorScheme = theme.colorScheme;
 
     // If the user is not logged in, show a prompt.
     if (userId == null) {
@@ -25,27 +28,37 @@ class MyPetitionScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
+          toolbarHeight: 80,
           centerTitle: true,
-          title: Text(
-            "SORORIA",
+          title: const Text(
+            "MY PETITIONS",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w900,
               letterSpacing: 4,
-              fontSize: 28,
-              shadows: [
-                Shadow(
-                  color:
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.purple.withOpacity(0.2)
-                          : Colors.pink.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              fontSize: 24,
             ),
+          ),
+        ),
+      ),
+      drawer: NavBar(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.pushNamed(context, '/add_petition');
+        },
+        backgroundColor: colorScheme.secondary,
+        elevation: 4,
+        icon: Icon(
+          Icons.add_circle_outline,
+          color: colorScheme.onSecondary,
+          size: 24,
+        ),
+        label: Text(
+          'Start a Petition',
+          style: textTheme.labelMedium?.copyWith(
+            color: colorScheme.onSecondary,
           ),
         ),
       ),

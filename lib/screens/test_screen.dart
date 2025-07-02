@@ -23,7 +23,14 @@ class Product {
   final String location;
   final DateTime timestamp;
 
-  Product(this.objectId, this.issueType, this.processedText, this.originalText, this.location, this.timestamp);
+  Product(
+    this.objectId,
+    this.issueType,
+    this.processedText,
+    this.originalText,
+    this.location,
+    this.timestamp,
+  );
 
   static Product fromJson(Map<String, dynamic> json) {
     return Product(
@@ -70,106 +77,131 @@ class _TestScreenState extends State<TestScreen> {
   Stream<SearchMetadata> get _searchMetadata =>
       _productsSearcher.responses.map(SearchMetadata.fromResponse);
 
-  final PagingController<int, Product> _pagingController =
-      PagingController(firstPageKey: 0);
+  final PagingController<int, Product> _pagingController = PagingController(
+    firstPageKey: 0,
+  );
   Stream<HitsPage> get _searchPage =>
       _productsSearcher.responses.map(HitsPage.fromResponse);
 
   Widget _hits(BuildContext context) {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final errorColor = Theme.of(context).colorScheme.error;
-    
-    return PagedListView<int, Product>(
-        pagingController: _pagingController,
-        builderDelegate: PagedChildBuilderDelegate<Product>(
-          noItemsFoundIndicatorBuilder: (_) => const Center(
-            child: Text('No complaints found'),
-          ),
-          itemBuilder: (_, item, __) => GestureDetector(
-          onTap: () async {
-            try {
-              final doc = await FirebaseFirestore.instance
-                  .collection('complaints')
-                  .doc(item.objectId)
-                  .get();
 
-              if (doc.exists) {
-                Navigator.pushNamed(
-                  context,
-                  '/open_complaint',
-                  arguments: {
-                    'complaintData': doc.data(),
-                    'complaintId': doc.id,
-                  },
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Complaint not found')),
-                );
-              }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: isDarkMode ? Colors.grey.shade800 : Colors.grey.shade300),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDarkMode ? Colors.black12 : Colors.grey.withOpacity(0.1),
-                    blurRadius: 5,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 3),
+    return PagedListView<int, Product>(
+      pagingController: _pagingController,
+      builderDelegate: PagedChildBuilderDelegate<Product>(
+        noItemsFoundIndicatorBuilder:
+            (_) => const Center(child: Text('No complaints found')),
+        itemBuilder:
+            (_, item, __) => GestureDetector(
+              onTap: () async {
+                try {
+                  final doc =
+                      await FirebaseFirestore.instance
+                          .collection('complaints')
+                          .doc(item.objectId)
+                          .get();
+
+                  if (doc.exists) {
+                    Navigator.pushNamed(
+                      context,
+                      '/open_complaint',
+                      arguments: {
+                        'complaintData': doc.data(),
+                        'complaintId': doc.id,
+                      },
+                    );
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Complaint not found')),
+                    );
+                  }
+                } catch (e) {
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color:
+                        isDarkMode
+                            ? Colors.grey.shade800
+                            : Colors.grey.shade300,
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    item.issueType,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: errorColor,
+                  boxShadow: [
+                    BoxShadow(
+                      color:
+                          isDarkMode
+                              ? Colors.black12
+                              : Colors.grey.withOpacity(0.1),
+                      blurRadius: 5,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 3),
                     ),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    item.processedText,
-                    style: const TextStyle(fontSize: 14),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    'Original: ${item.originalText}',
-                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6), fontSize: 12),
-                  ),
-                  const SizedBox(height: 5),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        item.location,
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7), fontSize: 12),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.issueType,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: errorColor,
                       ),
-                      Text(
-                        '${item.timestamp.toLocal()}'.split(' ')[0],
-                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5), fontSize: 12),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      item.processedText,
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      'Original: ${item.originalText}',
+                      style: TextStyle(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.6),
+                        fontSize: 12,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          item.location,
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.7),
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          '${item.timestamp.toLocal()}'.split(' ')[0],
+                          style: TextStyle(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurface.withOpacity(0.5),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ),
-      );
+      ),
+    );
   }
 
   final _filterState = FilterState();
@@ -178,10 +210,10 @@ class _TestScreenState extends State<TestScreen> {
     filterState: _filterState,
     attribute: '_tags',
   );
-  
+
   Widget _filters(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
-    
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Filters'),
@@ -189,31 +221,34 @@ class _TestScreenState extends State<TestScreen> {
         foregroundColor: Colors.white,
       ),
       body: StreamBuilder<List<SelectableItem<Facet>>>(
-          stream: _facetList.facets,
-          builder: (context, snapshot) {
-            if (!snapshot.hasData) {
-              return const SizedBox.shrink();
-            }
-            final selectableFacets = snapshot.data!;
-            return ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: selectableFacets.length,
-                itemBuilder: (_, index) {
-                  final selectableFacet = selectableFacets[index];
-                  return CheckboxListTile(
-                    value: selectableFacet.isSelected,
-                    activeColor: primaryColor,
-                    title: Text(
-                        "${selectableFacet.item.value} (${selectableFacet.item.count})"),
-                    onChanged: (_) {
-                      _facetList.toggle(selectableFacet.item.value);
-                    },
-                  );
-                });
-          }),
+        stream: _facetList.facets,
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const SizedBox.shrink();
+          }
+          final selectableFacets = snapshot.data!;
+          return ListView.builder(
+            padding: const EdgeInsets.all(8),
+            itemCount: selectableFacets.length,
+            itemBuilder: (_, index) {
+              final selectableFacet = selectableFacets[index];
+              return CheckboxListTile(
+                value: selectableFacet.isSelected,
+                activeColor: primaryColor,
+                title: Text(
+                  "${selectableFacet.item.value} (${selectableFacet.item.count})",
+                ),
+                onChanged: (_) {
+                  _facetList.toggle(selectableFacet.item.value);
+                },
+              );
+            },
+          );
+        },
+      ),
     );
   }
-  
+
   final GlobalKey<ScaffoldState> _mainScaffoldKey = GlobalKey();
 
   @override
@@ -221,24 +256,21 @@ class _TestScreenState extends State<TestScreen> {
     super.initState();
     _searchTextController.addListener(
       () => _productsSearcher.applyState(
-        (state) => state.copyWith(
-          query: _searchTextController.text,
-          page: 0,
-        ),
+        (state) => state.copyWith(query: _searchTextController.text, page: 0),
       ),
     );
-    _searchPage.listen((page) {
-      if (page.pageKey == 0) {
-        _pagingController.refresh();
-      }
-      _pagingController.appendPage(page.items, page.nextPageKey);
-    }).onError((error) => _pagingController.error = error);
+    _searchPage
+        .listen((page) {
+          if (page.pageKey == 0) {
+            _pagingController.refresh();
+          }
+          _pagingController.appendPage(page.items, page.nextPageKey);
+        })
+        .onError((error) => _pagingController.error = error);
     _pagingController.addPageRequestListener(
       (pageKey) => _productsSearcher.applyState(
-          (state) => state.copyWith(
-            page: pageKey,
-          )
-      )
+        (state) => state.copyWith(page: pageKey),
+      ),
     );
     _productsSearcher.connectFilterState(_filterState);
     _filterState.filters.listen((_) => _pagingController.refresh());
@@ -262,9 +294,9 @@ class _TestScreenState extends State<TestScreen> {
 
   Future<void> _syncComplaints() async {
     final result = await _syncService.syncComplaintsToAlgolia();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(result.message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(result.message)));
 
     // Reload the screen after syncing
     Navigator.of(context).pushReplacement(
@@ -274,17 +306,14 @@ class _TestScreenState extends State<TestScreen> {
 
   Widget buildLoadingScreen() {
     final primaryColor = Theme.of(context).primaryColor;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              primaryColor,
-              primaryColor.withOpacity(0.8),
-            ],
+            colors: [primaryColor, primaryColor.withOpacity(0.8)],
           ),
         ),
         child: Center(
@@ -315,40 +344,43 @@ class _TestScreenState extends State<TestScreen> {
     final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final theme = Theme.of(context);
     final primaryColor = theme.colorScheme.primary;
-    
+
     return Scaffold(
       key: _mainScaffoldKey,
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.background,
-        elevation: 4,
-        shadowColor: isDarkMode ? Colors.purple.withOpacity(0.2) : Colors.pink.withOpacity(0.2),
-        centerTitle: true,
-        title: Text(
-          "SEARCH EXPERIENCES",
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground,
-            letterSpacing: 1.2,
+
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          toolbarHeight: 80,
+          centerTitle: true,
+          actions: [
+            IconButton(
+              onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
+              icon: Icon(
+                Icons.filter_list_sharp,
+                color: theme.colorScheme.onBackground,
+              ),
+              tooltip: 'Filters',
+            ),
+            IconButton(
+              onPressed: _syncComplaints,
+              icon: Icon(Icons.sync, color: theme.colorScheme.onBackground),
+              tooltip: 'Sync',
+            ),
+          ],
+          title: const Text(
+            "SEARCH EXPERIENCES",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 24,
+            ),
           ),
         ),
-        actions: [
-          IconButton(
-            onPressed: () => _mainScaffoldKey.currentState?.openEndDrawer(),
-            icon: Icon(Icons.filter_list_sharp, color: theme.colorScheme.onBackground),
-            tooltip: 'Filters',
-          ),
-          IconButton(
-            onPressed: _syncComplaints,
-            icon: Icon(Icons.sync, color: theme.colorScheme.onBackground),
-            tooltip: 'Sync',
-          ),
-        ],
       ),
       drawer: NavBar(),
-      endDrawer: Drawer(
-        child: _filters(context),
-      ),
+      endDrawer: Drawer(child: _filters(context)),
       body: Center(
         child: Column(
           children: <Widget>[
@@ -359,7 +391,10 @@ class _TestScreenState extends State<TestScreen> {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: isDarkMode ? Colors.black12 : Colors.grey.withOpacity(0.08),
+                    color:
+                        isDarkMode
+                            ? Colors.black12
+                            : Colors.grey.withOpacity(0.08),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -378,11 +413,11 @@ class _TestScreenState extends State<TestScreen> {
                     color: theme.colorScheme.onSurface.withOpacity(0.5),
                     fontFamily: 'Poppins',
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: primaryColor,
+                  prefixIcon: Icon(Icons.search, color: primaryColor),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 8,
                   ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                 ),
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => FocusScope.of(context).unfocus(),
@@ -406,9 +441,7 @@ class _TestScreenState extends State<TestScreen> {
                 );
               },
             ),
-            Expanded(
-              child: _hits(context),
-            )
+            Expanded(child: _hits(context)),
           ],
         ),
       ),

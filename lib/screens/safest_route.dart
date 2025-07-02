@@ -286,9 +286,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   // Update map style based on current theme
   void _updateMapStyle() {
     if (_mapController == null) return;
-    
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     if (isDark) {
       _mapController!.setMapStyle(_darkMapStyle);
     } else {
@@ -1728,21 +1728,19 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.background,
-        elevation: 4,
-        shadowColor:
-            isDark
-                ? Colors.purple.withOpacity(0.2)
-                : Colors.pink.withOpacity(0.2),
-        centerTitle: true,
-        title: Text(
-          "SAFEST ROUTE",
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground,
-            letterSpacing: 1.2,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          toolbarHeight: 80,
+          centerTitle: true,
+          title: const Text(
+            "SAFEST ROUTE",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 24,
+            ),
           ),
         ),
       ),
@@ -1757,33 +1755,39 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _updateMapStyle();
               });
-              
+
               return gmaps.GoogleMap(
                 initialCameraPosition: gmaps.CameraPosition(
-                  target: _currentLocation != null
-                      ? gmaps.LatLng(
-                          _currentLocation!.latitude,
-                          _currentLocation!.longitude,
-                        )
-                      : gmaps.LatLng(
-                          20.5937,
-                          78.9629,
-                        ), // Default to India center
+                  target:
+                      _currentLocation != null
+                          ? gmaps.LatLng(
+                            _currentLocation!.latitude,
+                            _currentLocation!.longitude,
+                          )
+                          : gmaps.LatLng(
+                            20.5937,
+                            78.9629,
+                          ), // Default to India center
                   zoom: 14.0,
                 ),
                 onMapCreated: (controller) {
                   _mapController = controller;
-                  
+
                   // Apply initial style based on theme
-                  final isDark = Theme.of(context).brightness == Brightness.dark;
+                  final isDark =
+                      Theme.of(context).brightness == Brightness.dark;
                   if (isDark) {
                     controller.setMapStyle(_darkMapStyle);
                   }
-                  
+
                   // Load markers after map is created
                   _fetchMarkerData().then((snapshots) {
                     if (snapshots.isNotEmpty && mounted) {
-                      _updateMapMarkers(snapshots[0], snapshots[1], snapshots[2]);
+                      _updateMapMarkers(
+                        snapshots[0],
+                        snapshots[1],
+                        snapshots[2],
+                      );
                     }
                   });
                 },

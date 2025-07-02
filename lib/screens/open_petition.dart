@@ -28,47 +28,25 @@ class OpenPetitionScreen extends StatelessWidget {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
-          ),
+          toolbarHeight: 80,
+          centerTitle: true,
           title: const Text(
-            "REVIEW PETITION",
+            "MY PETITIONS",
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          titleSpacing: 0,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3), 
-                  Colors.purple.withOpacity(0.3)
-                ],
-              ),
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 24,
             ),
           ),
         ),
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('petitions')
-            .doc(petitionId)
-            .snapshots(),
+        stream:
+            FirebaseFirestore.instance
+                .collection('petitions')
+                .doc(petitionId)
+                .snapshots(),
         builder: (context, petitionSnapshot) {
           if (petitionSnapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -92,7 +70,7 @@ class OpenPetitionScreen extends StatelessWidget {
 
           // Check if current user has already signed
           final bool hasUserSigned = signatures.contains(currentUserId);
-          
+
           // Get protests data from the petition document
           final List<dynamic> protestsData = petitionData['protests'] ?? [];
 
@@ -146,10 +124,22 @@ class OpenPetitionScreen extends StatelessWidget {
                             builder: (context, constraints) {
                               // Check if screen is wide enough for row layout
                               bool useRowLayout = constraints.maxWidth > 400;
-                              
-                              return useRowLayout 
-                                ? _buildRowLayout(context, signatureCount, hasUserSigned, currentUserId, petitionId)
-                                : _buildColumnLayout(context, signatureCount, hasUserSigned, currentUserId, petitionId);
+
+                              return useRowLayout
+                                  ? _buildRowLayout(
+                                    context,
+                                    signatureCount,
+                                    hasUserSigned,
+                                    currentUserId,
+                                    petitionId,
+                                  )
+                                  : _buildColumnLayout(
+                                    context,
+                                    signatureCount,
+                                    hasUserSigned,
+                                    currentUserId,
+                                    petitionId,
+                                  );
                             },
                           ),
                         ],
@@ -161,10 +151,7 @@ class OpenPetitionScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   const Text(
                     "RELATED PROTESTS",
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
 
@@ -172,7 +159,9 @@ class OpenPetitionScreen extends StatelessWidget {
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.all(16.0),
-                        child: Text("No protests planned for this petition yet."),
+                        child: Text(
+                          "No protests planned for this petition yet.",
+                        ),
                       ),
                     )
                   else
@@ -181,14 +170,20 @@ class OpenPetitionScreen extends StatelessWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: protestsData.length,
                       itemBuilder: (context, index) {
-                        final protestData = protestsData[index] as Map<String, dynamic>;
-                        
-                        final String protestId = protestData['protest_id'] ?? '';
-                        final String protestTitle = protestData['title'] ?? 'Unnamed Protest';
-                        final DateTime date = (protestData['date'] as Timestamp).toDate();
-                        final String location = protestData['location'] ?? 'Location not specified';
-                        final List<dynamic> supporters = protestData['supporters'] ?? [];
-                        
+                        final protestData =
+                            protestsData[index] as Map<String, dynamic>;
+
+                        final String protestId =
+                            protestData['protest_id'] ?? '';
+                        final String protestTitle =
+                            protestData['title'] ?? 'Unnamed Protest';
+                        final DateTime date =
+                            (protestData['date'] as Timestamp).toDate();
+                        final String location =
+                            protestData['location'] ?? 'Location not specified';
+                        final List<dynamic> supporters =
+                            protestData['supporters'] ?? [];
+
                         return Card(
                           margin: const EdgeInsets.only(bottom: 12),
                           shape: RoundedRectangleBorder(
@@ -197,11 +192,11 @@ class OpenPetitionScreen extends StatelessWidget {
                           child: InkWell(
                             onTap: () {
                               _showProtestDetails(
-                                context, 
-                                protestData, 
+                                context,
+                                protestData,
                                 petitionId,
                                 title,
-                                currentUserId
+                                currentUserId,
                               );
                             },
                             child: Padding(
@@ -219,7 +214,10 @@ class OpenPetitionScreen extends StatelessWidget {
                                   const SizedBox(height: 8),
                                   Row(
                                     children: [
-                                      const Icon(Icons.calendar_today, size: 16),
+                                      const Icon(
+                                        Icons.calendar_today,
+                                        size: 16,
+                                      ),
                                       const SizedBox(width: 4),
                                       Text(
                                         "${date.day}/${date.month}/${date.year} at ${date.hour}:${date.minute.toString().padLeft(2, '0')}",
@@ -283,13 +281,21 @@ class OpenPetitionScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue[700],
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       onPressed: () {
-                        _showCreateProtestDialog(context, petitionId, currentUserId, title);
+                        _showCreateProtestDialog(
+                          context,
+                          petitionId,
+                          currentUserId,
+                          title,
+                        );
                       },
                     ),
                   ),
@@ -301,10 +307,15 @@ class OpenPetitionScreen extends StatelessWidget {
       ),
     );
   }
-  
+
   // Row layout for wider screens
-  Widget _buildRowLayout(BuildContext context, int signatureCount, bool hasUserSigned, 
-                       String currentUserId, String petitionId) {
+  Widget _buildRowLayout(
+    BuildContext context,
+    int signatureCount,
+    bool hasUserSigned,
+    String currentUserId,
+    String petitionId,
+  ) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -313,35 +324,39 @@ class OpenPetitionScreen extends StatelessWidget {
           flex: 3,
           child: Text(
             "$signatureCount ${signatureCount == 1 ? 'person has' : 'people have'} already signed",
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white70,
-            ),
+            style: const TextStyle(fontSize: 14, color: Colors.white70),
           ),
         ),
         const SizedBox(width: 8),
         // Sign Petition button
         Expanded(
           flex: 2,
-          child: _buildSignButton(context, hasUserSigned, currentUserId, petitionId),
+          child: _buildSignButton(
+            context,
+            hasUserSigned,
+            currentUserId,
+            petitionId,
+          ),
         ),
       ],
     );
   }
-  
+
   // Column layout for narrower screens
-  Widget _buildColumnLayout(BuildContext context, int signatureCount, bool hasUserSigned, 
-                         String currentUserId, String petitionId) {
+  Widget _buildColumnLayout(
+    BuildContext context,
+    int signatureCount,
+    bool hasUserSigned,
+    String currentUserId,
+    String petitionId,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Show signature count
         Text(
           "$signatureCount ${signatureCount == 1 ? 'person has' : 'people have'} already signed",
-          style: const TextStyle(
-            fontSize: 14,
-            color: Colors.white70,
-          ),
+          style: const TextStyle(fontSize: 14, color: Colors.white70),
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 12),
@@ -350,58 +365,61 @@ class OpenPetitionScreen extends StatelessWidget {
       ],
     );
   }
-  
+
   // Extracted sign button widget to avoid code duplication
-  Widget _buildSignButton(BuildContext context, bool hasUserSigned, 
-                       String currentUserId, String petitionId) {
+  Widget _buildSignButton(
+    BuildContext context,
+    bool hasUserSigned,
+    String currentUserId,
+    String petitionId,
+  ) {
     return ElevatedButton(
       style: ElevatedButton.styleFrom(
         backgroundColor: hasUserSigned ? Colors.grey[600] : Colors.grey[200],
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
-      onPressed: hasUserSigned
-          ? null // Disable button if already signed
-          : () async {
-              try {
-                // 1. Update the petition's signatures array
-                final petitionRef = FirebaseFirestore.instance
-                    .collection('petitions')
-                    .doc(petitionId);
+      onPressed:
+          hasUserSigned
+              ? null // Disable button if already signed
+              : () async {
+                try {
+                  // 1. Update the petition's signatures array
+                  final petitionRef = FirebaseFirestore.instance
+                      .collection('petitions')
+                      .doc(petitionId);
 
-                await petitionRef.update({
-                  'signatures': FieldValue.arrayUnion([currentUserId]),
-                });
+                  await petitionRef.update({
+                    'signatures': FieldValue.arrayUnion([currentUserId]),
+                  });
 
-                // 2. Update the user's "signed_p" array
-                final userRef = FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(currentUserId);
+                  // 2. Update the user's "signed_p" array
+                  final userRef = FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(currentUserId);
 
-                // If "signed_p" doesn't exist, create or merge it
-                await userRef.set({
-                  'signed_p': FieldValue.arrayUnion([petitionId]),
-                }, SetOptions(merge: true));
+                  // If "signed_p" doesn't exist, create or merge it
+                  await userRef.set({
+                    'signed_p': FieldValue.arrayUnion([petitionId]),
+                  }, SetOptions(merge: true));
 
-                // Show success message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Petition signed successfully!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              } catch (e) {
-                // Show error message
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Error signing petition: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-              }
-            },
+                  // Show success message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Petition signed successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  // Show error message
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error signing petition: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              },
       child: Text(
         hasUserSigned ? "You've Signed" : "Sign Petition",
         style: TextStyle(
@@ -412,8 +430,13 @@ class OpenPetitionScreen extends StatelessWidget {
     );
   }
 
-  void _showCreateProtestDialog(BuildContext context, String petitionId, String userId, String petitionTitle) {
-  // Form controllers
+  void _showCreateProtestDialog(
+    BuildContext context,
+    String petitionId,
+    String userId,
+    String petitionTitle,
+  ) {
+    // Form controllers
     final titleController = TextEditingController();
     final aimController = TextEditingController();
     final locationController = TextEditingController();
@@ -421,11 +444,11 @@ class OpenPetitionScreen extends StatelessWidget {
     final hostNameController = TextEditingController();
     final phoneController = TextEditingController();
     final socialMediaController = TextEditingController();
-    
+
     // Date and time selection
     DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
     TimeOfDay selectedTime = TimeOfDay.now();
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -445,7 +468,7 @@ class OpenPetitionScreen extends StatelessWidget {
                 });
               }
             }
-            
+
             // Function to pick time without recreating the dialog
             Future<void> _selectTime() async {
               final TimeOfDay? picked = await showTimePicker(
@@ -500,7 +523,9 @@ class OpenPetitionScreen extends StatelessWidget {
                             title: const Text('Date*'),
                             subtitle: Text(
                               '${selectedDate.day}/${selectedDate.month}/${selectedDate.year}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             trailing: const Icon(Icons.calendar_today),
                             onTap: _selectDate,
@@ -512,7 +537,9 @@ class OpenPetitionScreen extends StatelessWidget {
                             title: const Text('Time*'),
                             subtitle: Text(
                               '${selectedTime.hour}:${selectedTime.minute.toString().padLeft(2, '0')}',
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             trailing: const Icon(Icons.access_time),
                             onTap: _selectTime,
@@ -528,7 +555,7 @@ class OpenPetitionScreen extends StatelessWidget {
                         border: OutlineInputBorder(),
                       ),
                     ),
-                    
+
                     // Add host details section
                     const SizedBox(height: 20),
                     const Text(
@@ -569,7 +596,7 @@ class OpenPetitionScreen extends StatelessWidget {
                       ),
                       keyboardType: TextInputType.url,
                     ),
-                    
+
                     const SizedBox(height: 12),
                     TextField(
                       controller: detailsController,
@@ -597,11 +624,13 @@ class OpenPetitionScreen extends StatelessWidget {
                         hostNameController.text.trim().isEmpty ||
                         phoneController.text.trim().isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Please fill all required fields'))
+                        const SnackBar(
+                          content: Text('Please fill all required fields'),
+                        ),
                       );
                       return;
                     }
-                    
+
                     try {
                       // Combine date and time
                       final protestDateTime = DateTime(
@@ -611,10 +640,11 @@ class OpenPetitionScreen extends StatelessWidget {
                         selectedTime.hour,
                         selectedTime.minute,
                       );
-                      
+
                       // Create unique protest ID
-                      final protestId = DateTime.now().millisecondsSinceEpoch.toString();
-                      
+                      final protestId =
+                          DateTime.now().millisecondsSinceEpoch.toString();
+
                       // New protest data
                       final protestData = {
                         'protest_id': protestId,
@@ -625,12 +655,14 @@ class OpenPetitionScreen extends StatelessWidget {
                         'details': detailsController.text.trim(),
                         'created_by': userId,
                         'created_at': Timestamp.now(),
-                        'supporters': [userId], // Creator is the first supporter
+                        'supporters': [
+                          userId,
+                        ], // Creator is the first supporter
                         'host_name': hostNameController.text.trim(),
                         'phone': phoneController.text.trim(),
                         'social_media': socialMediaController.text.trim(),
                       };
-                      
+
                       // Update petition document to add new protest
                       await FirebaseFirestore.instance
                           .collection('petitions')
@@ -638,15 +670,15 @@ class OpenPetitionScreen extends StatelessWidget {
                           .update({
                             'protests': FieldValue.arrayUnion([protestData]),
                           });
-                      
+
                       Navigator.of(context).pop();
-                      
+
                       // Show success message
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text('Protest organized successfully!'),
                           backgroundColor: Colors.green,
-                        )
+                        ),
                       );
                     } catch (e) {
                       // Show error message
@@ -654,7 +686,7 @@ class OpenPetitionScreen extends StatelessWidget {
                         SnackBar(
                           content: Text('Error creating protest: $e'),
                           backgroundColor: Colors.red,
-                        )
+                        ),
                       );
                     }
                   },
@@ -662,13 +694,22 @@ class OpenPetitionScreen extends StatelessWidget {
                 ),
               ],
             );
-          }
+          },
         );
       },
     );
   }
-  
-  String _generateShareText(String title, String date, String time, String location, String hostName, String phone, String aim, String details) {
+
+  String _generateShareText(
+    String title,
+    String date,
+    String time,
+    String location,
+    String hostName,
+    String phone,
+    String aim,
+    String details,
+  ) {
     return """
   Join the protest: $title
   Date: $date at $time
@@ -682,7 +723,7 @@ class OpenPetitionScreen extends StatelessWidget {
   https://drive.google.com/file/d/1GqR7grncvl9tcI-oOLbeQg9s_7ZwbPJt/view?usp=sharing
   """;
   }
-  
+
   void _showProtestDetails(
     BuildContext context,
     Map<String, dynamic> protestData,
@@ -699,15 +740,15 @@ class OpenPetitionScreen extends StatelessWidget {
     final List<dynamic> supporters = protestData['supporters'] ?? [];
     final int supporterCount = supporters.length;
     final bool isUserSupporting = supporters.contains(currentUserId);
-    
+
     // Host information
     final String hostName = protestData['host_name'] ?? 'Not specified';
     final String phone = protestData['phone'] ?? 'Not specified';
     final String socialMedia = protestData['social_media'] ?? '';
-    
+
     final dateFormatter = DateFormat('EEEE, MMMM d, yyyy');
     final timeFormatter = DateFormat('h:mm a');
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -715,107 +756,349 @@ class OpenPetitionScreen extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       // No background color specified to use theme colors
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20.0),
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.85,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Protest Card
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Title
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Divider(),
-                    
-                    // Aim
-                    const Text(
-                      "Aim:",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      aim,
-                      style: const TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Date and Time
-                    Row(
+      builder:
+          (context) => Container(
+            padding: const EdgeInsets.all(20.0),
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Protest Card
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(Icons.calendar_today),
-                        const SizedBox(width: 8),
-                        Column(
+                        // Title
+                        Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const Divider(),
+
+                        // Aim
+                        const Text(
+                          "Aim:",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(aim, style: const TextStyle(fontSize: 16)),
+                        const SizedBox(height: 16),
+
+                        // Date and Time
+                        Row(
+                          children: [
+                            const Icon(Icons.calendar_today),
+                            const SizedBox(width: 8),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  dateFormatter.format(date),
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  timeFormatter.format(date),
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Location with map option
+                        Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              dateFormatter.format(date),
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            Text(
-                              timeFormatter.format(date),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w500,
+                            const Icon(Icons.location_on),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    location,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      final url =
+                                          'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}';
+                                      final uri = Uri.parse(url);
+                                      if (await canLaunchUrl(uri)) {
+                                        await launchUrl(uri);
+                                      }
+                                    },
+                                    child: const Text(
+                                      "Open in Maps",
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        decoration: TextDecoration.underline,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Location with map option
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.location_on),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+
+                        // Host Contact Information
+                        const SizedBox(height: 24),
+                        const Text(
+                          "Host Contact Information:",
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.person),
+                            const SizedBox(width: 8),
+                            Text(
+                              hostName,
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            const Icon(Icons.phone),
+                            const SizedBox(width: 8),
+                            Text(phone, style: const TextStyle(fontSize: 16)),
+                          ],
+                        ),
+                        if (socialMedia.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Row(
                             children: [
-                              Text(
-                                location,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                              const Icon(Icons.link),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () async {
+                                    final uri = Uri.parse(socialMedia);
+                                    if (await canLaunchUrl(uri)) {
+                                      await launchUrl(uri);
+                                    }
+                                  },
+                                  child: Text(
+                                    socialMedia,
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.blue,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 4),
-                              GestureDetector(
-                                onTap: () async {
-                                  final url = 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(location)}';
-                                  final uri = Uri.parse(url);
-                                  if (await canLaunchUrl(uri)) {
-                                    await launchUrl(uri);
-                                  }
-                                },
-                                child: const Text(
-                                  "Open in Maps",
-                                  style: TextStyle(
-                                    color: Colors.blue,
-                                    decoration: TextDecoration.underline,
+                            ],
+                          ),
+                        ],
+
+                        // Additional Details
+                        if (details.isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          const Text(
+                            "Additional Details:",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(details, style: const TextStyle(fontSize: 16)),
+                        ],
+
+                        // Support Section
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.all(16.0),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Theme.of(context).dividerColor,
+                            ),
+                          ),
+                          child: Column(
+                            children: [
+                              // Supporter count
+                              Text(
+                                "$supporterCount ${supporterCount == 1 ? 'person is' : 'people are'} supporting this protest",
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Support button
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor:
+                                        isUserSupporting
+                                            ? Colors.grey[400]
+                                            : Theme.of(context).primaryColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    // Add elevation for better visibility
+                                    elevation: 2,
                                   ),
+                                  onPressed:
+                                      isUserSupporting
+                                          ? null
+                                          : () async {
+                                            try {
+                                              // Get current protests array
+                                              final petitionRef =
+                                                  FirebaseFirestore.instance
+                                                      .collection('petitions')
+                                                      .doc(petitionId);
+
+                                              final petitionDoc =
+                                                  await petitionRef.get();
+                                              final petitionData =
+                                                  petitionDoc.data()
+                                                      as Map<String, dynamic>;
+                                              final protests = List<
+                                                Map<String, dynamic>
+                                              >.from(
+                                                petitionData['protests'] ?? [],
+                                              );
+
+                                              // Find and update the specific protest
+                                              for (
+                                                int i = 0;
+                                                i < protests.length;
+                                                i++
+                                              ) {
+                                                if (protests[i]['protest_id'] ==
+                                                    protestId) {
+                                                  if (!protests[i]['supporters']
+                                                      .contains(
+                                                        currentUserId,
+                                                      )) {
+                                                    protests[i]['supporters']
+                                                        .add(currentUserId);
+                                                  }
+                                                  break;
+                                                }
+                                              }
+
+                                              // Update the petition with modified protests array
+                                              await petitionRef.update({
+                                                'protests': protests,
+                                              });
+
+                                              Navigator.pop(
+                                                context,
+                                              ); // Close bottom sheet
+
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'You are now supporting this protest!',
+                                                  ),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            } catch (e) {
+                                              ScaffoldMessenger.of(
+                                                context,
+                                              ).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Error: $e'),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                  child: Text(
+                                    isUserSupporting
+                                        ? "You're Supporting"
+                                        : "Support this Protest",
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Share button
+                              const SizedBox(height: 8),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.share),
+                                  label: const Text("Share Protest"),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.blue[700],
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    side: BorderSide(color: Colors.blue[700]!),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                  // In the share button's onPressed method in open_petition.dart
+                                  onPressed: () {
+                                    final dateStr = dateFormatter.format(date);
+                                    final timeStr = timeFormatter.format(date);
+
+                                    final String shareText = _generateShareText(
+                                      title,
+                                      dateStr,
+                                      timeStr,
+                                      location,
+                                      hostName,
+                                      phone,
+                                      aim,
+                                      details,
+                                    );
+
+                                    Share.share(
+                                      shareText,
+                                      subject: 'Join the protest: $title',
+                                    );
+                                  },
                                 ),
                               ),
                             ],
@@ -823,233 +1106,29 @@ class OpenPetitionScreen extends StatelessWidget {
                         ),
                       ],
                     ),
-                    
-                    // Host Contact Information
-                    const SizedBox(height: 24),
-                    const Text(
-                      "Host Contact Information:",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.person),
-                        const SizedBox(width: 8),
-                        Text(
-                          hostName,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone),
-                        const SizedBox(width: 8),
-                        Text(
-                          phone,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                    if (socialMedia.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.link),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () async {
-                                final uri = Uri.parse(socialMedia);
-                                if (await canLaunchUrl(uri)) {
-                                  await launchUrl(uri);
-                                }
-                              },
-                              child: Text(
-                                socialMedia,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.blue,
-                                  decoration: TextDecoration.underline,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                    
-                    // Additional Details
-                    if (details.isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      const Text(
-                        "Additional Details:",
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        details,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ],
-                    
-                    // Support Section
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16.0),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Theme.of(context).dividerColor),
-                      ),
-                      child: Column(
-                        children: [
-                          // Supporter count
-                          Text(
-                            "$supporterCount ${supporterCount == 1 ? 'person is' : 'people are'} supporting this protest",
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                        
-                          // Support button
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: isUserSupporting 
-                                    ? Colors.grey[400] 
-                                    : Theme.of(context).primaryColor,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                // Add elevation for better visibility
-                                elevation: 2,
-                              ),
-                              onPressed: isUserSupporting
-                                  ? null
-                                  : () async {
-                                      try {
-                                        // Get current protests array
-                                        final petitionRef = FirebaseFirestore.instance
-                                            .collection('petitions')
-                                            .doc(petitionId);
-                                            
-                                        final petitionDoc = await petitionRef.get();
-                                        final petitionData = petitionDoc.data() as Map<String, dynamic>;
-                                        final protests = List<Map<String, dynamic>>.from(
-                                            petitionData['protests'] ?? []);
-                                            
-                                        // Find and update the specific protest
-                                        for (int i = 0; i < protests.length; i++) {
-                                          if (protests[i]['protest_id'] == protestId) {
-                                            if (!protests[i]['supporters'].contains(currentUserId)) {
-                                              protests[i]['supporters'].add(currentUserId);
-                                            }
-                                            break;
-                                          }
-                                        }
-                                        
-                                        // Update the petition with modified protests array
-                                        await petitionRef.update({'protests': protests});
-                                            
-                                        Navigator.pop(context); // Close bottom sheet
-                                        
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(
-                                            content: Text('You are now supporting this protest!'),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      } catch (e) {
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            content: Text('Error: $e'),
-                                            backgroundColor: Colors.red,
-                                          ),
-                                        );
-                                      }
-                                    },
-                              child: Text(
-                                isUserSupporting ? "You're Supporting" : "Support this Protest",
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                          
-                          // Share button
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.share),
-                              label: const Text("Share Protest"),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: Colors.blue[700],
-                                padding: const EdgeInsets.symmetric(vertical: 12),
-                                side: BorderSide(color: Colors.blue[700]!),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              // In the share button's onPressed method in open_petition.dart
-                              onPressed: () {
-                                final dateStr = dateFormatter.format(date);
-                                final timeStr = timeFormatter.format(date);
-                                
-                                final String shareText = _generateShareText(
-                                  title, dateStr, timeStr, location, 
-                                  hostName, phone, aim, details
-                                );
-
-                                Share.share(shareText, subject: 'Join the protest: $title');
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Close button
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey[300],
-                  foregroundColor: Colors.black87,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                onPressed: () => Navigator.pop(context),
-                child: const Text("CLOSE"),
-              ),
+
+                // Close button
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.grey[300],
+                      foregroundColor: Colors.black87,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("CLOSE"),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

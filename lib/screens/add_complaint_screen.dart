@@ -252,24 +252,15 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
+          toolbarHeight: 80,
           centerTitle: true,
-          title: Text(
-            "SORORIA",
+          title: const Text(
+            "SHARE EXPERIENCE",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w900,
               letterSpacing: 4,
-              fontSize: 28,
-              shadows: [
-                Shadow(
-                  color:
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.purple.withOpacity(0.2)
-                          : Colors.pink.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              fontSize: 24,
             ),
           ),
         ),
@@ -287,6 +278,7 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
                   hintText: "Tell us what happened...",
                   border: OutlineInputBorder(),
                 ),
+                textAlign: TextAlign.center,
                 maxLines: null,
                 expands: true,
                 textAlignVertical: TextAlignVertical.top,

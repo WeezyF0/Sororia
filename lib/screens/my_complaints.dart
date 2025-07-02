@@ -55,31 +55,23 @@ class MyComplaintScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: Size.fromHeight(80.0),
+        preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
+          toolbarHeight: 80,
           centerTitle: true,
-          title: Text(
-            "SORORIA",
+          title: const Text(
+            "MY EXPERIENCES",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w900,
               letterSpacing: 4,
-              fontSize: 28,
-              shadows: [
-                Shadow(
-                  color:
-                      Theme.of(context).brightness == Brightness.dark
-                          ? Colors.purple.withOpacity(0.2)
-                          : Colors.pink.withOpacity(0.2),
-                  blurRadius: 8,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              fontSize: 24,
             ),
           ),
         ),
       ),
       drawer: NavBar(),
+
       floatingActionButton: Container(
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 8),

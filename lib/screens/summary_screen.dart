@@ -50,21 +50,19 @@ class SummaryScreen extends StatelessWidget {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: theme.colorScheme.background,
-        elevation: 4,
-        shadowColor:
-            isDark
-                ? Colors.purple.withOpacity(0.2)
-                : Colors.pink.withOpacity(0.2),
-        centerTitle: true,
-        title: Text(
-          "SAFETY SUMMARY",
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontFamily: 'Poppins',
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onBackground,
-            letterSpacing: 1.2,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          toolbarHeight: 80,
+          centerTitle: true,
+          title: const Text(
+            "SAFETY SUMMARY",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 24,
+            ),
           ),
         ),
       ),

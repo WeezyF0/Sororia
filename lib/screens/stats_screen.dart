@@ -47,7 +47,7 @@ class _StatsScreenState extends State<StatsScreen> {
       print('Warning: GEMINI_API_KEY not found in .env file');
       return;
     }
-    
+
     _model = GenerativeModel(
       model: 'gemini-2.5-flash-preview-05-20',
       apiKey: _geminiApiKey,
@@ -57,7 +57,8 @@ class _StatsScreenState extends State<StatsScreen> {
   Future<void> _generateAISummary() async {
     if (statsData.isEmpty || _geminiApiKey.isEmpty) {
       setState(() {
-        aiSummary = 'API key not configured. Please add GEMINI_API_KEY to your .env file.';
+        aiSummary =
+            'API key not configured. Please add GEMINI_API_KEY to your .env file.';
         showSummary = true;
       });
       return;
@@ -71,7 +72,7 @@ class _StatsScreenState extends State<StatsScreen> {
       final prompt = _buildPromptFromStats();
       final content = [Content.text(prompt)];
       final response = await _model.generateContent(content);
-      
+
       setState(() {
         aiSummary = response.text;
         showSummary = true;
@@ -80,7 +81,8 @@ class _StatsScreenState extends State<StatsScreen> {
     } catch (e) {
       print('Error generating AI summary: $e');
       setState(() {
-        aiSummary = 'Failed to generate summary. Please check your API key and try again.\n\nError: ${e.toString()}';
+        aiSummary =
+            'Failed to generate summary. Please check your API key and try again.\n\nError: ${e.toString()}';
         showSummary = true;
         isSummaryLoading = false;
       });
@@ -91,29 +93,35 @@ class _StatsScreenState extends State<StatsScreen> {
     final totalComplaints = statsData['totalComplaints'] ?? 0;
     final avgUpvotes = statsData['avgUpvotes'] ?? 0.0;
     final topLocations = statsData['topLocations'] as Map<String, int>? ?? {};
-    final issueTypes = statsData['issueTypeDistribution'] as Map<String, int>? ?? {};
+    final issueTypes =
+        statsData['issueTypeDistribution'] as Map<String, int>? ?? {};
     final weeklyTrend = statsData['weeklyTrend'] as Map<String, int>? ?? {};
 
     // Get top 3 locations
-    final sortedLocations = topLocations.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final sortedLocations =
+        topLocations.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
     final top3Locations = sortedLocations.take(3).toList();
 
     // Get top 3 issue types
-    final sortedIssues = issueTypes.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final sortedIssues =
+        issueTypes.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final top3Issues = sortedIssues.take(3).toList();
 
     // Calculate weekly trend
     final weeklyValues = weeklyTrend.values.toList();
     String trendDescription = "stable";
     if (weeklyValues.length >= 2) {
-      final recent = weeklyValues.length >= 3 
-          ? weeklyValues.sublist(weeklyValues.length - 3).fold(0, (a, b) => a + b)
-          : weeklyValues.last;
-      final earlier = weeklyValues.length >= 4 
-          ? weeklyValues.sublist(0, 4).fold(0, (a, b) => a + b)
-          : (weeklyValues.length > 1 ? weeklyValues.first : 0);
+      final recent =
+          weeklyValues.length >= 3
+              ? weeklyValues
+                  .sublist(weeklyValues.length - 3)
+                  .fold(0, (a, b) => a + b)
+              : weeklyValues.last;
+      final earlier =
+          weeklyValues.length >= 4
+              ? weeklyValues.sublist(0, 4).fold(0, (a, b) => a + b)
+              : (weeklyValues.length > 1 ? weeklyValues.first : 0);
       if (recent > earlier) {
         trendDescription = "increasing";
       } else if (recent < earlier) {
@@ -156,21 +164,21 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
 
       // Get relevant issue types for this category
       final List<String> relevantTags = categoryMapping[widget.category] ?? [];
-      
+
       // Fetch all complaints
       final QuerySnapshot allComplaints = await complaintsRef.get();
-      
+
       // Filter complaints by category
-      final List<QueryDocumentSnapshot> categoryComplaints = allComplaints.docs.where((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        final issueTypes = data['issue_type']?.toString().split(',') ?? [];
-        
-        return issueTypes.any((type) => relevantTags.contains(type.trim()));
-      }).toList();
+      final List<QueryDocumentSnapshot> categoryComplaints =
+          allComplaints.docs.where((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final issueTypes = data['issue_type']?.toString().split(',') ?? [];
+
+            return issueTypes.any((type) => relevantTags.contains(type.trim()));
+          }).toList();
 
       // Calculate statistics
       await _calculateStats(categoryComplaints);
-
     } catch (e) {
       print('Error fetching stats: $e');
     } finally {
@@ -258,16 +266,20 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
       return bTime.compareTo(aTime);
     });
 
-    recentComplaints = complaints.take(5).map((doc) {
-      final data = doc.data() as Map<String, dynamic>;
-      return {
-        'text': data['processed_text'] ?? data['original_text'] ?? 'No description',
-        'location': data['location'] ?? 'Unknown',
-        'upvotes': data['upvotes'] ?? 0,
-        'timestamp': data['timestamp'] ?? '',
-        'issue_type': data['issue_type'] ?? '',
-      };
-    }).toList();
+    recentComplaints =
+        complaints.take(5).map((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          return {
+            'text':
+                data['processed_text'] ??
+                data['original_text'] ??
+                'No description',
+            'location': data['location'] ?? 'Unknown',
+            'upvotes': data['upvotes'] ?? 0,
+            'timestamp': data['timestamp'] ?? '',
+            'issue_type': data['issue_type'] ?? '',
+          };
+        }).toList();
 
     statsData = {
       'totalComplaints': totalComplaints,
@@ -283,14 +295,15 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.category),
-        backgroundColor: theme.primaryColor,
-        foregroundColor: Colors.white,
-        actions: [
-          // Replace button with loading indicator when generating
-          isSummaryLoading
-              ? Center(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(80.0),
+        child: AppBar(
+          toolbarHeight: 80,
+          centerTitle: true,
+          actions: [
+            // Replace button with loading indicator when generating
+            isSummaryLoading
+                ? Center(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: SizedBox(
@@ -303,36 +316,48 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                     ),
                   ),
                 )
-              : IconButton(
+                : IconButton(
                   icon: const Icon(Icons.auto_awesome),
                   onPressed: statsData.isNotEmpty ? _generateAISummary : null,
                   tooltip: 'Generate AI Summary',
                 ),
-        ],
-      ),
-      body: isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildOverviewCards(theme),
-                  const SizedBox(height: 24),
-                  if (showSummary) ...[
-                    _buildAISummaryCard(theme),
-                    const SizedBox(height: 24),
-                  ],
-                  _buildWeeklyTrendChart(theme),
-                  const SizedBox(height: 24),
-                  _buildTopLocationsChart(theme),
-                  const SizedBox(height: 24),
-                  _buildIssueTypeDistribution(theme),
-                  const SizedBox(height: 24),
-                  _buildRecentComplaints(theme),
-                ],
-              ),
+          ],
+          title: Text(
+            widget.category,
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 24,
             ),
+          ),
+        ),
+      ),
+
+      body:
+          isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildOverviewCards(theme),
+                    const SizedBox(height: 24),
+                    if (showSummary) ...[
+                      _buildAISummaryCard(theme),
+                      const SizedBox(height: 24),
+                    ],
+                    _buildWeeklyTrendChart(theme),
+                    const SizedBox(height: 24),
+                    _buildTopLocationsChart(theme),
+                    const SizedBox(height: 24),
+                    _buildIssueTypeDistribution(theme),
+                    const SizedBox(height: 24),
+                    _buildRecentComplaints(theme),
+                  ],
+                ),
+              ),
     );
   }
 
@@ -348,7 +373,8 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
               children: [
                 Icon(Icons.auto_awesome, color: theme.primaryColor),
                 const SizedBox(width: 8),
-                Expanded( // Fix overflow here
+                Expanded(
+                  // Fix overflow here
                   child: Text(
                     'Gen-AI Insights',
                     style: theme.textTheme.titleLarge?.copyWith(
@@ -377,7 +403,7 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                   ),
                 ),
               )
-                          else if (aiSummary != null)
+            else if (aiSummary != null)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -438,7 +464,8 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                 ),
               ),
             const SizedBox(height: 12),
-            Wrap( // Use Wrap instead of Row to prevent overflow
+            Wrap(
+              // Use Wrap instead of Row to prevent overflow
               spacing: 8,
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
@@ -497,10 +524,7 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    'Total Complaints',
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  Text('Total Complaints', style: theme.textTheme.bodySmall),
                 ],
               ),
             ),
@@ -521,10 +545,7 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    'Avg Upvotes',
-                    style: theme.textTheme.bodySmall,
-                  ),
+                  Text('Avg Upvotes', style: theme.textTheme.bodySmall),
                 ],
               ),
             ),
@@ -534,11 +555,9 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
     );
   }
 
-
-
   Widget _buildWeeklyTrendChart(ThemeData theme) {
     final weeklyData = statsData['weeklyTrend'] as Map<String, int>? ?? {};
-    
+
     if (weeklyData.isEmpty) {
       return Card(
         child: Padding(
@@ -554,18 +573,23 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
       );
     }
 
-    final spots = weeklyData.entries.toList().asMap().entries.map((entry) {
-      return FlSpot(entry.key.toDouble(), entry.value.value.toDouble());
-    }).toList();
+    final spots =
+        weeklyData.entries.toList().asMap().entries.map((entry) {
+          return FlSpot(entry.key.toDouble(), entry.value.value.toDouble());
+        }).toList();
 
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('Weekly Stats (Last 7 Days)', style: theme.textTheme.titleLarge),
+            Text(
+              'Weekly Stats (Last 7 Days)',
+              style: theme.textTheme.titleLarge,
+            ),
             const SizedBox(height: 16),
-            LayoutBuilder( // Use LayoutBuilder for responsive chart
+            LayoutBuilder(
+              // Use LayoutBuilder for responsive chart
               builder: (context, constraints) {
                 return SizedBox(
                   height: 200,
@@ -599,8 +623,12 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
                             reservedSize: 40,
                           ),
                         ),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        topTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
+                        rightTitles: AxisTitles(
+                          sideTitles: SideTitles(showTitles: false),
+                        ),
                       ),
                       borderData: FlBorderData(show: true),
                       lineBarsData: [
@@ -628,7 +656,7 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
 
   Widget _buildTopLocationsChart(ThemeData theme) {
     final locations = statsData['topLocations'] as Map<String, int>? ?? {};
-    
+
     if (locations.isEmpty) {
       return Card(
         child: Padding(
@@ -644,8 +672,8 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
       );
     }
 
-    final sortedLocations = locations.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final sortedLocations =
+        locations.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
     final topLocations = sortedLocations.take(5).toList();
 
     return Card(
@@ -656,53 +684,57 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
           children: [
             Text('Top Affected Locations', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
-            ...topLocations.map((entry) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: LayoutBuilder( // Use LayoutBuilder for responsive bars
-                builder: (context, constraints) {
-                  return Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          entry.key,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        flex: 2,
-                        child: Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey[300],
-                            borderRadius: BorderRadius.circular(4),
+            ...topLocations.map(
+              (entry) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: LayoutBuilder(
+                  // Use LayoutBuilder for responsive bars
+                  builder: (context, constraints) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: Text(
+                            entry.key,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          child: FractionallySizedBox(
-                            alignment: Alignment.centerLeft,
-                            widthFactor: entry.value / topLocations.first.value,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: theme.primaryColor,
-                                borderRadius: BorderRadius.circular(4),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: Colors.grey[300],
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: FractionallySizedBox(
+                              alignment: Alignment.centerLeft,
+                              widthFactor:
+                                  entry.value / topLocations.first.value,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: theme.primaryColor,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 30,
-                        child: Text(
-                          entry.value.toString(),
-                          style: theme.textTheme.bodySmall,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 30,
+                          child: Text(
+                            entry.value.toString(),
+                            style: theme.textTheme.bodySmall,
+                          ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      ],
+                    );
+                  },
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),
@@ -710,15 +742,19 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
   }
 
   Widget _buildIssueTypeDistribution(ThemeData theme) {
-    final issueTypes = statsData['issueTypeDistribution'] as Map<String, int>? ?? {};
-    
+    final issueTypes =
+        statsData['issueTypeDistribution'] as Map<String, int>? ?? {};
+
     if (issueTypes.isEmpty) {
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              Text('Issue Type Distribution', style: theme.textTheme.titleLarge),
+              Text(
+                'Issue Type Distribution',
+                style: theme.textTheme.titleLarge,
+              ),
               const SizedBox(height: 16),
               const Text('No issue type data available'),
             ],
@@ -727,8 +763,8 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
       );
     }
 
-    final sortedTypes = issueTypes.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final sortedTypes =
+        issueTypes.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
 
     return Card(
       child: Padding(
@@ -741,10 +777,15 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: sortedTypes.map((entry) => Chip(
-                label: Text('${entry.key} (${entry.value})'),
-                backgroundColor: theme.primaryColor.withOpacity(0.1),
-              )).toList(),
+              children:
+                  sortedTypes
+                      .map(
+                        (entry) => Chip(
+                          label: Text('${entry.key} (${entry.value})'),
+                          backgroundColor: theme.primaryColor.withOpacity(0.1),
+                        ),
+                      )
+                      .toList(),
             ),
           ],
         ),
@@ -776,61 +817,72 @@ Use headers, bullet points, and emphasis to make the summary clear and actionabl
           children: [
             Text('Recent Complaints', style: theme.textTheme.titleLarge),
             const SizedBox(height: 16),
-            ...recentComplaints.map((complaint) => Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    complaint['text'],
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap( // Use Wrap instead of Row for responsive layout
-                    spacing: 16,
-                    runSpacing: 4,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              complaint['location'],
+            ...recentComplaints.map(
+              (complaint) => Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey[300]!),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      complaint['text'],
+                      style: theme.textTheme.bodyMedium,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      // Use Wrap instead of Row for responsive layout
+                      spacing: 16,
+                      runSpacing: 4,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.location_on,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                complaint['location'],
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.thumb_up,
+                              size: 16,
+                              color: Colors.grey[600],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              complaint['upvotes'].toString(),
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: Colors.grey[600],
                               ),
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.thumb_up, size: 16, color: Colors.grey[600]),
-                          const SizedBox(width: 4),
-                          Text(
-                            complaint['upvotes'].toString(),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: Colors.grey[600],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
           ],
         ),
       ),

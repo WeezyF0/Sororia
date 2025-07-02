@@ -100,7 +100,12 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     }
   }
 
-  String _generateExperienceShareText(String originalText, String location, String timestamp, String issueType) {
+  String _generateExperienceShareText(
+    String originalText,
+    String location,
+    String timestamp,
+    String issueType,
+  ) {
     return """
   Experience shared from Sororia:
   "$originalText"
@@ -127,12 +132,12 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       } else {
         return 'Unknown time';
       }
-      
+
       // Format as a human-readable date and time
       final DateFormat formatter = DateFormat('MMMM d, yyyy', 'en_US');
       final String date = formatter.format(dateTime);
       final String time = DateFormat('h:mm a', 'en_US').format(dateTime);
-      
+
       return "$date at $time";
     } catch (e) {
       return 'Unknown time';
@@ -141,15 +146,16 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
 
   void _navigateToChatbot() async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('complaints')
-          .doc(widget.complaintId)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('complaints')
+              .doc(widget.complaintId)
+              .get();
 
       if (doc.exists) {
         final complaintData = doc.data();
         final String complaintInfo = complaintData.toString();
-        
+
         // Replace pushNamed with direct push
         Navigator.push(
           context,
@@ -158,14 +164,14 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
           ),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Complaint not found.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Complaint not found.')));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to fetch complaint: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to fetch complaint: $e')));
     }
   }
 
@@ -267,67 +273,31 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
         child: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          flexibleSpace: Container(
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/images/appBar_bg.png'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            foregroundDecoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.blue.withOpacity(0.3),
-                  Colors.purple.withOpacity(0.3),
-                ],
-              ),
-            ),
-            child: SafeArea(
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: Icon(
-                          Icons.arrow_back,
-                          color:
-                              theme.appBarTheme.iconTheme?.color ??
-                              Colors.white,
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const Text(
-                        "EXPERIENCE DETAILS",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(
-                          Icons.refresh,
-                          color:
-                              theme.appBarTheme.iconTheme?.color ??
-                              Colors.white,
-                        ),
-                        onPressed: _analyzeComplaint,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+          toolbarHeight: 80,
+          centerTitle: true,
+          title: const Text(
+            "EXPERIENCES",
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontWeight: FontWeight.w900,
+              letterSpacing: 4,
+              fontSize: 24,
             ),
           ),
+          actions: [
+            IconButton(
+              icon: Icon(
+                Icons.refresh,
+                color:
+                    Theme.of(context).appBarTheme.iconTheme?.color ??
+                    Colors.white,
+              ),
+              onPressed: _analyzeComplaint,
+            ),
+          ],
         ),
       ),
+
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -522,22 +492,28 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                             ),
                           ),
                           onPressed: () {
-                            final String readableTimestamp = _formatTimestampForSharing(widget.complaintData['timestamp']);
+                            final String readableTimestamp =
+                                _formatTimestampForSharing(
+                                  widget.complaintData['timestamp'],
+                                );
 
-                            final String shareText = _generateExperienceShareText(
-                              widget.complaintData['original_text'] ?? 'No description',
-                              widget.complaintData['location'] ?? 'Unknown location',
-                              readableTimestamp,
-                              widget.complaintData['issue_type'] ?? 'Unspecified category'
-                            );
+                            final String shareText =
+                                _generateExperienceShareText(
+                                  widget.complaintData['original_text'] ??
+                                      'No description',
+                                  widget.complaintData['location'] ??
+                                      'Unknown location',
+                                  readableTimestamp,
+                                  widget.complaintData['issue_type'] ??
+                                      'Unspecified category',
+                                );
 
                             Share.share(shareText);
                           },
-                        )
+                        ),
                       ],
                     ),
 
-                  
                     if (updates.isNotEmpty)
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,7 +683,7 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
     if (userId == null || userId.length < 12) {
       return userId ?? "";
     }
-    
+
     return userId.substring(0, userId.length - 12);
   }
 
@@ -780,9 +756,12 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                           shrinkWrap: true,
                           itemCount: comments.length,
                           itemBuilder: (context, index) {
-                            final comment = comments[index] as Map<String, dynamic>;
+                            final comment =
+                                comments[index] as Map<String, dynamic>;
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8.0,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -792,35 +771,43 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                                         radius: 12,
                                         backgroundColor: theme.primaryColor,
                                         child: Text(
-                                          (comment['user_id']?.toString().substring(
-                                                    0,
-                                                    2,
-                                                  ) ??
+                                          (comment['user_id']
+                                                      ?.toString()
+                                                      .substring(0, 2) ??
                                                   '??')
                                               .toUpperCase(),
                                           style: theme.textTheme.bodySmall
                                               ?.copyWith(
-                                                color: theme.colorScheme.onPrimary,
+                                                color:
+                                                    theme.colorScheme.onPrimary,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        maskUserId(comment['user_id']?.toString()),
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          fontWeight: FontWeight.bold,
+                                        maskUserId(
+                                          comment['user_id']?.toString(),
                                         ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
                                         _formatTimeAgo(
-                                          comment['timestamp']?.toString() ?? '',
+                                          comment['timestamp']?.toString() ??
+                                              '',
                                         ),
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.textTheme.bodySmall?.color
-                                              ?.withOpacity(0.6),
-                                        ),
+                                        style: theme.textTheme.bodySmall
+                                            ?.copyWith(
+                                              color: theme
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.color
+                                                  ?.withOpacity(0.6),
+                                            ),
                                       ),
                                     ],
                                   ),
@@ -852,7 +839,8 @@ class _OpenComplaintScreenState extends State<OpenComplaintScreen> {
                                     borderSide: BorderSide.none,
                                   ),
                                   filled: true,
-                                  fillColor: theme.colorScheme.surfaceContainerHighest,
+                                  fillColor:
+                                      theme.colorScheme.surfaceContainerHighest,
                                   contentPadding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 12,
