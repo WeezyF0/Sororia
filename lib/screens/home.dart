@@ -11,6 +11,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:complaints_app/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
+import 'dart:ui';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -20,6 +21,20 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // At the top of your _HomePageState class, add this variable
+  gmaps.BitmapDescriptor? _sosMarkerIcon;
+
+  // In initState, load the custom marker
+  @override
+  void initState() {
+    super.initState();
+    _loadCustomMarker();
+  }
+
+  Future<void> _loadCustomMarker() async {
+    _sosMarkerIcon = await createSOSMarker();
+  }
+
   // Dark mode map style
   static const String _darkMapStyle = '''
   [
@@ -193,6 +208,54 @@ class _HomePageState extends State<HomePage> {
   ]
   ''';
 
+  // Update return type and usage of BitmapDescriptor
+  Future<gmaps.BitmapDescriptor> createSOSMarker() async {
+    final PictureRecorder pictureRecorder = PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Paint paint = Paint()..color = Colors.orange;
+    final double radius = 65; // Increased from 24 to make it larger
+
+    // Draw outer pulsing circle
+    paint.color = Colors.orange.withOpacity(0.4);
+    canvas.drawCircle(Offset(radius, radius), radius, paint);
+    
+    // Draw middle circle
+    paint.color = Colors.orange.withOpacity(0.6);
+    canvas.drawCircle(Offset(radius, radius), radius * 0.7, paint);
+
+    // Draw inner circle
+    paint.color = Colors.orange;
+    canvas.drawCircle(Offset(radius, radius), radius * 0.4, paint);
+    
+    // Draw SOS text
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: 'SOS',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 30, // Larger text
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas, 
+      Offset(radius - textPainter.width / 2, radius - textPainter.height / 2),
+    );
+    
+    // Convert to image
+    final img = await pictureRecorder.endRecording().toImage(
+      (radius * 2).toInt(),
+      (radius * 2).toInt(),
+    );
+    final data = await img.toByteData(format: ImageByteFormat.png);
+    
+    return gmaps.BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+  }
+
   // Update map style based on current theme
   void _updateMapStyle() {
     if (_mapController == null) return;
@@ -333,9 +396,10 @@ class _HomePageState extends State<HomePage> {
                       _currentLocation!.latitude,
                       _currentLocation!.longitude,
                     ),
-                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
-                      gmaps.BitmapDescriptor.hueBlue,
+                    icon: _sosMarkerIcon ?? gmaps.BitmapDescriptor.defaultMarkerWithHue(
+                      gmaps.BitmapDescriptor.hueOrange,
                     ),
+                    // Use a custom icon for current location
                     infoWindow: gmaps.InfoWindow(title: 'My Location'),
                   ),
                 );
@@ -399,14 +463,23 @@ class _HomePageState extends State<HomePage> {
               }
 
               // Add SOS markers using StreamBuilder data
+              // Find the StreamBuilder for SOS markers (around line 450-500)
+
               return StreamBuilder<QuerySnapshot>(
-                stream:
-                    FirebaseFirestore.instance.collection('sos').snapshots(),
+                stream: FirebaseFirestore.instance
+                    .collection('sos')
+                    // Add this snapshots() modifier to listen to real-time updates
+                    .snapshots(),
                 builder: (context, sosSnapshot) {
+                  // Clear any existing SOS markers before adding new ones
+                  // This ensures we don't have stale markers on the map
+                  markers.removeWhere((marker) => 
+                      marker.markerId.value.startsWith('sos_'));
+                  
                   // Add SOS markers to the existing markers list
                   if (sosSnapshot.hasData) {
                     String? currentUid = FirebaseAuth.instance.currentUser?.uid;
-                    // Inside your StreamBuilder for SOS markers
+                    
                     for (var doc in sosSnapshot.data!.docs) {
                       var data = doc.data() as Map<String, dynamic>;
 
@@ -422,12 +495,12 @@ class _HomePageState extends State<HomePage> {
 
                       if (lat == null || lon == null) continue;
 
-                      // Add SOS marker
+                      // Add SOS marker with the updated position
                       markers.add(
                         gmaps.Marker(
                           markerId: gmaps.MarkerId('sos_$userId'),
                           position: gmaps.LatLng(lat, lon),
-                          icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+                          icon: _sosMarkerIcon ?? gmaps.BitmapDescriptor.defaultMarkerWithHue(
                             gmaps.BitmapDescriptor.hueOrange,
                           ),
                           infoWindow: gmaps.InfoWindow(
@@ -440,11 +513,9 @@ class _HomePageState extends State<HomePage> {
                     }
                   }
 
-                  // Store updated markers in state
-                  _gMapMarkers = markers;
+                  // Force a rebuild of the map with updated markers
+                  _gMapMarkers = Set<gmaps.Marker>.from(markers);
 
-                  // Return Google Map instead of FlutterMap
-                  // Modify your StreamBuilder that returns the Google Map
                   return Consumer<ThemeProvider>(
                     builder: (context, themeProvider, child) {
                       // Update map style when theme changes
@@ -457,7 +528,7 @@ class _HomePageState extends State<HomePage> {
                           target: initialPosition,
                           zoom: 10,
                         ),
-                        markers: markers,
+                        markers: _gMapMarkers,
                         myLocationEnabled: true,
                         myLocationButtonEnabled: false,
                         zoomControlsEnabled: false,

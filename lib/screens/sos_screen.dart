@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:complaints_app/services/sos_service.dart';
+import 'dart:async';
 
 class SOSScreen extends StatefulWidget {
   const SOSScreen({super.key});
@@ -18,6 +19,12 @@ class _SOSScreenState extends State<SOSScreen> {
   bool _sosActive = false;
   late SOSService sosService;
 
+  StreamSubscription<Position>? _locationSubscription;
+  final LocationSettings _locationSettings = LocationSettings(
+    accuracy: LocationAccuracy.high,
+    distanceFilter: 10, // Update every 10 meters of movement
+  );
+
   @override
   void initState() {
     super.initState();
@@ -25,21 +32,67 @@ class _SOSScreenState extends State<SOSScreen> {
     _checkCurrentSOSStatus();
   }
 
+  @override
+  void dispose() {
+    _stopLocationUpdates();
+    super.dispose();
+  }
+
+  void _startLocationUpdates(String userId) {
+    // Cancel any existing subscription first
+    _stopLocationUpdates();
+    
+    // Start a new location subscription
+    _locationSubscription = Geolocator.getPositionStream(
+      locationSettings: _locationSettings
+    ).listen((Position position) async {
+      // Update Firestore with the new location
+      String? locationName = await _getLocationName(
+        position.latitude, 
+        position.longitude
+      );
+      
+      await FirebaseFirestore.instance
+          .collection('sos')
+          .doc(userId)
+          .update({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'location': locationName ?? 'Unknown Location',
+        'last_updated': DateTime.now().millisecondsSinceEpoch,
+      });
+    });
+  }
+
+  void _stopLocationUpdates() {
+    _locationSubscription?.cancel();
+    _locationSubscription = null;
+  }
+
+
   Future<void> _checkCurrentSOSStatus() async {
     try {
       User? user = FirebaseAuth.instance.currentUser;
       if (user != null) {
+        String userId = user.uid;
         DocumentSnapshot doc =
             await FirebaseFirestore.instance
                 .collection('sos')
-                .doc(user.uid)
+                .doc(userId)
                 .get();
 
         if (doc.exists) {
           Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          bool isActive = data['active'] ?? false;
+          
           setState(() {
-            _sosActive = data['active'] ?? false;
+            _sosActive = isActive;
           });
+          
+          // If SOS is active when opening the screen, restart location updates
+          if (isActive) {
+            _startLocationUpdates(userId);
+          }
         }
       }
     } catch (e) {
@@ -114,6 +167,7 @@ class _SOSScreenState extends State<SOSScreen> {
           "active": true,
           "timestamp": timestamp,
           "timestamp_ms": DateTime.now().millisecondsSinceEpoch,
+          "last_updated": DateTime.now().millisecondsSinceEpoch,
           "related_users": uids,
         };
 
@@ -121,6 +175,9 @@ class _SOSScreenState extends State<SOSScreen> {
             .collection('sos')
             .doc(userId)
             .set(formattedSOS);
+
+        // Start listening to location updates
+        _startLocationUpdates(userId);
 
         if (mounted) {
           ScaffoldMessenger.of(
@@ -132,6 +189,9 @@ class _SOSScreenState extends State<SOSScreen> {
         await FirebaseFirestore.instance.collection('sos').doc(userId).update({
           'active': false,
         });
+        
+        // Stop location updates
+        _stopLocationUpdates();
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
