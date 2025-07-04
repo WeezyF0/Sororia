@@ -816,23 +816,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Icon(icon, size: 24, color: Color(0xFFf88379)),
           const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: const TextStyle(fontSize: 12, color: Color(0xFFf88379)),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+          Expanded(
+            // ← This is the key fix
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFf88379),
+                  ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1, // ← Ensures single line
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1, // ← Ensures single line
+                ),
+              ],
+            ),
           ),
         ],
       ),
