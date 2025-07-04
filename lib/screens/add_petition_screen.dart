@@ -78,22 +78,37 @@ class AddPetitionScreen extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             TextField(
               controller: _titleController,
               decoration: const InputDecoration(labelText: "Petition Title"),
+              textAlign: TextAlign.center,
             ),
-            TextField(
-              controller: _descriptionController,
-              decoration: const InputDecoration(
-                labelText: "Petition Description",
+            const SizedBox(height: 16),
+            Expanded(
+              child: TextField(
+                controller: _descriptionController,
+                decoration: const InputDecoration(
+                  labelText: "Petition Description",
+                  hintText: "Describe your petition...",
+                  border: OutlineInputBorder(),
+                  floatingLabelAlignment: FloatingLabelAlignment.center,
+                  alignLabelWithHint: true,
+                ),
+                maxLines: null,
+                expands: true,
+                textAlign: TextAlign.center,
+                textAlignVertical: TextAlignVertical.top,
               ),
-              maxLines: 3,
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => _submitPetition(context),
-              child: const Text("Submit"),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: const Text("Submit", style: TextStyle(fontSize: 16)),
             ),
           ],
         ),
