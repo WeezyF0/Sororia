@@ -1727,6 +1727,10 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final screenSize = MediaQuery.of(context).size;
+    final isSmallScreen = screenSize.width < 360;
+    final padding = MediaQuery.of(context).padding;
+    
     return Scaffold(
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(80.0),
@@ -1747,35 +1751,28 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       drawer: const NavBar(),
       body: Stack(
         children: [
-          // Replace the entire StreamBuilder in your build method with this:
-          // Replace your current GoogleMap with this
+          // Map background
           Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
-              // Update map style when theme changes
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _updateMapStyle();
               });
 
               return gmaps.GoogleMap(
                 initialCameraPosition: gmaps.CameraPosition(
-                  target:
-                      _currentLocation != null
-                          ? gmaps.LatLng(
-                            _currentLocation!.latitude,
-                            _currentLocation!.longitude,
-                          )
-                          : gmaps.LatLng(
-                            20.5937,
-                            78.9629,
-                          ), // Default to India center
+                  target: _currentLocation != null
+                      ? gmaps.LatLng(
+                          _currentLocation!.latitude,
+                          _currentLocation!.longitude,
+                        )
+                      : gmaps.LatLng(20.5937, 78.9629), // Default to India center
                   zoom: 14.0,
                 ),
                 onMapCreated: (controller) {
                   _mapController = controller;
 
                   // Apply initial style based on theme
-                  final isDark =
-                      Theme.of(context).brightness == Brightness.dark;
+                  final isDark = Theme.of(context).brightness == Brightness.dark;
                   if (isDark) {
                     controller.setMapStyle(_darkMapStyle);
                   }
@@ -1800,22 +1797,10 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
               );
             },
           ),
-          // Travel Mode Selector
-          Positioned(
-            bottom: 90,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 20),
-                width: double.infinity,
-                child: _buildTravelModeSelector(),
-              ),
-            ),
-          ),
+
           // Search Bars
           Positioned(
-            top: 30,
+            top: 20,
             left: 20,
             right: 20,
             child: Column(
@@ -1827,10 +1812,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            isDark
-                                ? Colors.black12
-                                : Colors.grey.withOpacity(0.08),
+                        color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1840,16 +1822,15 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                     controller: _sourceSearchController,
                     focusNode: _sourceFocusNode,
                     enabled: !_isLoading,
-                    style: theme.textTheme.bodyLarge?.copyWith(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       fontFamily: 'Poppins',
                       color: theme.colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
-                      hintText:
-                          _useCurrentLocationAsSource
-                              ? "Current Location (tap to change)"
-                              : "Source Location",
-                      hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                      hintText: _useCurrentLocationAsSource
+                          ? "Current Location (tap to change)"
+                          : "Source Location",
+                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withOpacity(0.5),
                         fontFamily: 'Poppins',
                       ),
@@ -1867,22 +1848,33 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                               icon: const Icon(
                                 Icons.my_location,
                                 color: Colors.blue,
+                                size: 20,
                               ),
                               onPressed: _getCurrentLocation,
                               tooltip: "Use current location",
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
                             ),
                           IconButton(
                             icon: Icon(
                               Icons.search,
                               color: theme.colorScheme.primary,
+                              size: 20,
                             ),
-                            onPressed:
-                                _isLoading ? null : _searchSourceLocation,
+                            onPressed: _isLoading ? null : _searchSourceLocation,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
                           ),
                         ],
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                        vertical: 16,
+                        vertical: 14,
                         horizontal: 8,
                       ),
                     ),
@@ -1903,10 +1895,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color:
-                            isDark
-                                ? Colors.black12
-                                : Colors.grey.withOpacity(0.08),
+                        color: isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -1916,13 +1905,13 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                     controller: _destSearchController,
                     focusNode: _destFocusNode,
                     enabled: !_isLoading,
-                    style: theme.textTheme.bodyLarge?.copyWith(
+                    style: theme.textTheme.bodyMedium?.copyWith(
                       fontFamily: 'Poppins',
                       color: theme.colorScheme.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: "Search for a destination...",
-                      hintStyle: theme.textTheme.bodyLarge?.copyWith(
+                      hintStyle: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withOpacity(0.5),
                         fontFamily: 'Poppins',
                       ),
@@ -1937,22 +1926,36 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                         children: [
                           if (_isRouteVisible)
                             IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.red),
+                              icon: const Icon(
+                                Icons.clear, 
+                                color: Colors.red,
+                                size: 20,
+                              ),
                               onPressed: _clearRoute,
                               tooltip: "Clear route",
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
                             ),
                           IconButton(
                             icon: Icon(
                               Icons.search,
                               color: theme.colorScheme.primary,
+                              size: 20,
                             ),
-                            onPressed:
-                                _isLoading ? null : _searchDestinationLocation,
+                            onPressed: _isLoading ? null : _searchDestinationLocation,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(
+                              minWidth: 36,
+                              minHeight: 36,
+                            ),
                           ),
                         ],
                       ),
                       contentPadding: const EdgeInsets.symmetric(
-                        vertical: 16,
+                        vertical: 14,
                         horizontal: 8,
                       ),
                     ),
@@ -1961,180 +1964,448 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
               ],
             ),
           ),
-          // Marker Filter Panel
+
+          // Control Panels - Now stacked vertically to prevent overlap
           Positioned(
-            top: 180,
+            top: 160,
             left: 20,
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color:
-                        isDark ? Colors.black12 : Colors.grey.withOpacity(0.08),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Marker Filter Panel
+                Container(
+                  width: isSmallScreen ? screenSize.width - 40 : 160,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark ? Colors.black26 : Colors.black.withOpacity(0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    "Show Markers",
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontFamily: 'Poppins',
-                      color: theme.colorScheme.primary,
-                    ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        "SHOW MARKERS",
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      _buildModernMarkerToggle(
+                        "News",
+                        CupertinoIcons.exclamationmark_shield_fill,
+                        Colors.blue,
+                        _showNews,
+                        (value) {
+                          setState(() => _showNews = value);
+                          _refreshMarkers();
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      _buildModernMarkerToggle(
+                        "NGOs",
+                        Icons.volunteer_activism,
+                        Colors.orange,
+                        _showNGOs,
+                        (value) {
+                          setState(() => _showNGOs = value);
+                          _refreshMarkers();
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      _buildModernMarkerToggle(
+                        "Police",
+                        Icons.local_police,
+                        Colors.red,
+                        _showPoliceStations,
+                        (value) {
+                          setState(() => _showPoliceStations = value);
+                          _refreshMarkers();
+                        },
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  _buildMarkerToggle(
-                    "News",
-                    CupertinoIcons.exclamationmark_shield_fill,
-                    Colors.blue,
-                    _showNews,
-                    (value) {
-                      setState(() => _showNews = value);
-                      _refreshMarkers();
-                    },
-                  ),
-                  _buildMarkerToggle(
-                    "NGOs",
-                    Icons.volunteer_activism,
-                    Colors.orange,
-                    _showNGOs,
-                    (value) {
-                      setState(() => _showNGOs = value);
-                      _refreshMarkers();
-                    },
-                  ),
-                  _buildMarkerToggle(
-                    "Police",
-                    Icons.local_police,
-                    Colors.red,
-                    _showPoliceStations,
-                    (value) {
-                      setState(() => _showPoliceStations = value);
-                      _refreshMarkers();
-                    },
-                  ),
-                ],
+                ),
+              ],
+            ),
+          ),
+
+          // Travel Mode Selector
+          if (_isRouteVisible && _routeDistances.isNotEmpty)
+            _buildGoogleStyleTravelModeSelector(theme, isDark, padding)
+          else
+            _buildSimpleTravelModeSelector(theme, isDark, padding),
+
+          // Current Location Button
+          Positioned(
+            bottom: 100,
+            right: 16,
+            child: FloatingActionButton.small(
+              heroTag: "locationBtn",
+              onPressed: _getCurrentLocation,
+              backgroundColor: theme.colorScheme.surface,
+              elevation: 4,
+              child: Icon(
+                Icons.my_location, 
+                color: theme.colorScheme.primary,
               ),
             ),
           ),
-          // Route Information Panel
-          if (_isRouteVisible && _routeDistances.isNotEmpty)
-            Positioned(
-              top: 180,
-              right: 20,
+          
+          // Loading Indicator
+          if (_isLoading)
+            Container(
+              color: Colors.black45,
+              alignment: Alignment.center,
               child: Container(
-                width: 220,
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surface,
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color:
-                          isDark
-                              ? Colors.black12
-                              : Colors.grey.withOpacity(0.08),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(theme.colorScheme.primary),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      "Finding the safest route...",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        color: theme.colorScheme.onSurface,
+                      ),
                     ),
                   ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+    // Google Maps style travel mode selector with route info
+  Widget _buildGoogleStyleTravelModeSelector(ThemeData theme, bool isDark, EdgeInsets padding) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: EdgeInsets.only(
+          bottom: padding.bottom > 0 ? padding.bottom : 8,
+          top: 0,
+        ),
+        color: Colors.transparent,
+        child: Container(
+          height: 90,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black26 : Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: TravelModeInfo.allModes.map((modeInfo) {
+              final isSelected = _selectedTravelMode == modeInfo.mode;
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedTravelMode = modeInfo.mode;
+                    });
+                    if (_isRouteVisible) {
+                      _drawBestRoute();
+                    }
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary.withOpacity(0.15) : Colors.transparent,
+                      border: Border(
+                        top: BorderSide(
+                          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.route, color: Colors.green, size: 22),
-                        const SizedBox(width: 8),
+                        Icon(
+                          modeInfo.icon,
+                          color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                          size: 22,
+                        ),
+                        const SizedBox(height: 4),
                         Text(
-                          "Best Route",
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          modeInfo.name,
+                          style: TextStyle(
+                            fontSize: 11,
                             fontFamily: 'Poppins',
-                            color: Colors.green[700],
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                          ),
+                        ),
+
+                        if (isSelected && _routeDistances.isNotEmpty)
+                          Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Distance and duration row
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      "${_formatDistance(_routeDistances[_bestRouteIndex])} · ",
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontFamily: 'Poppins',
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                    Text(
+                                      _formatDuration(_routeDurations[_bestRouteIndex]),
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontFamily: 'Poppins',
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              
+                              // Safety score row
+                              Container(
+                                margin: const EdgeInsets.only(top: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: _getSafetyColor(_routeSafetyScores[_bestRouteIndex]).withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.shield, 
+                                      size: 8, 
+                                      color: _getSafetyColor(_routeSafetyScores[_bestRouteIndex]),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      "Safety: ${_formatSafetyScore(_routeSafetyScores[_bestRouteIndex])}",
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Poppins',
+                                        color: _getSafetyColor(_routeSafetyScores[_bestRouteIndex]),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                                              ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Add this method to your _SafestRoutePageState class
+
+  Color _getSafetyColor(double safetyScore) {
+    if (safetyScore < 300) {
+      return Colors.red;
+    } else if (safetyScore < 600) {
+      return Colors.orange;
+    } else {
+      return Colors.green;
+    }
+  }
+
+  // Simple travel mode selector when no route is active
+  Widget _buildSimpleTravelModeSelector(ThemeData theme, bool isDark, EdgeInsets padding) {
+    return Positioned(
+      bottom: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        padding: EdgeInsets.only(
+          bottom: padding.bottom > 0 ? padding.bottom : 8,
+          top: 0,
+        ),
+        color: Colors.transparent,
+        child: Container(
+          height: 60,
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: isDark ? Colors.black26 : Colors.black.withOpacity(0.1),
+                blurRadius: 8,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: TravelModeInfo.allModes.map((modeInfo) {
+              final isSelected = _selectedTravelMode == modeInfo.mode;
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      _selectedTravelMode = modeInfo.mode;
+                    });
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: isSelected ? theme.colorScheme.primary.withOpacity(0.15) : Colors.transparent,
+                      border: Border(
+                        top: BorderSide(
+                          color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                          width: 3,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          modeInfo.icon,
+                          color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                          size: 22,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          modeInfo.name,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontFamily: 'Poppins',
+                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            color: isSelected ? theme.colorScheme.primary : Colors.grey,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      "Distance: ${_formatDistance(_routeDistances[_bestRouteIndex])}",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontFamily: 'Poppins',
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      "Duration: ${_formatDuration(_routeDurations[_bestRouteIndex])}",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontFamily: 'Poppins',
-                        color: theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    Text(
-                      "Safety: ${_formatSafetyScore(_routeSafetyScores[_bestRouteIndex])}",
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontFamily: 'Poppins',
-                        color: Colors.orange[700],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        final src =
-                            _useCurrentLocationAsSource
-                                ? _currentLocation
-                                : _sourceLocation;
-                        final dest = _destinationLocation;
-                        if (src != null && dest != null) {
-                          await _openMapsDirections(
-                            src.latitude,
-                            src.longitude,
-                            dest.latitude,
-                            dest.longitude,
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.open_in_new, size: 18),
-                      label: const Text("Open in Google Maps"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        textStyle: theme.textTheme.bodyMedium?.copyWith(
-                          fontFamily: 'Poppins',
-                          fontWeight: FontWeight.w600,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-          // Current Location Button
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: FloatingActionButton(
-              onPressed: _getCurrentLocation,
-              backgroundColor: Colors.white,
-              child: const Icon(Icons.my_location, color: Colors.blue),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Safety indicator for Google Maps style selector
+  Widget _buildSafetyPill(BuildContext context, double safetyScore) {
+    final theme = Theme.of(context);
+    
+    // Convert safety score to percentage
+    final safetyText = _formatSafetyScore(_routeSafetyScores[_bestRouteIndex]);
+    
+    // Determine color based on safety level
+    Color safetyColor;
+    if (safetyScore < 300) {
+      safetyColor = Colors.red;
+    } else if (safetyScore < 600) {
+      safetyColor = Colors.orange;
+    } else {
+      safetyColor = Colors.green;
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: safetyColor.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: safetyColor, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.shield, size: 10, color: safetyColor),
+          const SizedBox(width: 2),
+          Text(
+            safetyText,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: safetyColor,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildModernMarkerToggle(
+    String label,
+    IconData icon,
+    Color color,
+    bool value,
+    Function(bool) onChanged,
+  ) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 14),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(
+              fontSize: 13,
+              fontFamily: 'Poppins',
+            ),
+          ),
+        ),
+        Switch.adaptive(
+          value: value,
+          onChanged: onChanged,
+          activeColor: color,
+          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
+      ],
     );
   }
 }

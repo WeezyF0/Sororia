@@ -598,11 +598,19 @@ class _HomePageState extends State<HomePage> {
             ),
             _buildOptionTile(
               context,
-              "Local News",
-              Icons.newspaper_outlined,
-              Colors.purple,
-              '/news',
+              "Find Safest Route",
+              CupertinoIcons.arrow_branch,
+              Colors.green,
+              '/safest_route',
             ),
+            _buildOptionTile(
+              context,
+              "Alert with SOS",
+              CupertinoIcons.exclamationmark_triangle_fill,
+              Colors.green,
+              '/sos',
+            ),
+
           ],
         ),
       ),

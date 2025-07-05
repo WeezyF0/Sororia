@@ -14,6 +14,8 @@ class _ChatScreenState extends State<ChatScreen> {
   late final ChatService _chatService;
   final TextEditingController _controller = TextEditingController();
   final FocusNode _textFieldFocus = FocusNode();
+  final ScrollController _scrollController =
+      ScrollController(); // Add scroll controller
   List<Map<String, dynamic>> chatMessages = [];
   bool isLoading = false;
 
@@ -21,12 +23,39 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _chatService = ChatService(widget.compInfo);
+
+    // Add a more engaging greeting message from the bot when the chat starts
+    if (chatMessages.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        setState(() {
+          chatMessages.add({
+            "text":
+                "👋 Hi there! I'm SororiAI. How can I assist you today? Feel free to ask me anything or share your concerns.",
+            "isUser": false,
+          });
+        });
+        _scrollToBottom();
+      });
+    }
+  }
+
+  void _scrollToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
     _textFieldFocus.dispose();
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -39,8 +68,7 @@ class _ChatScreenState extends State<ChatScreen> {
       isLoading = true;
       _controller.clear();
     });
-
-    // Keep focus after sending - request focus explicitly
+    _scrollToBottom();
     _textFieldFocus.requestFocus();
 
     String botResponse = await _chatService.getChatResponse(userMessage);
@@ -50,8 +78,7 @@ class _ChatScreenState extends State<ChatScreen> {
         chatMessages.add({"text": botResponse, "isUser": false});
         isLoading = false;
       });
-
-      // Request focus again after response
+      _scrollToBottom();
       _textFieldFocus.requestFocus();
     }
   }
@@ -59,10 +86,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // Add this GestureDetector to prevent keyboard dismissal when tapping outside
-      onTap: () {
-        // Do nothing - prevent unfocus behavior
-      },
+      onTap: () {},
       child: Scaffold(
         appBar: PreferredSize(
           preferredSize: Size.fromHeight(80.0),
@@ -94,6 +118,8 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             Expanded(
               child: ListView.builder(
+                controller: _scrollController,
+                reverse: true, // WhatsApp style
                 padding: const EdgeInsets.symmetric(
                   vertical: 10,
                   horizontal: 2,
@@ -102,17 +128,37 @@ class _ChatScreenState extends State<ChatScreen> {
                 keyboardDismissBehavior:
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 itemBuilder: (context, index) {
-                  if (index == chatMessages.length && isLoading) {
+                  if (isLoading && index == 0) {
+                    // Only the topmost (latest) bubble shows loading
                     return const ChatBubble(
                       text: "",
                       isUser: false,
                       isLoading: true,
                     );
                   }
-                  final message = chatMessages[index];
+                  int reversedIndex =
+                      chatMessages.length - 1 - (isLoading ? index - 1 : index);
+                  if (isLoading) {
+                    reversedIndex = chatMessages.length - index;
+                  } else {
+                    reversedIndex = chatMessages.length - 1 - index;
+                  }
+                  if (reversedIndex < 0 ||
+                      reversedIndex >= chatMessages.length) {
+                    return const SizedBox.shrink();
+                  }
+                  final message = chatMessages[reversedIndex];
+                  // Animate text only for the latest bot message (not loading)
+                  bool isLatestBot =
+                      !isLoading &&
+                      !message["isUser"] &&
+                      reversedIndex ==
+                          chatMessages.lastIndexWhere((m) => !m["isUser"]);
                   return ChatBubble(
                     text: message["text"],
                     isUser: message["isUser"],
+                    isLoading: false, // Always false for normal chat bubbles
+                    animateText: isLatestBot,
                   );
                 },
               ),

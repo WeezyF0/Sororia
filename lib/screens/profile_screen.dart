@@ -73,22 +73,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _editContact(int index) async {
+    final contact = emergencyContacts[index];
+    final bool isEmailContact = contact['contactType'] == 'email' || contact['contactType'] == null;
+    
     final TextEditingController nameController = TextEditingController(
-      text: emergencyContacts[index]['name'],
+      text: contact['name'],
     );
 
     await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              "Edit Contact Name",
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
+      builder: (context) => AlertDialog(
+        title: Text(
+          "Edit Contact Name",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Show contact type
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                children: [
+                  Icon(
+                    isEmailContact ? Icons.email : Icons.phone,
+                    size: 18,
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      isEmailContact 
+                          ? contact['email'] ?? 'Unknown email'
+                          : "+91 ${contact['phone'] ?? 'Unknown number'}",
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
-            content: TextField(
+            TextField(
               controller: nameController,
               decoration: InputDecoration(
                 labelText: "Display Name",
@@ -98,67 +129,72 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  "Cancel",
-                  style: TextStyle(color: Color(0xFFf88379)),
-                ),
-              ),
-              TextButton(
-                onPressed: () async {
-                  if (nameController.text.isEmpty) return;
-
-                  final user = _auth.currentUser;
-                  if (user == null) return;
-
-                  try {
-                    await _firestore.runTransaction((transaction) async {
-                      final userDoc = await transaction.get(
-                        _firestore.collection('users').doc(user.uid),
-                      );
-                      final currentContacts = List<Map<String, dynamic>>.from(
-                        userDoc.data()?['e_contacts'] ?? [],
-                      );
-
-                      final updatedContact = Map<String, dynamic>.from(
-                        emergencyContacts[index],
-                      );
-                      updatedContact['name'] = nameController.text;
-
-                      // Remove old contact and add updated one
-                      currentContacts.removeWhere(
-                        (c) => c['email'] == emergencyContacts[index]['email'],
-                      );
-                      currentContacts.add(updatedContact);
-
-                      transaction.update(userDoc.reference, {
-                        'e_contacts': currentContacts,
-                      });
-                    });
-
-                    setState(() {
-                      emergencyContacts[index]['name'] = nameController.text;
-                    });
-
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Error updating contact")),
-                    );
-                  }
-                },
-                child: Text(
-                  "Save",
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              "Cancel",
+              style: TextStyle(color: Color(0xFFf88379)),
+            ),
           ),
+          TextButton(
+            onPressed: () async {
+              if (nameController.text.isEmpty) return;
+
+              final user = _auth.currentUser;
+              if (user == null) return;
+
+              try {
+                await _firestore.runTransaction((transaction) async {
+                  final userDoc = await transaction.get(
+                    _firestore.collection('users').doc(user.uid),
+                  );
+                  final currentContacts = List<Map<String, dynamic>>.from(
+                    userDoc.data()?['e_contacts'] ?? [],
+                  );
+
+                  // Create updated contact with the new name
+                  final updatedContact = Map<String, dynamic>.from(contact);
+                  updatedContact['name'] = nameController.text;
+
+                  // Find index to replace
+                  final indexToReplace = currentContacts.indexWhere(
+                    (c) => isEmailContact 
+                      ? (c['email'] == contact['email'])
+                      : (c['phone'] == contact['phone'])
+                  );
+                  
+                  if (indexToReplace >= 0) {
+                    currentContacts[indexToReplace] = updatedContact;
+                    transaction.update(userDoc.reference, {
+                      'e_contacts': currentContacts,
+                    });
+                  }
+                });
+
+                setState(() {
+                  emergencyContacts[index]['name'] = nameController.text;
+                });
+
+                Navigator.pop(context);
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text("Error updating contact")),
+                );
+              }
+            },
+            child: Text(
+              "Save",
+              style: TextStyle(
+                color: Theme.of(context).primaryColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -186,33 +222,129 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (user == null) return;
 
     final TextEditingController emailController = TextEditingController();
+    final TextEditingController phoneController = TextEditingController();
     final TextEditingController nameController = TextEditingController();
+    
+    // Track which contact type is selected (email or phone)
+    bool useEmail = true;
 
     await showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: Text(
-              "Add Emergency Contact",
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.onSurface,
-              ),
+      builder: (context) => StatefulBuilder( // Use StatefulBuilder to update dialog state
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(
+            "Add Emergency Contact",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface,
             ),
-            content: Column(
+          ),
+          content: SingleChildScrollView( // To prevent overflow
+            child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: emailController,
-                  decoration: InputDecoration(
-                    labelText: "User Email",
-                    hintText: "Enter user's email",
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                // Toggle between email and phone
+                Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setDialogState(() => useEmail = true);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: useEmail 
+                              ? Theme.of(context).primaryColor.withOpacity(0.2)
+                              : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: useEmail 
+                                ? Theme.of(context).primaryColor 
+                                : Colors.grey.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Email",
+                              style: TextStyle(
+                                fontWeight: useEmail ? FontWeight.bold : FontWeight.normal,
+                                color: useEmail 
+                                  ? Theme.of(context).primaryColor 
+                                  : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          setDialogState(() => useEmail = false);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          decoration: BoxDecoration(
+                            color: !useEmail 
+                              ? Theme.of(context).primaryColor.withOpacity(0.2) 
+                              : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: !useEmail 
+                                ? Theme.of(context).primaryColor 
+                                : Colors.grey.withOpacity(0.3),
+                            ),
+                          ),
+                          child: Center(
+                            child: Text(
+                              "Phone",
+                              style: TextStyle(
+                                fontWeight: !useEmail ? FontWeight.bold : FontWeight.normal,
+                                color: !useEmail 
+                                  ? Theme.of(context).primaryColor 
+                                  : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Show either email or phone input based on selection
+                if (useEmail)
+                  TextField(
+                    controller: emailController,
+                    decoration: InputDecoration(
+                      labelText: "User Email",
+                      hintText: "Enter user's email",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  )
+                else
+                  TextField(
+                    controller: phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: "User Phone",
+                      hintText: "Enter 10-digit number",
+                      prefixText: "+91 ",
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 10),
+                  
+                const SizedBox(height: 16),
+                
                 TextField(
                   controller: nameController,
                   decoration: InputDecoration(
@@ -225,93 +357,124 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text(
-                  "Cancel",
-                  style: TextStyle(color: Color(0xFFf88379)),
-                ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "Cancel",
+                style: TextStyle(color: Color(0xFFf88379)),
               ),
-              TextButton(
-                onPressed: () async {
-                  if (emailController.text.isEmpty) return;
+            ),
+            TextButton(
+              onPressed: () async {
+                if (useEmail && emailController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Please enter an email address"))
+                  );
+                  return;
+                }
+                
+                if (!useEmail && phoneController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Please enter a phone number"))
+                  );
+                  return;
+                }
+                
+                if (!useEmail && (phoneController.text.trim().length != 10 || 
+                    !RegExp(r'^[0-9]+$').hasMatch(phoneController.text.trim()))) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Please enter a valid 10-digit phone number"))
+                  );
+                  return;
+                }
+                
+                try {
+                  QuerySnapshot query;
+                  
+                  if (useEmail) {
+                    // Search by email (existing functionality)
+                    query = await _firestore
+                      .collection('users')
+                      .where('email', isEqualTo: emailController.text)
+                      .limit(1)
+                      .get();
+                  } else {
+                    // Search by phone number (new functionality)
+                    query = await _firestore
+                      .collection('users')
+                      .where('phone_no', isEqualTo: phoneController.text.trim())
+                      .limit(1)
+                      .get();
+                  }
 
-                  try {
-                    final query =
-                        await _firestore
-                            .collection('users')
-                            .where('email', isEqualTo: emailController.text)
-                            .limit(1)
-                            .get();
+                  if (query.docs.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("User not found"))
+                    );
+                    return;
+                  }
 
-                    if (query.docs.isEmpty) {
-                      ScaffoldMessenger.of(
-                        context,
-                      ).showSnackBar(SnackBar(content: Text("User not found")));
+                  // Create contact object with a contactType field to distinguish between email/phone
+                  final newContact = {
+                    'contactType': useEmail ? 'email' : 'phone',
+                    'email': useEmail ? emailController.text : null,
+                    'phone': !useEmail ? phoneController.text.trim() : null,
+                    'name': nameController.text.isNotEmpty
+                        ? nameController.text
+                        : useEmail 
+                            ? emailController.text.split('@')[0]
+                            : "Contact ${phoneController.text.trim().substring(6)}", // Last 4 digits
+                    'userId': query.docs.first.id,
+                    'addedAt': DateTime.now().toIso8601String(),
+                  };
+
+                  // Use transaction to ensure atomic update
+                  await _firestore.runTransaction((transaction) async {
+                    final userDoc = await transaction.get(
+                      _firestore.collection('users').doc(user.uid),
+                    );
+                    final currentContacts = List<Map<String, dynamic>>.from(
+                      userDoc.data()?['e_contacts'] ?? [],
+                    );
+
+                    // Check if contact already exists by userId
+                    if (currentContacts.any((c) => c['userId'] == query.docs.first.id)) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("This contact already exists"))
+                      );
                       return;
                     }
 
-                    final newContact = {
-                      'email': emailController.text,
-                      'name':
-                          nameController.text.isNotEmpty
-                              ? nameController.text
-                              : emailController.text.split('@')[0],
-                      'userId': query.docs.first.id,
-                      'addedAt':
-                          DateTime.now()
-                              .toIso8601String(), // Changed to regular timestamp
-                    };
-
-                    // Use transaction to ensure atomic update
-                    await _firestore.runTransaction((transaction) async {
-                      final userDoc = await transaction.get(
-                        _firestore.collection('users').doc(user.uid),
-                      );
-                      final currentContacts = List<Map<String, dynamic>>.from(
-                        userDoc.data()?['e_contacts'] ?? [],
-                      );
-
-                      // Check if contact already exists
-                      if (currentContacts.any(
-                        (c) => c['email'] == emailController.text,
-                      )) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Contact already exists")),
-                        );
-                        return;
-                      }
-
-                      currentContacts.add(newContact);
-                      transaction.update(userDoc.reference, {
-                        'e_contacts': currentContacts,
-                      });
+                    currentContacts.add(newContact);
+                    transaction.update(userDoc.reference, {
+                      'e_contacts': currentContacts,
                     });
+                  });
 
-                    setState(() {
-                      emergencyContacts.add(newContact);
-                    });
+                  setState(() {
+                    emergencyContacts.add(newContact);
+                  });
 
-                    Navigator.pop(context);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Error adding contact: ${e.toString()}"),
-                      ),
-                    );
-                  }
-                },
-                child: Text(
-                  "Add",
-                  style: TextStyle(
-                    color: Theme.of(context).primaryColor,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  Navigator.pop(context);
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error adding contact: ${e.toString()}")),
+                  );
+                }
+              },
+              child: Text(
+                "Add",
+                style: TextStyle(
+                  color: Theme.of(context).primaryColor,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -713,71 +876,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               )
                             else
                               ...emergencyContacts.asMap().entries.map((entry) {
-                                final index = entry.key;
-                                final contact = entry.value;
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: textSecondary.withOpacity(0.2),
-                                      width: 1,
+                              final index = entry.key;
+                              final contact = entry.value;
+                              final bool isEmailContact = contact['contactType'] == 'email' || contact['contactType'] == null; // Null check for backward compatibility
+                              
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: textSecondary.withOpacity(0.2),
+                                    width: 1,
+                                  ),
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  leading: CircleAvatar(
+                                    backgroundColor: primaryColor.withOpacity(0.2),
+                                    child: Icon(
+                                      isEmailContact ? Icons.email : Icons.phone,
+                                      color: primaryColor,
+                                      size: 18,
                                     ),
                                   ),
-                                  child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 8,
+                                  title: Text(
+                                    contact['name'],
+                                    style: theme.textTheme.bodyLarge?.copyWith(
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    leading: CircleAvatar(
-                                      backgroundColor: primaryColor.withOpacity(
-                                        0.2,
-                                      ),
-                                      child: Text(
-                                        contact['name'][0].toUpperCase(),
-                                        style: TextStyle(
+                                  ),
+                                  subtitle: Text(
+                                    isEmailContact 
+                                      ? contact['email'] ?? 'Unknown email'
+                                      : "+91 ${contact['phone'] ?? 'Unknown number'}",
+                                    style: theme.textTheme.bodySmall?.copyWith(color: textSecondary),
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.edit,
+                                          size: 20,
                                           color: primaryColor,
-                                          fontWeight: FontWeight.bold,
                                         ),
+                                        onPressed: () => _editContact(index),
                                       ),
-                                    ),
-                                    title: Text(
-                                      contact['name'],
-                                      style: theme.textTheme.bodyLarge
-                                          ?.copyWith(
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                    ),
-                                    subtitle: Text(
-                                      contact['email'],
-                                      style: theme.textTheme.bodySmall
-                                          ?.copyWith(color: textSecondary),
-                                    ),
-                                    trailing: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        IconButton(
-                                          icon: Icon(
-                                            Icons.edit,
-                                            size: 20,
-                                            color: primaryColor,
-                                          ),
-                                          onPressed: () => _editContact(index),
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.delete,
+                                          size: 20,
+                                          color: Colors.red,
                                         ),
-                                        IconButton(
-                                          icon: const Icon(
-                                            Icons.delete,
-                                            size: 20,
-                                            color: Colors.red,
-                                          ),
-                                          onPressed:
-                                              () => _deleteContact(index),
-                                        ),
-                                      ],
-                                    ),
+                                        onPressed: () => _deleteContact(index),
+                                      ),
+                                    ],
                                   ),
-                                );
-                              }).toList(),
+                                ),
+                              );
+                            }).toList(),
                             const SizedBox(height: 8),
                             ElevatedButton.icon(
                               icon: const Icon(Icons.add, size: 20),

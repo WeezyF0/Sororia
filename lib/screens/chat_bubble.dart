@@ -8,12 +8,14 @@ class ChatBubble extends StatefulWidget {
   final String text;
   final bool isUser;
   final bool isLoading;
+  final bool animateText;
 
   const ChatBubble({
     super.key,
     required this.text,
     required this.isUser,
     this.isLoading = false,
+    this.animateText = false,
   });
 
   @override
@@ -21,78 +23,123 @@ class ChatBubble extends StatefulWidget {
 }
 
 class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
-  late List<AnimationController> _controllers;
-  late List<Animation<double>> _animations;
-  Timer? _colorTimer;
-  int _activeDot = 0;
+  List<AnimationController>? _controllers;
+  List<Animation<Offset>>? _offsetAnimations;
+  String _animatedText = "";
+  int _textIndex = 0;
+  Timer? _typingTimer;
+
+  void _startLoadingAnimation() {
+    _controllers = List.generate(
+      3,
+      (index) => AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: 600),
+      )..repeat(reverse: true),
+    );
+    _offsetAnimations = List.generate(3, (index) {
+      final start = index * 0.15;
+      final end = start + 0.7;
+      return Tween<Offset>(begin: Offset(0, 0.3), end: Offset(0, -0.3)).animate(
+        CurvedAnimation(
+          parent: _controllers![index],
+          curve: Interval(start, end, curve: Curves.easeInOut),
+        ),
+      );
+    });
+  }
+
+  void _disposeLoadingAnimation() {
+    if (_controllers != null) {
+      for (var controller in _controllers!) {
+        controller.dispose();
+      }
+      _controllers = null;
+      _offsetAnimations = null;
+    }
+  }
+
+  void _startTypingAnimation() {
+    _animatedText = "";
+    _textIndex = 0;
+    _typingTimer = Timer.periodic(const Duration(milliseconds: 18), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _textIndex++;
+        if (_textIndex > widget.text.length) {
+          timer.cancel();
+          _animatedText = widget.text;
+        } else {
+          _animatedText = widget.text.substring(0, _textIndex);
+        }
+      });
+    });
+  }
+
+  void _disposeTypingAnimation() {
+    _typingTimer?.cancel();
+  }
 
   @override
   void initState() {
     super.initState();
-
     if (widget.isLoading) {
-      _controllers = List.generate(
-        3,
-        (index) => AnimationController(
-          vsync: this,
-          duration: Duration(milliseconds: 500),
-        )..repeat(reverse: true),
-      );
+      _startLoadingAnimation();
+    } else if (!widget.isUser && widget.text.isNotEmpty && widget.animateText) {
+      _startTypingAnimation();
+    } else {
+      _animatedText = widget.text;
+    }
+  }
 
-      _animations =
-          _controllers.map((controller) {
-            return Tween<double>(begin: 6.0, end: 10.0).animate(
-              CurvedAnimation(parent: controller, curve: Curves.easeInOut),
-            );
-          }).toList();
-
-      // Change the active dot every 300ms in sequence
-      _colorTimer = Timer.periodic(Duration(milliseconds: 300), (timer) {
-        if (!mounted) {
-          timer.cancel();
-          return;
-        }
-        setState(() {
-          _activeDot = (_activeDot + 1) % 3;
-        });
-      });
+  @override
+  void didUpdateWidget(covariant ChatBubble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Clean up old animations
+    _disposeLoadingAnimation();
+    _disposeTypingAnimation();
+    if (widget.isLoading) {
+      _startLoadingAnimation();
+    } else if (!widget.isUser && widget.text.isNotEmpty && widget.animateText) {
+      _startTypingAnimation();
+    } else {
+      _animatedText = widget.text;
     }
   }
 
   @override
   void dispose() {
-    if (widget.isLoading) {
-      _colorTimer?.cancel();
-      for (var controller in _controllers) {
-        controller.dispose();
-      }
-    }
+    _disposeLoadingAnimation();
+    _disposeTypingAnimation();
     super.dispose();
   }
 
   Widget _buildWobblingDots() {
+    if (_offsetAnimations == null) return SizedBox.shrink();
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(3, (index) {
-        return AnimatedBuilder(
-          animation: _animations[index],
-          builder: (context, child) {
-            return Container(
-              margin: EdgeInsets.symmetric(horizontal: 3),
-              width: _animations[index].value,
-              height: _animations[index].value,
-              decoration: BoxDecoration(
-                color: index == _activeDot ? Colors.black : Colors.grey[600],
-                shape: BoxShape.circle,
-              ),
-            );
-          },
+        return SlideTransition(
+          position: _offsetAnimations![index],
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 3),
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(
+              color: Colors.grey[700],
+              shape: BoxShape.circle,
+            ),
+          ),
         );
       }),
     );
   }
 
   Widget _buildMarkdownText(String text) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return MarkdownBody(
       data: text,
       selectable: true,
@@ -107,7 +154,7 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
         }
       },
       styleSheet: MarkdownStyleSheet(
-        p: TextStyle(color: Colors.black, fontSize: 15),
+        p: TextStyle(color: isDark ? Colors.white : Colors.black, fontSize: 15),
         a: TextStyle(
           color: Colors.blue,
           fontWeight: FontWeight.bold,
@@ -203,11 +250,13 @@ class _ChatBubbleState extends State<ChatBubble> with TickerProviderStateMixin {
                   : Border.all(color: Colors.grey[300]!, width: 1),
         ),
         child:
-            widget.isLoading
+            (widget.text.isEmpty && widget.isLoading)
+                ? const SizedBox.shrink() // Prevents red screen if text is empty and loading
+                : widget.isLoading
                 ? _buildWobblingDots()
-                : widget.text.contains("http")
-                ? _buildRichTextWithLinks(widget.text)
-                : _buildMarkdownText(widget.text),
+                : widget.isUser
+                ? _buildMarkdownText(widget.text)
+                : _buildMarkdownText(_animatedText),
       ),
     );
   }
