@@ -1,12 +1,14 @@
 import 'package:complaints_app/screens/navbar.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:complaints_app/theme/theme_provider.dart';
+import 'package:provider/provider.dart';
 
 class NewsMapScreen extends StatefulWidget {
   const NewsMapScreen({super.key});
@@ -17,14 +19,204 @@ class NewsMapScreen extends StatefulWidget {
 
 class _NewsMapScreenState extends State<NewsMapScreen> {
   final TextEditingController _searchController = TextEditingController();
-  final MapController _mapController = MapController();
   final FocusNode _searchFocusNode = FocusNode();
+  
+  // Google Maps controller
+  gmaps.GoogleMapController? _mapController;
+  Set<gmaps.Marker> _markers = {};
+  
+  // Dark mode map style
+  static const String _darkMapStyle = '''
+  [
+    {
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#212121"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.icon",
+      "stylers": [
+        {
+          "visibility": "off"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "elementType": "labels.text.stroke",
+      "stylers": [
+        {
+          "color": "#212121"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.country",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#9e9e9e"
+        }
+      ]
+    },
+    {
+      "featureType": "administrative.locality",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#bdbdbd"
+        }
+      ]
+    },
+    {
+      "featureType": "poi",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#181818"
+        }
+      ]
+    },
+    {
+      "featureType": "poi.park",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#616161"
+        }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "geometry.fill",
+      "stylers": [
+        {
+          "color": "#2c2c2c"
+        }
+      ]
+    },
+    {
+      "featureType": "road",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#8a8a8a"
+        }
+      ]
+    },
+    {
+      "featureType": "road.arterial",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#373737"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#3c3c3c"
+        }
+      ]
+    },
+    {
+      "featureType": "road.highway.controlled_access",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#4e4e4e"
+        }
+      ]
+    },
+    {
+      "featureType": "road.local",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#616161"
+        }
+      ]
+    },
+    {
+      "featureType": "transit",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#757575"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "geometry",
+      "stylers": [
+        {
+          "color": "#000000"
+        }
+      ]
+    },
+    {
+      "featureType": "water",
+      "elementType": "labels.text.fill",
+      "stylers": [
+        {
+          "color": "#3d3d3d"
+        }
+      ]
+    }
+  ]
+  ''';
 
   @override
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
+    _mapController?.dispose();
     super.dispose();
+  }
+
+  // Update map style based on current theme
+  void _updateMapStyle() {
+    if (_mapController == null) return;
+
+    final isDark = Provider.of<ThemeProvider>(context, listen: false).isDark;
+
+    if (isDark) {
+      _mapController!.setMapStyle(_darkMapStyle);
+    } else {
+      _mapController!.setMapStyle(null); // Reset to default style
+    }
   }
 
   void _searchLocation() async {
@@ -38,9 +230,11 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
       List<Location> locations = await locationFromAddress(placeName);
       if (locations.isNotEmpty) {
         Location location = locations.first;
-        _mapController.move(
-          LatLng(location.latitude, location.longitude),
-          14.0,
+        _mapController?.animateCamera(
+          gmaps.CameraUpdate.newLatLngZoom(
+            gmaps.LatLng(location.latitude, location.longitude),
+            14.0,
+          ),
         );
       } else {
         _showError("Location not found");
@@ -75,13 +269,18 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
     }
 
     Position position = await Geolocator.getCurrentPosition();
-    _mapController.move(LatLng(position.latitude, position.longitude), 14.0);
+    _mapController?.animateCamera(
+      gmaps.CameraUpdate.newLatLngZoom(
+        gmaps.LatLng(position.latitude, position.longitude),
+        14.0,
+      ),
+    );
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message))
+    );
   }
 
   Future<void> _launchNewsUrl(String? url) async {
@@ -98,8 +297,6 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
         cleanUrl = 'https://$cleanUrl';
       }
-
-      print("Attempting to launch URL: $cleanUrl"); // Debug log
 
       final Uri uri = Uri.parse(cleanUrl);
 
@@ -124,7 +321,6 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
         _showError("Cannot open this URL on your device");
       }
     } catch (e) {
-      print("URL Launch Error: $e"); // Debug log
       _showError("Error opening article: ${e.toString()}");
     }
   }
@@ -148,14 +344,11 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
           ),
         ),
       ),
-      drawer: NavBar(),
+      drawer: const NavBar(),
       body: Stack(
         children: [
           StreamBuilder<QuerySnapshot>(
-            stream:
-                FirebaseFirestore.instance
-                    .collection('news_markers')
-                    .snapshots(),
+            stream: FirebaseFirestore.instance.collection('news_markers').snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -165,62 +358,69 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
                 return const Center(child: Text("No news available"));
               }
 
-              List<Marker> markers = [];
-
+              // Process news markers
+              _markers = {};
+              
               for (var doc in snapshot.data!.docs) {
                 var data = doc.data() as Map<String, dynamic>;
                 double? lat = data['latitude'] as double?;
                 double? lon = data['longitude'] as double?;
-                String originalText =
-                    data['original_text'] ?? 'No description available';
+                String originalText = data['original_text'] ?? 'No description available';
                 String? sourceUrl = data['source_url'] as String?;
 
                 if (lat == null || lon == null) continue;
 
-                markers.add(
-                  Marker(
-                    point: LatLng(lat, lon),
-                    width: 40,
-                    height: 40,
-                    child: GestureDetector(
-                      onTap:
-                          () =>
-                              showNewsDetails(context, originalText, sourceUrl),
-                      child: const Icon(
-                        CupertinoIcons.news_solid,
-                        color: Colors.blue,
-                        size: 36,
-                      ),
+                // Add Google Maps Marker
+                _markers.add(
+                  gmaps.Marker(
+                    markerId: gmaps.MarkerId('news_${doc.id}'),
+                    position: gmaps.LatLng(lat, lon),
+                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(gmaps.BitmapDescriptor.hueBlue),
+                    infoWindow: gmaps.InfoWindow(
+                      title: "News Report",
+                      snippet: originalText.length > 30
+                          ? '${originalText.substring(0, 30)}...'
+                          : originalText,
+                      onTap: () => showNewsDetails(context, originalText, sourceUrl),
                     ),
                   ),
                 );
               }
 
-              return FlutterMap(
-                mapController: _mapController,
-                options: MapOptions(
-                  initialCenter:
-                      markers.isNotEmpty
-                          ? markers.first.point
-                          : const LatLng(
-                            20.5937,
-                            78.9629,
-                          ), // Default to India center
-                  initialZoom: 10,
-                ),
-                children: [
-                  TileLayer(
-                    urlTemplate:
-                        'https://www.google.com/maps/vt?lyrs=m@221097413,traffic&x={x}&y={y}&z={z}',
-                    userAgentPackageName: 'com.complaints.app',
-                  ),
-                  MarkerLayer(markers: markers),
-                ],
+              return Consumer<ThemeProvider>(
+                builder: (context, themeProvider, child) {
+                  // Update map style when theme changes
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    _updateMapStyle();
+                  });
+
+                  return gmaps.GoogleMap(
+                    initialCameraPosition: gmaps.CameraPosition(
+                      target: _markers.isNotEmpty
+                          ? _markers.first.position
+                          : gmaps.LatLng(20.5937, 78.9629), // Default to India center
+                      zoom: 10,
+                    ),
+                    onMapCreated: (controller) {
+                      _mapController = controller;
+                      
+                      // Apply initial style based on theme
+                      if (themeProvider.isDark) {
+                        controller.setMapStyle(_darkMapStyle);
+                      }
+                    },
+                    markers: _markers,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false,
+                    mapType: gmaps.MapType.normal,
+                    zoomControlsEnabled: false,
+                  );
+                },
               );
             },
           ),
 
-          /// Search Bar
+          // Search Bar
           Positioned(
             top: 30,
             left: 20,
@@ -228,36 +428,58 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
             child: Container(
               width: MediaQuery.of(context).size.width * 0.9,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).brightness == Brightness.dark 
+                    ? Colors.grey[800]
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 5)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26, 
+                    blurRadius: 5,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: TextField(
                 controller: _searchController,
                 focusNode: _searchFocusNode,
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+                ),
                 decoration: InputDecoration(
                   hintText: "Search for a location...",
-                  contentPadding: EdgeInsets.symmetric(
+                  hintStyle: TextStyle(
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white70
+                        : Colors.black54,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
                   border: InputBorder.none,
                   suffixIcon: IconButton(
-                    icon: Icon(Icons.search, color: Colors.blue),
+                    icon: const Icon(Icons.search, color: Colors.blue),
                     onPressed: _searchLocation,
                   ),
                 ),
+                onSubmitted: (_) => _searchLocation(),
               ),
             ),
           ),
 
-          /// Current Location Button
+          // Current Location Button
           Positioned(
             bottom: 20,
             right: 20,
             child: FloatingActionButton(
               onPressed: _getCurrentLocation,
-              backgroundColor: Colors.white,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[800]
+                  : Colors.white,
+              elevation: 4,
               child: const Icon(Icons.my_location, color: Colors.blue),
             ),
           ),
@@ -266,80 +488,90 @@ class _NewsMapScreenState extends State<NewsMapScreen> {
     );
   }
 
-  void showNewsDetails(
-    BuildContext context,
-    String description,
-    String? sourceUrl,
-  ) {
+  void showNewsDetails(BuildContext context, String description, String? sourceUrl) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder:
-          (context) => Container(
-            padding: const EdgeInsets.all(16.0),
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.6,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[900]
+          : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(16.0),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.6,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Icon(CupertinoIcons.news, color: Colors.blue, size: 24),
-                    SizedBox(width: 8),
-                    Text(
-                      "News Report",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 18,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Flexible(
-                  child: SingleChildScrollView(
-                    child: Text(
-                      description,
-                      style: TextStyle(fontSize: 16, height: 1.4),
-                    ),
+                Icon(CupertinoIcons.news, color: Colors.blue, size: 24),
+                const SizedBox(width: 8),
+                Text(
+                  "News Report",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
                   ),
                 ),
-                const SizedBox(height: 16),
-                if (sourceUrl != null && sourceUrl.isNotEmpty)
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _launchNewsUrl(sourceUrl);
-                      },
-                      icon: Icon(Icons.open_in_new),
-                      label: Text("Read Full Article"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  )
-                else
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text("Close"),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey,
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
               ],
             ),
-          ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 16,
+                    height: 1.4,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (sourceUrl != null && sourceUrl.isNotEmpty)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _launchNewsUrl(sourceUrl);
+                  },
+                  icon: const Icon(Icons.open_in_new),
+                  label: const Text("Read Full Article"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                ),
+              )
+            else
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  child: const Text("Close"),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }
