@@ -11,36 +11,50 @@ class AddComplaintScreen extends StatefulWidget {
   const AddComplaintScreen({super.key});
 
   @override
-  _AddComplaintScreenState createState() => _AddComplaintScreenState();
+  State<AddComplaintScreen> createState() => _AddComplaintScreenState();
 }
 
 class _AddComplaintScreenState extends State<AddComplaintScreen> {
-  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _textController = TextEditingController();
+  final TextEditingController _locationController = TextEditingController();
+
   bool _isLoading = false;
-  late String? apiKey;
+  bool _showAdvanced = false;
+  bool _manualTagMode = false;
+
+  Set<String> _selectedTags = {};
+  String? _customLocation;
+  DateTime? _customDateTime;
+
+  late final String? _apiKey;
+
+  final List<String> allowedTags = [
+    "Workplace","Family","Safety","Social","Others","Severe","Institutional",
+    "Discrimination","Harassment","Healthcare","Education","Legal","Domestic",
+    "Public","Online","Financial","Professional","Transport","City","Night",
+  ];
 
   @override
   void initState() {
     super.initState();
-    apiKey = dotenv.env['gemini-api'];
+    _apiKey = dotenv.env['gemini-api'];
   }
 
-  Future<void> _checkLocationPermission() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.deniedForever) {
-        throw Exception("Location permissions are permanently denied");
+  /* ───────────────────────────── Location helpers ─────────────────────────── */
+
+  Future<void> _ensureLocationPermission() async {
+    var perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+      if (perm == LocationPermission.deniedForever) {
+        throw Exception("Location permission permanently denied");
       }
     }
   }
 
-  Future<String?> _getLocationName(double latitude, double longitude) async {
+  Future<String?> _reverseGeocode(double lat, double lng) async {
     try {
-      List<Placemark> placemarks = await placemarkFromCoordinates(
-        latitude,
-        longitude,
-      );
+      final placemarks = await placemarkFromCoordinates(lat, lng);
       return placemarks.isNotEmpty
           ? placemarks.first.locality ?? "Unknown Location"
           : "Unknown Location";
@@ -49,38 +63,33 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
     }
   }
 
-  Future<Map<String, dynamic>?> _getGeminiResponse(String complaintText) async {
-    if (apiKey == null || apiKey!.isEmpty) {
-      throw Exception("Gemini API Key is missing!");
+  // Add this new method for forward geocoding
+  Future<Map<String, dynamic>?> _geocodeAddress(String address) async {
+    try {
+      final locations = await locationFromAddress(address);
+      if (locations.isNotEmpty) {
+        final location = locations.first;
+        return {
+          'latitude': location.latitude,
+          'longitude': location.longitude,
+        };
+      }
+      return null;
+    } catch (_) {
+      return null;
     }
+  }
 
-    // Define the allowed tags explicitly
-    final List<String> allowedTags = [
-      "Workplace",
-      "Family",
-      "Safety",
-      "Social",
-      "Others",
-      "Severe",
-      "Institutional",
-      "Discrimination",
-      "Harassment",
-      "Healthcare",
-      "Education",
-      "Legal",
-      "Domestic",
-      "Public",
-      "Online",
-      "Financial",
-      "Professional",
-      "Transport",
-      "City",
-      "Night",
-    ];
+  /* ───────────────────────────── Gemini helper ────────────────────────────── */
+
+  Future<Map<String, dynamic>?> _callGemini(String text) async {
+    if (_apiKey == null || _apiKey!.isEmpty) {
+      throw Exception("Gemini API key missing");
+    }
 
     final model = GenerativeModel(
       model: 'gemini-2.5-flash',
-      apiKey: apiKey!,
+      apiKey: _apiKey!,
       generationConfig: GenerationConfig(
         temperature: 1,
         topK: 40,
@@ -89,30 +98,18 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
         responseMimeType: 'application/json',
         responseSchema: Schema(
           SchemaType.object,
-          requiredProperties: [
-            "Issue Type",
-            "Text_description",
-            "Primary_tags",
-          ],
+          requiredProperties: ["Issue Type","Text_description","Primary_tags"],
           properties: {
             "Issue Type": Schema(
               SchemaType.object,
               requiredProperties: allowedTags,
-              properties: Map.fromEntries(
-                allowedTags.map(
-                  (tag) => MapEntry(tag, Schema(SchemaType.boolean)),
-                ),
-              ),
+              properties: {
+                for (final t in allowedTags) t: Schema(SchemaType.boolean)
+              },
             ),
             "Primary_tags": Schema(
               SchemaType.array,
-              items: Schema(
-                SchemaType.string,
-                enumValues:
-                    allowedTags, // Only allow tags from the predefined list
-              ),
-              description:
-                  "The 3 most relevant tags for this complaint, in order of relevance",
+              items: Schema(SchemaType.string, enumValues: allowedTags),
             ),
             "Text_description": Schema(SchemaType.string),
           },
@@ -120,180 +117,325 @@ class _AddComplaintScreenState extends State<AddComplaintScreen> {
       ),
       systemInstruction: Content.system(
         'You will be given an experience from a woman about a specific issue. '
-        'Analyze it carefully and do the following:\n'
-        '1. Formalize it into a brief but precise description\n'
-        '2. Mark all applicable issue types as true\n'
-        '3. Select ONLY the 3 MOST RELEVANT tags from this list ONLY: ${allowedTags.join(", ")}\n'
-        '4. List them in the Primary_tags array in order of relevance\n'
-        '5. Be honest and accurate in your assessment without altering the core issue\n'
-        '6. Be sensitive to the serious nature of these reports and prioritize tags that best categorize the experience',
+        '1. Summarise in a brief description.\n'
+        '2. Mark relevant issue types as true.\n'
+        '3. Return the 3 most relevant Primary_tags from this list: '
+        '${allowedTags.join(", ")}',
       ),
     );
 
-    // Rest of the function remains the same
     final chat = model.startChat();
-    final response = await chat.sendMessage(
-      Content.multi([TextPart(complaintText)]),
-    );
+    final res = await chat.sendMessage(Content.text(text));
 
-    print("Raw response: ${response.text}");
-
-    if (response.text == null) {
-      return null;
-    }
+    if (res.text == null) return null;
 
     try {
-      String cleanJson = response.text!.replaceAll('json\n', '');
-      final result = jsonDecode(cleanJson);
-      print("Parsed result: $result");
-      return result;
-    } catch (e) {
-      print("Error parsing Gemini response: $e");
-      print("Raw response: ${response.text}");
+      final clean = res.text!.replaceFirst(RegExp(r'^json\s*'), '');
+      return jsonDecode(clean) as Map<String, dynamic>;
+    } catch (_) {
       return null;
     }
   }
 
-  Future<void> _submitComplaint(BuildContext context) async {
-    String complaintText = _controller.text.trim();
-    if (complaintText.isEmpty) return;
+  /* ───────────────────────────── UI builders ──────────────────────────────── */
+
+  Widget _tagSelector() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Checkbox(
+                value: _manualTagMode,
+                onChanged: (v) {
+                  setState(() {
+                    _manualTagMode = v ?? false;
+                    if (!_manualTagMode) _selectedTags.clear();
+                  });
+                },
+              ),
+              const Text("Manually enter tags",
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: allowedTags.map((tag) {
+              final isSelected = _selectedTags.contains(tag);
+              return FilterChip(
+                label: Text(tag,
+                    style: TextStyle(
+                        color: _manualTagMode
+                            ? null
+                            : Colors.grey.shade500)),
+                selected: isSelected,
+                onSelected: _manualTagMode
+                    ? (sel) {
+                        setState(() => sel
+                            ? _selectedTags.add(tag)
+                            : _selectedTags.remove(tag));
+                      }
+                    : null,
+                selectedColor:
+                    Theme.of(context).primaryColor.withOpacity(0.3),
+                checkmarkColor: Theme.of(context).primaryColor,
+                backgroundColor:
+                    _manualTagMode ? null : Colors.grey.shade200,
+              );
+            }).toList(),
+          ),
+        ],
+      );
+
+  Widget _locationInput() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          const Text("Custom location",
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _locationController,
+            decoration: const InputDecoration(
+              prefixIcon: Icon(Icons.location_on),
+              hintText: "Enter location (optional)",
+              border: OutlineInputBorder(),
+            ),
+            onChanged: (v) =>
+                _customLocation = v.trim().isEmpty ? null : v.trim(),
+          ),
+        ],
+      );
+
+  Widget _dateTimePicker() => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 16),
+          const Text("Incident date & time",
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          ListTile(
+            shape: RoundedRectangleBorder(
+                side: const BorderSide(color: Colors.grey),
+                borderRadius: BorderRadius.circular(4)),
+            leading: const Icon(Icons.calendar_today),
+            title: Text(_customDateTime != null
+                ? "${_customDateTime!.day}/${_customDateTime!.month}/${_customDateTime!.year}"
+                : "Select date"),
+            subtitle: Text(_customDateTime != null
+                ? "${_customDateTime!.hour.toString().padLeft(2, '0')}:${_customDateTime!.minute.toString().padLeft(2, '0')}"
+                : "Current time will be used"),
+            trailing: _customDateTime != null
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () =>
+                        setState(() => _customDateTime = null),
+                  )
+                : null,
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: _customDateTime ?? DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime.now(),
+              );
+              if (d != null) {
+                final t = await showTimePicker(
+                    context: context,
+                    initialTime: TimeOfDay.fromDateTime(
+                        _customDateTime ?? DateTime.now()));
+                if (t != null) {
+                  setState(() {
+                    _customDateTime =
+                        DateTime(d.year, d.month, d.day, t.hour, t.minute);
+                  });
+                }
+              }
+            },
+          ),
+        ],
+      );
+
+  /* ───────────────────────────── Submit ───────────────────────────────────── */
+
+  Future<void> _submit() async {
+    final rawText = _textController.text.trim();
+    if (rawText.isEmpty) return;
 
     setState(() => _isLoading = true);
 
     try {
-      await _checkLocationPermission();
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-      );
+      /* 1️⃣  Call Gemini irrespective of user-overrides */
+      final geminiData = await _callGemini(rawText);
 
-      String locationName =
-          await _getLocationName(position.latitude, position.longitude) ??
-          "Unknown";
-      String timestamp = DateTime.now().toIso8601String();
+      /* 2️⃣  Location handling */
+      double lat = 0, lng = 0;
+      String locName = "Unknown";
 
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user == null) throw Exception("User not authenticated");
-
-      String userId = user.uid;
-
-      // Get the structured complaint using Gemini
-      Map<String, dynamic>? structuredComplaint = await _getGeminiResponse(
-        complaintText,
-      );
-
-      // Use primary tags if available, otherwise fall back to issue types
-      List<String> issueTypes = [];
-
-      if (structuredComplaint != null) {
-        if (structuredComplaint.containsKey("Primary_tags") &&
-            structuredComplaint["Primary_tags"] is List) {
-          // Use the AI-selected primary tags (limited to 4)
-          issueTypes = List<String>.from(structuredComplaint["Primary_tags"]);
-        } else if (structuredComplaint.containsKey("Issue Type")) {
-          // Fall back to old method: get all true tags
-          Map<String, dynamic> allTags = structuredComplaint["Issue Type"];
-          List<MapEntry<String, dynamic>> sortedTags =
-              allTags.entries.where((entry) => entry.value == true).toList();
-
-          // Limit to 4 tags
-          sortedTags = sortedTags.take(4).toList();
-          issueTypes = sortedTags.map((e) => e.key).toList();
+      if (_customLocation != null && _customLocation!.isNotEmpty) {
+        // User entered manual location - try to geocode it
+        locName = _customLocation!;
+        final geocoded = await _geocodeAddress(_customLocation!);
+        if (geocoded != null) {
+          lat = geocoded['latitude'];
+          lng = geocoded['longitude'];
         }
+        // If geocoding fails, lat/lng remain 0,0 but we keep the user's location name
+      } else {
+        // Use current location
+        await _ensureLocationPermission();
+        final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        lat = pos.latitude;
+        lng = lng = pos.longitude;
+        locName = await _reverseGeocode(lat, lng) ?? "Unknown";
       }
 
-      Map<String, dynamic> formattedComplaint = {
-        "issue_type": issueTypes.join(", "),
-        "issue_tags": issueTypes, // StoSre as array for better querying
-        "latitude": position.latitude,
-        "longitude": position.longitude,
-        "location": locationName,
-        "original_text": complaintText,
-        "processed_text":
-            structuredComplaint?["Text_description"] ?? complaintText,
-        "timestamp": timestamp,
-        "timestamp_ms": DateTime.now().millisecondsSinceEpoch,
-        "user_id": userId,
+      /* 3️⃣  Timestamp handling */
+      final incidentDateTime = _customDateTime ?? DateTime.now();
+      final uploadDateTime = DateTime.now(); // Always current time for upload
+      
+      final incidentTimestampIso = incidentDateTime.toIso8601String();
+      final uploadTimestampIso = uploadDateTime.toIso8601String();
+
+      /* 4️⃣  Tags merge */
+      List<String> finalTags;
+      if (_manualTagMode && _selectedTags.isNotEmpty) {
+        finalTags = _selectedTags.toList();
+      } else if (geminiData != null &&
+          geminiData["Primary_tags"] is List<dynamic>) {
+        finalTags = List<String>.from(geminiData["Primary_tags"]);
+      } else {
+        finalTags = [];
+      }
+
+      /* 5️⃣  Processed text */
+      final processedText =
+          geminiData?["Text_description"] ?? rawText;
+
+      /* 6️⃣  Build Firestore object */
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) throw Exception("Not authenticated");
+
+      final payload = {
+        "issue_type": finalTags.join(", "),
+        "issue_tags": finalTags,
+        "location": locName,
+        "latitude": lat,
+        "longitude": lng,
+        "original_text": rawText,
+        "processed_text": processedText,
+        "timestamp": incidentTimestampIso, // When the incident occurred
+        "timestamp_ms": uploadDateTime.millisecondsSinceEpoch,//rough fix for sorting to work :)
+        "timestamp_uploaded": uploadTimestampIso, // When the complaint was uploaded
+        "timestamp_uploaded_ms": uploadDateTime.millisecondsSinceEpoch,
+        "user_id": uid,
         "queried": false,
         "upvotes": 0,
+        "manual_tag_override": _manualTagMode,
+        "custom_location_used": _customLocation != null,
+        "custom_datetime_used": _customDateTime != null,
       };
 
-      // Add the complaint document and then update user's my_c field with the new complaint's ID.
-      DocumentReference complaintRef = await FirebaseFirestore.instance
+      final ref = await FirebaseFirestore.instance
           .collection('complaints')
-          .add(formattedComplaint);
+          .add(payload);
 
-      // Update the user's my_c array.
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'my_c': FieldValue.arrayUnion([complaintRef.id]),
-      });
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .update({'my_c': FieldValue.arrayUnion([ref.id])});
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Your experience has been shared successfully"),
-          ),
-        );
+          const SnackBar(content: Text("Experience shared successfully")));
         Navigator.pop(context);
       }
-    } catch (error) {
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Error: ${error.toString()}")));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Error: $e")));
       }
     }
 
     setState(() => _isLoading = false);
   }
 
+  /* ───────────────────────────── Build ────────────────────────────────────── */
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(80.0),
-        child: AppBar(
-          toolbarHeight: 80,
-          centerTitle: true,
-          title: const Text(
-            "SHARE EXPERIENCE",
+      appBar: AppBar(
+        toolbarHeight: 80,
+        centerTitle: true,
+        title: const Text("SHARE EXPERIENCE",
             style: TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w900,
               letterSpacing: 4,
               fontSize: 24,
-            ),
-          ),
-        ),
+            )),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
+            /* ── text input ── */
+            SizedBox(
+              height: 200,
               child: TextField(
-                controller: _controller,
+                controller: _textController,
                 decoration: const InputDecoration(
                   labelText: "Share your experience",
-                  hintText: "Tell us what happened...",
                   border: OutlineInputBorder(),
                 ),
-                textAlign: TextAlign.center,
                 maxLines: null,
                 expands: true,
+                textAlign: TextAlign.start,
                 textAlignVertical: TextAlignVertical.top,
               ),
             ),
             const SizedBox(height: 20),
+
+            /* ── advanced toggle ── */
+            CheckboxListTile(
+              value: _showAdvanced,
+              onChanged: (v) =>
+                  setState(() => _showAdvanced = v ?? false),
+              title: const Text("Enter more details",
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+              subtitle: const Text("Specify location, tags and time"),
+              controlAffinity: ListTileControlAffinity.leading,
+            ),
+
+            /* ── advanced section ── */
+            AnimatedCrossFade(
+              duration: const Duration(milliseconds: 300),
+              crossFadeState: _showAdvanced
+                  ? CrossFadeState.showFirst
+                  : CrossFadeState.showSecond,
+              firstChild: Column(
+                children: [
+                  _tagSelector(),
+                  _locationInput(),
+                  _dateTimePicker(),
+                ],
+              ),
+              secondChild: const SizedBox.shrink(),
+            ),
+
+            const SizedBox(height: 20),
+
+            /* ── submit button ── */
             _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : ElevatedButton(
-                  onPressed: () => _submitComplaint(context),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    onPressed: _submit,
+                    style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 15)),
+                    child: const Text("Submit", style: TextStyle(fontSize: 16)),
                   ),
-                  child: const Text("Submit", style: TextStyle(fontSize: 16)),
-                ),
           ],
         ),
       ),
