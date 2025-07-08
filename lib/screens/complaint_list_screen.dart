@@ -185,7 +185,7 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                       ? _optimisticUpvotes[doc.id]!
                       : (data['upvotes'] ?? 0);
 
-              // Format the timestamp as "time ago"
+              // Format Use timestamp uploaded if not present use timestamp
               String timeAgoText = "Unknown date";
               if (data.containsKey('timestamp') && data['timestamp'] != null) {
                 try {
