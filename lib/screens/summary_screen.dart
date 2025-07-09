@@ -15,7 +15,7 @@ class SummaryScreen extends StatelessWidget {
       {
         'title': 'Nightlife Safety',
         'summary':
-            'Focuses on safety conditions during evening and night hours across the city. Addresses visibility issues in poorly lit areas, safety in entertainment districts after dark, and recommended precautions when navigating the city at night.',
+            'Focuses on safety conditions during evening and night hours. Addresses safety after the dark, and recommended precautions when navigating the city at night.',
         'icon': Icons.nightlife,
         'color': Colors.purple,
       },
@@ -75,7 +75,7 @@ class SummaryScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(bottom: 20),
               child: Text(
-                "Safety Overview by Category",
+                "An overview of safety conditions for different categories.",
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   fontFamily: 'Poppins',

@@ -179,6 +179,11 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
               final Map<String, dynamic> data =
                   doc.data() as Map<String, dynamic>;
 
+              // Shadowban: skip if shadowbanned
+              if (data['shadowbanned'] == true) {
+                return const SizedBox.shrink();
+              }
+
               // Get the actual or optimistic upvote count
               final upvotes =
                   _optimisticUpvotes.containsKey(doc.id)
@@ -258,6 +263,8 @@ class _ComplaintListScreenState extends State<ComplaintListScreen> {
                                       onUpvote:
                                           () => _handleUpvote(doc.id, upvotes),
                                     ),
+                                    const SizedBox(width: 8),
+                                    ReportButton(complaintId: doc.id),
                                     const SizedBox(width: 8),
                                     Container(
                                       padding: const EdgeInsets.symmetric(
@@ -579,6 +586,82 @@ class SaveButton extends StatelessWidget {
             color:
                 isSaved
                     ? Theme.of(context).primaryColor
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Add ReportButton widget
+class ReportButton extends StatelessWidget {
+  final String complaintId;
+  const ReportButton({super.key, required this.complaintId});
+
+  @override
+  Widget build(BuildContext context) {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return const SizedBox.shrink();
+    return StreamBuilder<DocumentSnapshot>(
+      stream:
+          FirebaseFirestore.instance
+              .collection('complaints')
+              .doc(complaintId)
+              .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final data = snapshot.data?.data() as Map<String, dynamic>? ?? {};
+        final List<dynamic> reportedBy = data['reported_by'] ?? [];
+        final bool isReported = reportedBy.contains(userId);
+        return GestureDetector(
+          onTap: () async {
+            final docRef = FirebaseFirestore.instance
+                .collection('complaints')
+                .doc(complaintId);
+            if (isReported) {
+              // De-report: remove user from reported_by and decrement report_count
+              await docRef.update({
+                'report_count': FieldValue.increment(-1),
+                'reported_by': FieldValue.arrayRemove([userId]),
+              });
+              // If shadowbanned and now less than 2 reports, un-shadowban
+              final updatedDoc = await docRef.get();
+              final updatedData =
+                  updatedDoc.data() as Map<String, dynamic>? ?? {};
+              if ((updatedData['report_count'] ?? 0) < 2 &&
+                  (updatedData['shadowbanned'] ?? false)) {
+                await docRef.update({'shadowbanned': false});
+              }
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(const SnackBar(content: Text('Report removed.')));
+            } else {
+              // Report: add user to reported_by and increment report_count
+              await docRef.update({
+                'report_count': FieldValue.increment(1),
+                'reported_by': FieldValue.arrayUnion([userId]),
+              });
+              // Shadowban if 2 or more reports
+              final updatedDoc = await docRef.get();
+              final updatedData =
+                  updatedDoc.data() as Map<String, dynamic>? ?? {};
+              if ((updatedData['report_count'] ?? 0) >= 4) {
+                await docRef.update({'shadowbanned': true});
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Reported. Thank you for your feedback!'),
+                ),
+              );
+            }
+          },
+          child: Icon(
+            isReported ? Icons.flag : Icons.outlined_flag,
+            size: 16,
+            color:
+                isReported
+                    ? Colors.red
                     : Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
           ),
         );

@@ -96,9 +96,9 @@ class _NewsScreenState extends State<NewsScreen> {
         child: AppBar(
           toolbarHeight: 80,
           centerTitle: true,
-          title: const Text(
-            "LOCAL NEWS",
-            style: TextStyle(
+          title: Text(
+            "Schemes - $currentState",
+            style: const TextStyle(
               fontFamily: 'Poppins',
               fontWeight: FontWeight.w900,
               letterSpacing: 4,
