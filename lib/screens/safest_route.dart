@@ -17,7 +17,8 @@ import 'package:complaints_app/models/travel_mode.dart';
 import 'dart:async';
 import 'package:complaints_app/theme/theme_provider.dart';
 import 'package:provider/provider.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:ui';
 class SafestRoutePage extends StatefulWidget {
   const SafestRoutePage({super.key});
 
@@ -209,7 +210,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
 
   // Travel mode selection
   TravelMode _selectedTravelMode = TravelMode.driving;
-
+  gmaps.BitmapDescriptor? _sosMarkerIcon;
   // Routing variables
   LatLng? _currentLocation;
   LatLng? _sourceLocation;
@@ -225,6 +226,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   bool _showNews = true;
   bool _showNGOs = false;
   bool _showPoliceStations = false;
+  bool _showSOS = true;
 
   // Route metrics
   List<double> _routeDistances = [];
@@ -256,10 +258,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   @override
   void initState() {
     super.initState();
-
+    _loadCustomMarker();
     // Load map without waiting for location first
     _fetchMarkerData();
-
     // Try to get location in the background
     Future.delayed(Duration.zero, () {
       _getCurrentLocationCoordinates().then((_) {
@@ -282,7 +283,58 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       });
     });
   }
+// Add this method
+  Future<void> _loadCustomMarker() async {
+    _sosMarkerIcon = await createSOSMarker();
+  }
 
+  // Add this method - copied from home screen
+  Future<gmaps.BitmapDescriptor> createSOSMarker() async {
+    final PictureRecorder pictureRecorder = PictureRecorder();
+    final Canvas canvas = Canvas(pictureRecorder);
+    final Paint paint = Paint()..color = Colors.orange;
+    final double radius = 65; // Increased from 24 to make it larger
+
+    // Draw outer pulsing circle
+    paint.color = Colors.orange.withOpacity(0.4);
+    canvas.drawCircle(Offset(radius, radius), radius, paint);
+    
+    // Draw middle circle
+    paint.color = Colors.orange.withOpacity(0.6);
+    canvas.drawCircle(Offset(radius, radius), radius * 0.7, paint);
+
+    // Draw inner circle
+    paint.color = Colors.orange;
+    canvas.drawCircle(Offset(radius, radius), radius * 0.4, paint);
+    
+    // Draw SOS text
+    final TextPainter textPainter = TextPainter(
+      text: TextSpan(
+        text: 'SOS',
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 30, // Larger text
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textAlign: TextAlign.center,
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas, 
+      Offset(radius - textPainter.width / 2, radius - textPainter.height / 2),
+    );
+    
+    // Convert to image
+    final img = await pictureRecorder.endRecording().toImage(
+      (radius * 2).toInt(),
+      (radius * 2).toInt(),
+    );
+    final data = await img.toByteData(format: ImageByteFormat.png);
+    
+    return gmaps.BitmapDescriptor.fromBytes(data!.buffer.asUint8List());
+  }
   // Update map style based on current theme
   void _updateMapStyle() {
     if (_mapController == null) return;
@@ -563,7 +615,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
   Future<List<List<LatLng>>> _getAlternativeRoutes(
     LatLng sourceLocation,
   ) async {
-    if (sourceLocation == null || _destinationLocation == null) return [];
+    if (_destinationLocation == null) return [];
 
     _clearRouteMetrics();
     final routes = <List<LatLng>>[];
@@ -627,7 +679,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     // Check if marker data has been loaded
     _fetchMarkerData().then((snapshots) {
       if (snapshots.isNotEmpty && mounted) {
-        _updateMapMarkers(snapshots[0], snapshots[1], snapshots[2]);
+        _updateMapMarkers(snapshots[0], snapshots[1], snapshots[2],snapshots[3]);
       }
     });
   }
@@ -644,7 +696,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     List<List<LatLng>> existingRoutes,
     LatLng sourceLocation,
   ) async {
-    if (sourceLocation == null || _destinationLocation == null) return;
+    if (_destinationLocation == null) return;
 
     final midLat =
         (sourceLocation.latitude + _destinationLocation!.latitude) / 2;
@@ -887,7 +939,8 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     final ngos = await FirebaseFirestore.instance.collection('ngos').get();
     final police =
         await FirebaseFirestore.instance.collection('police_stations').get();
-    return [news, ngos, police];
+      final sos = await FirebaseFirestore.instance.collection('sos').get();
+     return [news, ngos, police, sos];
   }
 
   void _showMessage(String message, {required bool isError}) {
@@ -956,7 +1009,9 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       final ngos = await FirebaseFirestore.instance.collection('ngos').get();
       final police =
           await FirebaseFirestore.instance.collection('police_stations').get();
-      return [news, ngos, police];
+      final sos = await FirebaseFirestore.instance.collection('sos').get();
+
+      return [news, ngos, police,sos];
     }).asyncMap((future) => future);
   }
 
@@ -965,6 +1020,8 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
     QuerySnapshot newsSnapshot,
     QuerySnapshot ngosSnapshot,
     QuerySnapshot policeSnapshot,
+    QuerySnapshot sosSnapshot, // Adding sos
+
   ) {
     final markers = <gmaps.Marker>{};
     final newsMarkers = <LatLng>[];
@@ -1149,6 +1206,49 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
         }
       }
     }
+  // Add SOS Markers
+  
+  // Add SOS markers - insert this before the final setState
+  if (_showSOS) {
+    String? currentUid = FirebaseAuth.instance.currentUser?.uid;
+    
+    for (var doc in sosSnapshot.docs) {
+      try {
+        var data = doc.data() as Map<String, dynamic>;
+
+        bool isActive = data['active'] == true;
+        List<dynamic> relatedUsers = data['related_users'] ?? [];
+        bool isUserRelated = relatedUsers.contains(currentUid);
+
+        if (!isActive || !isUserRelated) continue;
+
+        double? lat = data['latitude'] as double?;
+        double? lon = data['longitude'] as double?;
+        String? userId = doc.id;
+
+        if (lat == null || lon == null) continue;
+
+        // Add SOS marker
+        markers.add(
+          gmaps.Marker(
+            markerId: gmaps.MarkerId('sos_$userId'),
+            position: gmaps.LatLng(lat, lon),
+            icon: _sosMarkerIcon ?? gmaps.BitmapDescriptor.defaultMarkerWithHue(
+              gmaps.BitmapDescriptor.hueOrange,
+            ),
+            infoWindow: gmaps.InfoWindow(
+              title: 'SOS Alert',
+              snippet: 'Emergency - Click for details',
+              onTap: () => _showSOSDetails(context, data, doc.id),
+            ),
+          ),
+        );
+      } catch (e) {
+        print("Error processing SOS marker: $e");
+        continue;
+      }
+    }
+  }
 
     // Update news markers for safety calculation
     _newsMarkers = newsMarkers;
@@ -1555,6 +1655,224 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       },
     );
   }
+// Add this method after the _showPoliceStationDetails method (around line 1800-1900)
+
+void _showSOSDetails(
+  BuildContext context,
+  Map<String, dynamic> sosData,
+  String sosId,
+) async {
+  // Get latitude and longitude for Google Maps
+  double? lat = sosData['latitude'] as double?;
+  double? lon = sosData['longitude'] as double?;
+  String? userId = sosId;
+
+  // Default values in case we can't fetch the user data
+  String userName = "Unknown";
+  String phoneNumber = "";
+
+  // Fetch user data if we have a user ID
+  try {
+    DocumentSnapshot userDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .get();
+
+    if (userDoc.exists) {
+      final userData = userDoc.data() as Map<String, dynamic>;
+      userName = userData['name'] ?? "Unknown";
+      phoneNumber = userData['phone_no'] ?? "";
+    }
+  } catch (e) {
+    print("Error fetching user data: $e");
+  }
+
+  showModalBottomSheet(
+    context: context,
+    builder: (context) => Container(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.emergency, color: Colors.orange, size: 24),
+              const SizedBox(width: 8),
+              const Text(
+                'EMERGENCY SOS ALERT',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'From: $userName',
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Location: ${sosData['location'] ?? 'Unknown'}',
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Time: ${_formatTimestamp(sosData['timestamp'])}',
+            style: const TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              // Get Directions Button (like NGO/Police)
+              if (!_isRouteVisible)
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      Navigator.pop(context);
+                      
+                      if (lat != null && lon != null) {
+                        // Set as destination
+                        setState(() {
+                          _destinationLocation = LatLng(lat, lon);
+                        });
+
+                        _destSearchController.text = 'SOS Alert - $userName';
+
+                        if (_useCurrentLocationAsSource && _currentLocation == null) {
+                          await _getCurrentLocationCoordinates();
+                        }
+
+                        if ((_useCurrentLocationAsSource && _currentLocation != null) ||
+                            (!_useCurrentLocationAsSource && _sourceLocation != null)) {
+                          await _drawBestRoute();
+                        } else {
+                          _showMessage("Please set your location first", isError: true);
+                        }
+                      } else {
+                        _showMessage("Location coordinates not available", isError: true);
+                      }
+                    },
+                    icon: const Icon(Icons.directions),
+                    label: const Text('Get Directions'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+                
+                // Clear Route Button (if route is visible)
+                if (_isRouteVisible)
+                Expanded(
+                  child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _clearRoute();
+                  },
+                  icon: const Icon(Icons.clear, color: Colors.red),
+                  label: const Text(
+                    'Clear Route',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.yellow,
+                    foregroundColor: Colors.red,
+                  ),
+                  ),
+                ),
+                
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: phoneNumber.isEmpty
+                      ? null
+                      : () {
+                          Navigator.pop(context);
+                          _makePhoneCall(phoneNumber);
+                        },
+                  icon: const Icon(Icons.phone),
+                  label: const Text('Call'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey,
+                    disabledForegroundColor: Colors.white70,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+// Add these helper methods after the _showSOSDetails method
+
+Future<void> _makePhoneCall(String phoneNumber) async {
+  print("Original phone number: $phoneNumber");
+
+  final String cleanPhone = phoneNumber.replaceAll(RegExp(r'\s+'), '');
+  print("Clean phone: $cleanPhone");
+
+  try {
+    final Uri telUri = Uri(scheme: 'tel', path: cleanPhone);
+    print("Attempting to launch: ${telUri.toString()}");
+
+    if (await canLaunchUrl(telUri)) {
+      print("Can launch - attempting to launch");
+      await launchUrl(telUri);
+    } else {
+      print("Cannot launch tel URI - trying dial intent");
+      final Uri dialUri = Uri.parse('tel:$cleanPhone');
+      if (await canLaunchUrl(dialUri)) {
+        await launchUrl(dialUri, mode: LaunchMode.externalApplication);
+      } else {
+        _showMessage("Could not launch phone dialer. Device may not support this feature.", isError: true);
+      }
+    }
+  } catch (e) {
+    print("Error launching phone dialer: $e");
+    _showMessage("Error: ${e.toString()}", isError: true);
+  }
+}
+
+String _formatTimestamp(dynamic timestamp) {
+  if (timestamp == null) return 'Unknown time';
+  try {
+    DateTime dateTime;
+    if (timestamp is Timestamp) {
+      dateTime = timestamp.toDate();
+    } else if (timestamp is String) {
+      dateTime = DateTime.parse(timestamp);
+    } else if (timestamp is int) {
+      dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    } else {
+      return 'Unknown time';
+    }
+
+    Duration difference = DateTime.now().difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes} minutes ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours} hours ago';
+    } else {
+      return '${difference.inDays} days ago';
+    }
+  } catch (e) {
+    return 'Unknown time';
+  }
+}
 
   Future<void> _openMapsDirections(
     double sourceLat,
@@ -1573,6 +1891,24 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       _showMessage("Could not open maps application", isError: true);
     }
   }
+
+  // START: NEW METHOD to handle the FAB press
+  void _handleOpenInGoogleMaps() {
+    LatLng? source = _useCurrentLocationAsSource ? _currentLocation : _sourceLocation;
+    LatLng? destination = _destinationLocation;
+
+    if (source != null && destination != null) {
+      _openMapsDirections(
+        source.latitude,
+        source.longitude,
+        destination.latitude,
+        destination.longitude,
+      );
+    } else {
+      _showMessage("Cannot open in maps. Route is incomplete.", isError: true);
+    }
+  }
+  // END: NEW METHOD
 
   void _showNewsDetails(
     BuildContext context,
@@ -1784,6 +2120,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
                         snapshots[0],
                         snapshots[1],
                         snapshots[2],
+                        snapshots[3], // Add this line to include SOS markers
                       );
                     }
                   });
@@ -2047,6 +2384,25 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
           else
             _buildSimpleTravelModeSelector(theme, isDark, padding),
 
+          // START: NEW WIDGET - Open in Google Maps Button
+          if (_isRouteVisible)
+            Positioned(
+              bottom: 156, // Positioned above the other FAB
+              right: 16,
+              child: FloatingActionButton.small(
+                heroTag: "openInMapsBtn", // Unique heroTag is important
+                onPressed: _handleOpenInGoogleMaps,
+                backgroundColor: theme.colorScheme.surface,
+                tooltip: 'Open route in Google Maps',
+                elevation: 4,
+                child: const Icon(
+                  Icons.directions, 
+                  color: Colors.blueAccent,
+                ),
+              ),
+            ),
+          // END: NEW WIDGET
+
           // Current Location Button
           Positioned(
             bottom: 100,
@@ -2096,7 +2452,7 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       ),
     );
   }
-
+/*
     // Google Maps style travel mode selector with route info
   Widget _buildGoogleStyleTravelModeSelector(ThemeData theme, bool isDark, EdgeInsets padding) {
     return Positioned(
@@ -2241,9 +2597,161 @@ class _SafestRoutePageState extends State<SafestRoutePage> {
       ),
     );
   }
-
+*/
   // Add this method to your _SafestRoutePageState class
-
+// Google Maps style travel mode selector with route info
+Widget _buildGoogleStyleTravelModeSelector(ThemeData theme, bool isDark, EdgeInsets padding) {
+  return Positioned(
+    bottom: 0,
+    left: 0,
+    right: 0,
+    child: Container(
+      padding: EdgeInsets.only(
+        bottom: padding.bottom > 0 ? padding.bottom : 8,
+        top: 0,
+      ),
+      color: Colors.transparent,
+      child: Container(
+        height: 90,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black26 : Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: TravelModeInfo.allModes.map((modeInfo) {
+            final isSelected = _selectedTravelMode == modeInfo.mode;
+            return Expanded(
+              child: InkWell(
+                onTap: () {
+                  setState(() {
+                    _selectedTravelMode = modeInfo.mode;
+                  });
+                  if (_isRouteVisible) {
+                    _drawBestRoute();
+                  }
+                },
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: isSelected ? theme.colorScheme.primary.withOpacity(0.15) : Colors.transparent,
+                    border: Border(
+                      top: BorderSide(
+                        color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+                        width: 3,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        modeInfo.icon,
+                        color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                        size: 22,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        modeInfo.name,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'Poppins',
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                          color: isSelected ? theme.colorScheme.primary : Colors.grey,
+                        ),
+                      ),
+                      if (isSelected && _routeDistances.isNotEmpty)
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Distance and duration row
+                            Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              // 👈 WRAP THE ROW'S CHILDREN TO PREVENT OVERFLOW
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center, // Center the content
+                                children: [
+                                  // 👈 Combine Text and wrap with Flexible
+                                  Flexible(
+                                    child: Text(
+                                      "${_formatDistance(_routeDistances[_bestRouteIndex])} · ${_formatDuration(_routeDurations[_bestRouteIndex])}",
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontFamily: 'Poppins',
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      // 👈 Add these properties
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // Safety score row
+                            Container(
+                              margin: const EdgeInsets.only(top: 3),
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: _getSafetyColor(_routeSafetyScores[_bestRouteIndex]).withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                mainAxisAlignment: MainAxisAlignment.center, // Center the content
+                                children: [
+                                  Icon(
+                                    Icons.shield,
+                                    size: 8,
+                                    color: _getSafetyColor(_routeSafetyScores[_bestRouteIndex]),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  // 👈 Wrap the Text with Flexible
+                                  Flexible(
+                                    child: Text(
+                                      "Safety: ${_formatSafetyScore(_routeSafetyScores[_bestRouteIndex])}",
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.bold,
+                                        fontFamily: 'Poppins',
+                                        color: _getSafetyColor(_routeSafetyScores[_bestRouteIndex]),
+                                      ),
+                                      // 👈 Add these properties
+                                      maxLines: 1,
+                                      softWrap: false,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    ),
+  );
+}
   Color _getSafetyColor(double safetyScore) {
     if (safetyScore < 300) {
       return Colors.red;
