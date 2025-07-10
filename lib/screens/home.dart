@@ -396,8 +396,8 @@ class _HomePageState extends State<HomePage> {
                       _currentLocation!.latitude,
                       _currentLocation!.longitude,
                     ),
-                    icon: _sosMarkerIcon ?? gmaps.BitmapDescriptor.defaultMarkerWithHue(
-                      gmaps.BitmapDescriptor.hueOrange,
+                    icon: gmaps.BitmapDescriptor.defaultMarkerWithHue(
+                      gmaps.BitmapDescriptor.hueBlue,
                     ),
                     // Use a custom icon for current location
                     infoWindow: gmaps.InfoWindow(title: 'My Location'),
