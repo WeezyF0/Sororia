@@ -41,7 +41,7 @@ Recommendations:
   void _initializeModel() {
     if (_model != null) return;
     _model = GenerativeModel(
-      model: 'gemini-2.5-flash-preview-04-17',
+      model: 'gemini-flash-latest',
       apiKey: _apiKey,
       systemInstruction: Content.system(_systemPromptText),
       generationConfig: GenerationConfig(
